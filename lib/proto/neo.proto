@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+message TeamBucket {
+  repeated string team_ips = 1;
+}
+
+message FileInfo {
+  string uuid = 1;
+}
+
+message ExploitState {
+  string exploit_id = 1;
+  int64 version = 2;
+  FileInfo file = 3;
+}
+
+message Config {
+  int64 run_every = 1;
+  int64 timeout = 2;
+  string farm_url = 3;
+  string flag_regexp = 4;
+  int64 ping_every = 5;
+}
+
+message ServerState {
+  // Ping distribution by client
+  map<string, TeamBucket> client_team_map = 1;
+  repeated ExploitState exploits = 2;
+  Config config = 3;
+}
+
+message ExploitConfiguration {
+  string entrypoint = 1;
+  bool is_archive = 2;
+}
+
+message FileStream {
+  bytes chunk = 1;
+}
+
+message PingRequest {
+  string client_id = 1;
+}
+
+message PingResponse {
+  ServerState state = 1;
+}
+
+message ExploitRequest {
+  string exploit_id = 1;
+}
+
+message ExploitResponse {
+  ExploitState state = 1;
+  ExploitConfiguration config = 2;
+}
+
+message UpdateExploitRequest {
+  string exploit_id = 1;
+  FileInfo file = 2;
+  ExploitConfiguration config = 3;
+}
+
+message UpdateExploitResponse {
+  ExploitState state = 1;
+}
+
+service ExploitManager {
+  rpc Ping (PingRequest) returns (PingResponse) {}
+  rpc UploadFile(stream FileStream) returns (FileInfo) {}
+  rpc DownloadFile(FileInfo) returns (stream FileStream) {}
+  rpc Exploit(ExploitRequest)  returns (ExploitResponse) {}
+  rpc UpdateExploit(UpdateExploitRequest) returns (UpdateExploitResponse) {}
+}

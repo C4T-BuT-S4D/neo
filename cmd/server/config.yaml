@@ -1,0 +1,5 @@
+port: "5005"
+db_path: "./db.db"
+base_dir: "."
+ping_every: "30s"
+run_every: "30s"
