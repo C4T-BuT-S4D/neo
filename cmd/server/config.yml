@@ -1,0 +1,10 @@
+port: "5005"
+db_path: "./db.db"
+base_dir: "."
+ping_every: "30s"
+run_every: "15s"
+timeout: "15s"
+farm_url: "http://127.0.0.1:6666"
+flag_regexp: "[A-Z0-9]{31}="
+ip_list:
+  - "127.0.0.1"

@@ -27,6 +27,13 @@ func (hb *HostBucket) Buckets() map[string]*neopb.TeamBucket {
 	return hb.buck
 }
 
+func (hb *HostBucket) Exists(tid string) (exists bool) {
+	hb.m.RLock()
+	defer hb.m.RUnlock()
+	_, exists = hb.buck[tid]
+	return
+}
+
 func (hb *HostBucket) Add(tid string) {
 	hb.m.Lock()
 	defer hb.m.Unlock()

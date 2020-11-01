@@ -15,11 +15,11 @@ message ExploitState {
 }
 
 message Config {
-  int64 run_every = 1;
-  int64 timeout = 2;
+  string run_every = 1;
+  string timeout = 2;
   string farm_url = 3;
   string flag_regexp = 4;
-  int64 ping_every = 5;
+  string ping_every = 5;
 }
 
 message ServerState {

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"io/ioutil"
+	"neo/pkg/hostbucket"
 	"os"
 	"testing"
 	"time"
@@ -93,7 +94,7 @@ func TestExploitManagerServer_Exploit(t *testing.T) {
 func TestExploitManagerServer_Ping(t *testing.T) {
 	es, clean := testServer()
 	defer clean()
-	es.config.IPList = []string{"ip1", "ip2"}
+	es.buckets = hostbucket.New([]string{"ip1", "ip2"})
 	es.config.FarmUrl = "test"
 	ctx := context.Background()
 	r := &neopb.UpdateExploitRequest{

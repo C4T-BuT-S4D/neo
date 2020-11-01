@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/signal"
 
-	"neo/pkg/server"
+	"neo/internal/server"
 
 	"google.golang.org/grpc"
 
@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	configFile = flag.String("config", "config.yaml", "yaml config file to read")
+	configFile = flag.String("config", "config.yml", "yaml config file to read")
 )
 
 func load(path string, cfg *server.Configuration) error {
@@ -39,8 +39,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create bolt storage: %v", err)
 	}
+	if cfg.RunEvery <= 0 {
+		log.Fatalf("run_every should be positive")
+	}
+	if cfg.PingEvery <= 0 {
+		log.Fatalf("ping_every should be positive")
+	}
+	if cfg.Timeout <= 0 {
+		log.Fatalf("timeout should be positive")
+	}
+	logrus.Infof("Config: %+v", cfg)
 	srv := server.New(cfg, st)
-	lis, err := net.Listen("tcp", ":" + cfg.Port)
+	lis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

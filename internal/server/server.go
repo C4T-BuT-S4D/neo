@@ -5,8 +5,10 @@ import (
 	"io"
 	"os"
 	"path"
+	"regexp"
 	"time"
 
+	"neo/internal/config"
 	"neo/pkg/filestream"
 	"neo/pkg/hostbucket"
 
@@ -40,20 +42,26 @@ func (o osFs) Open(f string) (fileInterface, error) {
 	return os.Open(path.Join(o.baseDir, f))
 }
 
-func New(config *Configuration, storage *CachedStorage) *ExploitManagerServer {
+func New(cfg *Configuration, storage *CachedStorage) *ExploitManagerServer {
 	return &ExploitManagerServer{
 		storage: storage,
-		fs:      osFs{config.BaseDir},
-		config:  config,
-		buckets: hostbucket.New(config.IPList),
-		visits:  newVisitsMap(),
+		fs:      osFs{cfg.BaseDir},
+		buckets: hostbucket.New(cfg.IPList),
+		config: &config.Config{
+			PingEvery:  cfg.PingEvery,
+			RunEvery:   cfg.RunEvery,
+			Timeout:    cfg.Timeout,
+			FarmUrl:    cfg.FarmUrl,
+			FlagRegexp: regexp.MustCompile(cfg.FlagRegexp),
+		},
+		visits: newVisitsMap(),
 	}
 }
 
 type ExploitManagerServer struct {
 	neopb.UnimplementedExploitManagerServer
 	storage *CachedStorage
-	config  *Configuration
+	config  *config.Config
 	buckets *hostbucket.HostBucket
 	visits  *visitsMap
 	fs      filesystem
@@ -122,17 +130,15 @@ func (em *ExploitManagerServer) UpdateExploit(ctx context.Context, r *neopb.Upda
 
 func (em *ExploitManagerServer) Ping(ctx context.Context, r *neopb.PingRequest) (*neopb.PingResponse, error) {
 	em.visits.Add(r.GetClientId())
+	if !em.buckets.Exists(r.GetClientId()) {
+		em.buckets.Add(r.GetClientId())
+	}
+	logrus.Infof("Got ping from: %s", r.GetClientId())
 	return &neopb.PingResponse{
 		State: &neopb.ServerState{
 			ClientTeamMap: em.buckets.Buckets(),
 			Exploits:      em.storage.States(),
-			Config: &neopb.Config{
-				RunEvery:   em.config.RunEvery.Nanoseconds(),
-				Timeout:    em.config.Timeout.Nanoseconds(),
-				FarmUrl:    em.config.FarmUrl,
-				FlagRegexp: em.config.FlagRegexp,
-				PingEvery:  em.config.PingEvery.Nanoseconds(),
-			},
+			Config:        config.ToProto(em.config),
 		},
 	}, nil
 }
@@ -143,6 +149,7 @@ func (em *ExploitManagerServer) checkClients() {
 	for _, c := range deadClients {
 		em.buckets.Delete(c)
 	}
+
 }
 
 func (em *ExploitManagerServer) HeartBeat(ctx context.Context) {
