@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"sync"
 	"time"
 
 	"neo/internal/config"
@@ -43,28 +44,38 @@ func (o osFs) Open(f string) (fileInterface, error) {
 }
 
 func New(cfg *Configuration, storage *CachedStorage) *ExploitManagerServer {
-	return &ExploitManagerServer{
+	ems := &ExploitManagerServer{
 		storage: storage,
 		fs:      osFs{cfg.BaseDir},
 		buckets: hostbucket.New(cfg.IPList),
-		config: &config.Config{
-			PingEvery:  cfg.PingEvery,
-			RunEvery:   cfg.RunEvery,
-			Timeout:    cfg.Timeout,
-			FarmUrl:    cfg.FarmUrl,
-			FlagRegexp: regexp.MustCompile(cfg.FlagRegexp),
-		},
-		visits: newVisitsMap(),
+		visits:  newVisitsMap(),
 	}
+	ems.UpdateConfig(cfg)
+	return ems
 }
 
 type ExploitManagerServer struct {
 	neopb.UnimplementedExploitManagerServer
-	storage *CachedStorage
-	config  *config.Config
-	buckets *hostbucket.HostBucket
-	visits  *visitsMap
-	fs      filesystem
+	storage  *CachedStorage
+	config   *config.Config
+	cfgMutex sync.RWMutex
+	buckets  *hostbucket.HostBucket
+	visits   *visitsMap
+	fs       filesystem
+}
+
+func (em *ExploitManagerServer) UpdateConfig(cfg *Configuration) {
+	em.cfgMutex.Lock()
+	defer em.cfgMutex.Unlock()
+	em.config = &config.Config{
+		PingEvery:    cfg.PingEvery,
+		RunEvery:     cfg.RunEvery,
+		Timeout:      cfg.Timeout,
+		FarmUrl:      cfg.FarmUrl,
+		FarmPassword: cfg.FarmPassword,
+		FlagRegexp:   regexp.MustCompile(cfg.FlagRegexp),
+	}
+	em.buckets.UpdateIPS(cfg.IPList)
 }
 
 func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFileServer) (err error) {
@@ -129,6 +140,8 @@ func (em *ExploitManagerServer) UpdateExploit(ctx context.Context, r *neopb.Upda
 }
 
 func (em *ExploitManagerServer) Ping(ctx context.Context, r *neopb.PingRequest) (*neopb.PingResponse, error) {
+	em.cfgMutex.RLock()
+	defer em.cfgMutex.RUnlock()
 	em.visits.Add(r.GetClientId())
 	if !em.buckets.Exists(r.GetClientId()) {
 		em.buckets.Add(r.GetClientId())

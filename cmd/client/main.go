@@ -4,11 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"neo/cmd/client/cli"
 	"os"
 
+	"neo/cmd/client/cli"
 	"neo/internal/client"
+
+	"github.com/sirupsen/logrus"
 )
 
 var (

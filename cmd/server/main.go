@@ -3,16 +3,16 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
-	"log"
-	"neo/pkg/grpc_auth"
 	"net"
 	"os"
 	"os/signal"
 
 	"neo/internal/server"
+	"neo/pkg/grpc_auth"
 
+	"github.com/fsnotify/fsnotify"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
 	neopb "neo/lib/genproto/neo"
@@ -30,30 +30,61 @@ func load(path string, cfg *server.Configuration) error {
 	return server.ReadConfig(data, cfg)
 }
 
+func watchConfig(ctx context.Context, srv *server.ExploitManagerServer) error {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				watcher.Close()
+				return
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Rename == fsnotify.Rename {
+					cfg := &server.Configuration{}
+					err := load(*configFile, cfg)
+					if err != nil {
+						logrus.Errorf("Failed to reload read configuration: %v", err)
+					} else {
+						logrus.Infof("Reloaded config: %v", cfg)
+						srv.UpdateConfig(cfg)
+					}
+				}
+			}
+		}
+	}()
+	return watcher.Add(*configFile)
+}
+
 func main() {
 	flag.Parse()
 	cfg := &server.Configuration{}
 	if err := load(*configFile, cfg); err != nil {
-		log.Fatalf("Failed to read config: %v", err)
+		logrus.Fatalf("Failed to read config: %v", err)
 	}
 	st, err := server.NewBoltStorage(cfg.DBPath)
 	if err != nil {
-		log.Fatalf("Failed to create bolt storage: %v", err)
+		logrus.Fatalf("Failed to create bolt storage: %v", err)
 	}
 	if cfg.RunEvery <= 0 {
-		log.Fatalf("run_every should be positive")
+		logrus.Fatalf("run_every should be positive")
 	}
 	if cfg.PingEvery <= 0 {
-		log.Fatalf("ping_every should be positive")
+		logrus.Fatalf("ping_every should be positive")
 	}
 	if cfg.Timeout <= 0 {
-		log.Fatalf("timeout should be positive")
+		logrus.Fatalf("timeout should be positive")
 	}
 	logrus.Infof("Config: %+v", cfg)
 	srv := server.New(cfg, st)
 	lis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		logrus.Fatalf("failed to listen: %v", err)
 	}
 	var opts []grpc.ServerOption
 	if cfg.GrpcAuthKey != "" {
@@ -69,6 +100,9 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	if err := watchConfig(ctx, srv); err != nil {
+		logrus.Errorf("Failed to start config auto-reload: %v", err)
+	}
 	go srv.HeartBeat(ctx)
 	go func() {
 		<-c
@@ -77,6 +111,6 @@ func main() {
 	}()
 	logrus.Infof("Starting server on port %s", cfg.Port)
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		logrus.Fatalf("failed to serve: %v", err)
 	}
 }

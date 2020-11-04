@@ -2,10 +2,13 @@ package client
 
 import (
 	"context"
-	"google.golang.org/grpc"
 	"io"
-	neopb "neo/lib/genproto/neo"
+
 	"neo/pkg/filestream"
+
+	"google.golang.org/grpc"
+
+	neopb "neo/lib/genproto/neo"
 )
 
 func New(cc grpc.ClientConnInterface, id string) *Client {

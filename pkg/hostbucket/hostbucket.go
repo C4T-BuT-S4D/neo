@@ -3,6 +3,9 @@ package hostbucket
 import (
 	"sync"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	neopb "neo/lib/genproto/neo"
 )
 
@@ -19,6 +22,18 @@ type HostBucket struct {
 	buck map[string]*neopb.TeamBucket
 	ids  []string
 	ips  []string
+}
+
+func (hb *HostBucket) UpdateIPS(ips []string) {
+	lessFunc := func(s1, s2 string) bool {
+		return s1 < s2
+	}
+	if !cmp.Equal(ips, hb.ips, cmpopts.SortSlices(lessFunc)) {
+		hb.m.Lock()
+		defer hb.m.Unlock()
+		hb.ips = ips
+		hb.rehash()
+	}
 }
 
 func (hb *HostBucket) Buckets() map[string]*neopb.TeamBucket {
