@@ -110,8 +110,7 @@ out/
 
 .DS_Store
 .idea/
-client/
-cmd/.DS_Store
+neo_client/
 db.db
 dist/
-server/
+neo_server/

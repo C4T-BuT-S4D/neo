@@ -7,7 +7,7 @@ before:
 builds:
   - id: "neo_client"
     main: "./cmd/client"
-    binary: "./client/client"
+    binary: "./neo_client/neo"
     env:
       - CGO_ENABLED=0
     goos:
@@ -18,7 +18,7 @@ builds:
       - amd64
   - id: "neo_server"
     main: "./cmd/server"
-    binary: "./server/server"
+    binary: "./neo_server/neo_server"
     env:
       - CGO_ENABLED=0
     goos:
@@ -58,9 +58,9 @@ archives:
       - goos: linux
         format: tar.gz
     files:
-      #      - README_client.MD
-      - client/config.yml
-      - client/exploits/.keep
+      - README.MD
+      - neo_client/config.yml
+      - neo_client/exploits/.keep
   - id: server
     format: zip
     builds:
@@ -76,9 +76,9 @@ archives:
       - goos: linux
         format: tar.gz
     files:
-      #      - README_server.MD
-      - server/config.yml
-      - server/data/.keep
+      - README.MD
+      - neo_server/config.yml
+      - neo_server/data/.keep
 checksum:
   name_template: 'checksums.txt'
 snapshot:
