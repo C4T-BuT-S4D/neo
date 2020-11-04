@@ -10,7 +10,7 @@ cp configs/server/config.yml server/config.yml
 touch server/data/.keep
 
 
-goreleaser --snapshot --skip-publish --rm-dist
+goreleaser --rm-dist
 
 rm -rf client/
 rm -rf server/
