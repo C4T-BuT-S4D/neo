@@ -57,12 +57,12 @@ func (nc *Client) DownloadFile(ctx context.Context, info *neopb.FileInfo, out io
 }
 
 func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*neopb.FileInfo, error) {
-	fclient, err := nc.c.UploadFile(ctx)
+	client, err := nc.c.UploadFile(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := filestream.Load(r, fclient); err != nil {
+	if err := filestream.Load(r, client); err != nil {
 		return nil, err
 	}
-	return fclient.CloseAndRecv()
+	return client.CloseAndRecv()
 }

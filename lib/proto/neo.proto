@@ -18,8 +18,9 @@ message Config {
   string run_every = 1;
   string timeout = 2;
   string farm_url = 3;
-  string flag_regexp = 4;
-  string ping_every = 5;
+  string farm_password = 4;
+  string flag_regexp = 5;
+  string ping_every = 6;
 }
 
 message ServerState {

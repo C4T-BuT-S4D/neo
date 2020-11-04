@@ -12,7 +12,11 @@ import (
 )
 
 func Untar(dst string, r io.Reader) error {
-
+	if _, err := os.Stat(dst); os.IsNotExist(err) {
+		if err := os.Mkdir(dst, 0755); err != nil {
+			return err
+		}
+	}
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return err
@@ -82,7 +86,7 @@ func Tar(src string, w io.Writer) error {
 
 	// ensure the src actually exists before trying to tar it
 	if _, err := os.Stat(src); err != nil {
-		return fmt.Errorf("Unable to tar files - %v", err.Error())
+		return fmt.Errorf("unable to tar files - %v", err.Error())
 	}
 
 	gzw := gzip.NewWriter(w)

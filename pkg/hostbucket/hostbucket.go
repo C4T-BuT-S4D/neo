@@ -65,7 +65,7 @@ func (hb *HostBucket) rehash() {
 	for _, v := range hb.buck {
 		v.Reset()
 	}
-	if len(hb.ids) <= 0 {
+	if len(hb.ids) == 0 {
 		return
 	}
 	for i, ip := range hb.ips {

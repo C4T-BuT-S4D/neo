@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/sirupsen/logrus"
+	"neo/pkg/grpc_auth"
 
 	"neo/internal/client"
 
@@ -23,6 +24,11 @@ type baseCLI struct {
 func (cmd *baseCLI) client() (*client.Client, error) {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
+	if cmd.c.GrpcAuthKey != "" {
+		interceptor := grpc_auth.NewClientInterceptor(cmd.c.GrpcAuthKey)
+		opts = append(opts, grpc.WithUnaryInterceptor(interceptor.Unary()))
+		opts = append(opts, grpc.WithStreamInterceptor(interceptor.Stream()))
+	}
 	conn, err := grpc.Dial(cmd.c.Host, opts...)
 	if err != nil {
 		return nil, err

@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"log"
+	"neo/pkg/grpc_auth"
 	"net"
 	"os"
 	"os/signal"
@@ -54,7 +55,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
+	var opts []grpc.ServerOption
+	if cfg.GrpcAuthKey != "" {
+		authInterceptor := grpc_auth.NewServerInterceptor(cfg.GrpcAuthKey)
+		opts = append(opts, grpc.UnaryInterceptor(authInterceptor.Unary()))
+		opts = append(opts, grpc.StreamInterceptor(authInterceptor.Stream()))
+	}
+	s := grpc.NewServer(opts...)
 	neopb.RegisterExploitManagerServer(s, srv)
 
 	c := make(chan os.Signal, 1)

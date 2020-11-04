@@ -1,0 +1,91 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+before:
+  hooks:
+    # you may remove this if you don't use vgo
+    - go mod tidy
+builds:
+  - id: "neo_client"
+    main: "./cmd/client"
+    binary: "./client/client"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - windows
+      - linux
+    goarch:
+      - amd64
+  - id: "neo_server"
+    main: "./cmd/server"
+    binary: "./server/server"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - windows
+      - linux
+    goarch:
+      - amd64
+archives:
+  - format: zip
+    replacements:
+      darwin: MacOs
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x64
+    format_overrides:
+      - goos: linux
+        format: tar.gz
+    files:
+      - README*.md
+      - configs/client/config.yml
+      - configs/server/config.yml
+
+  - id: client
+    format: zip
+    builds:
+      - "neo_client"
+    name_template: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}"
+    replacements:
+      darwin: MacOs
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x64
+    format_overrides:
+      - goos: linux
+        format: tar.gz
+    files:
+      #      - README_client.MD
+      - client/config.yml
+      - client/exploits/.keep
+  - id: server
+    format: zip
+    builds:
+      - "neo_server"
+    name_template: "{{ .ProjectName }}_server_{{ .Version }}_{{ .Os }}"
+    replacements:
+      darwin: MacOs
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x64
+    format_overrides:
+      - goos: linux
+        format: tar.gz
+    files:
+      #      - README_server.MD
+      - server/config.yml
+      - server/data/.keep
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

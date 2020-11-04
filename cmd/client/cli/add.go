@@ -62,10 +62,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	}
 
 	dir, file := path.Split(ac.path)
-	if ac.exploitID == "" && ac.isArchive {
-		_, ac.exploitID = path.Split(dir)
-	}
-	if ac.exploitID == "" && !ac.isArchive {
+	if ac.exploitID == "" {
 		ac.exploitID = file
 	}
 	fmt.Printf("Going to add exploit with id = %s\n", ac.exploitID)
@@ -103,7 +100,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 		}
 
 		defer os.Remove(f.Name())
-		if err := archive.Tar(ac.path, f); err != nil {
+		if err := archive.Tar(dir, f); err != nil {
 			logrus.Fatalf("Failed to create TarGz archive: %v", err)
 		}
 

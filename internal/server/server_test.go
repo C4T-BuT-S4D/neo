@@ -119,8 +119,11 @@ func TestExploitManagerServer_Ping(t *testing.T) {
 	if diff := cmp.Diff(want, resp.GetState().GetExploits(), protocmp.Transform()); diff != "" {
 		t.Errorf("Ping() states mismatch (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff(es.buckets.Buckets(), resp.GetState().GetClientTeamMap()); diff != "" {
+	if diff := cmp.Diff(es.buckets.Buckets(), resp.GetState().GetClientTeamMap(), protocmp.Transform()); diff != "" {
 		t.Errorf("Ping() bucket mismatch (-want +got):\n%s", diff)
+	}
+	if len(es.buckets.Buckets()[req.ClientId].GetTeamIps()) == 0 {
+		t.Errorf("Ping() ip bucket with zero len")
 	}
 	gotUrl := resp.GetState().GetConfig().GetFarmUrl()
 	if es.config.FarmUrl != gotUrl {

@@ -1,0 +1,3 @@
+host: "localhost:5005"
+exploit_dir: "."
+grpc_auth_key: "s3cret_t0ken_pls_d0nt_leak"
