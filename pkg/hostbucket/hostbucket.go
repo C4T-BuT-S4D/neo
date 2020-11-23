@@ -1,6 +1,7 @@
 package hostbucket
 
 import (
+	"neo/pkg/rendezvous"
 	"sync"
 
 	"github.com/google/go-cmp/cmp"
@@ -14,6 +15,7 @@ func New(ips []string) *HostBucket {
 		buck: make(map[string]*neopb.TeamBucket),
 		ids:  nil,
 		ips:  ips,
+		r:    rendezvous.New(),
 	}
 }
 
@@ -22,6 +24,7 @@ type HostBucket struct {
 	buck map[string]*neopb.TeamBucket
 	ids  []string
 	ips  []string
+	r    *rendezvous.Rendezvous
 }
 
 func (hb *HostBucket) UpdateIPS(ips []string) {
@@ -83,8 +86,18 @@ func (hb *HostBucket) rehash() {
 	if len(hb.ids) == 0 {
 		return
 	}
-	for i, ip := range hb.ips {
-		teamId := hb.ids[i%len(hb.ids)]
-		hb.buck[teamId].TeamIps = append(hb.buck[teamId].TeamIps, ip)
+	for _, ip := range hb.ips {
+		bestHash := uint64(0)
+		bestNode := ""
+
+		for _, id := range hb.ids {
+			hash := hb.r.Calculate(id, ip)
+			if bestNode == "" || hash > bestHash {
+				bestNode = id
+				bestHash = hash
+			}
+		}
+
+		hb.buck[bestNode].TeamIps = append(hb.buck[bestNode].TeamIps, ip)
 	}
 }
