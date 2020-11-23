@@ -101,32 +101,32 @@ func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFil
 
 func (em *ExploitManagerServer) DownloadFile(fi *neopb.FileInfo, stream neopb.ExploitManager_DownloadFileServer) error {
 	f, err := em.fs.Open(fi.GetUuid())
-	defer f.Close()
 	if err != nil {
 		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
 	}
+	defer f.Close()
 	if err := filestream.Load(f, stream); err != nil {
 		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
 	}
 	return nil
 }
 
-func (em *ExploitManagerServer) Exploit(ctx context.Context, r *neopb.ExploitRequest) (*neopb.ExploitResponse, error) {
+func (em *ExploitManagerServer) Exploit(_ context.Context, r *neopb.ExploitRequest) (*neopb.ExploitResponse, error) {
 	state, ok := em.storage.State(r.GetExploitId())
 	if !ok {
 		return nil, logErrorf(codes.NotFound, "Failed to find an exploit state = %v", state.ExploitId)
 	}
-	config, ok := em.storage.Configuration(state)
+	cfg, ok := em.storage.Configuration(state)
 	if !ok {
 		return nil, logErrorf(codes.NotFound, "Failed to find an exploit configuration = %v", state.ExploitId)
 	}
 	return &neopb.ExploitResponse{
 		State:  state,
-		Config: config,
+		Config: cfg,
 	}, nil
 }
 
-func (em *ExploitManagerServer) UpdateExploit(ctx context.Context, r *neopb.UpdateExploitRequest) (*neopb.UpdateExploitResponse, error) {
+func (em *ExploitManagerServer) UpdateExploit(_ context.Context, r *neopb.UpdateExploitRequest) (*neopb.UpdateExploitResponse, error) {
 	ns := &neopb.ExploitState{
 		ExploitId: r.GetExploitId(),
 		File:      r.GetFile(),
@@ -139,14 +139,18 @@ func (em *ExploitManagerServer) UpdateExploit(ctx context.Context, r *neopb.Upda
 	}, nil
 }
 
-func (em *ExploitManagerServer) Ping(ctx context.Context, r *neopb.PingRequest) (*neopb.PingResponse, error) {
-	em.cfgMutex.RLock()
-	defer em.cfgMutex.RUnlock()
-	em.visits.Add(r.GetClientId())
-	if !em.buckets.Exists(r.GetClientId()) {
-		em.buckets.Add(r.GetClientId())
+func (em *ExploitManagerServer) Ping(_ context.Context, r *neopb.PingRequest) (*neopb.PingResponse, error) {
+	logrus.Infof("Got %s from: %s", neopb.PingRequest_PingType_name[int32(r.GetType())], r.GetClientId())
+
+	if r.Type == neopb.PingRequest_HEARTBEAT {
+		em.cfgMutex.RLock()
+		defer em.cfgMutex.RUnlock()
+		em.visits.Add(r.GetClientId())
+		if !em.buckets.Exists(r.GetClientId()) {
+			em.buckets.AddNode(r.GetClientId(), int(r.GetWeight()))
+		}
 	}
-	logrus.Infof("Got ping from: %s", r.GetClientId())
+
 	return &neopb.PingResponse{
 		State: &neopb.ServerState{
 			ClientTeamMap: em.buckets.Buckets(),
@@ -160,7 +164,7 @@ func (em *ExploitManagerServer) checkClients() {
 	deadClients := em.visits.Invalidate(time.Now(), em.config.PingEvery)
 	logrus.Infof("Heartbeat: got dead clients: %v", deadClients)
 	for _, c := range deadClients {
-		em.buckets.Delete(c)
+		em.buckets.DeleteNode(c)
 	}
 
 }

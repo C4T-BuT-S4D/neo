@@ -2,56 +2,49 @@ package rendezvous
 
 import (
 	"github.com/sirupsen/logrus"
-	"hash/maphash"
+	"github.com/spaolacci/murmur3"
+	"hash"
 	"sync"
 )
 
 type Rendezvous struct {
 	hcache map[string]uint64
 	mu     sync.RWMutex
-	seed   maphash.Seed
+	h      hash.Hash64
 }
 
 func New() *Rendezvous {
 	return &Rendezvous{
 		hcache: make(map[string]uint64),
-		seed:   maphash.MakeSeed(),
+		h:      murmur3.New64WithSeed(1337),
 	}
-}
-
-func (r *Rendezvous) getKey(nodeId, value string) string {
-	return nodeId + ":" + value
 }
 
 func (r *Rendezvous) checkCache(key string) (uint64, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	hash, ok := r.hcache[key]
-	return hash, ok
-}
-
-func (r *Rendezvous) setCache(key string, value uint64) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.hcache[key] = value
+	raw, ok := r.hcache[key]
+	return raw, ok
 }
 
 func (r *Rendezvous) calcHash(key string) uint64 {
-	h := new(maphash.Hash)
-	h.SetSeed(r.seed)
-	h.SetSeed(maphash.MakeSeed())
-	if _, err := h.WriteString(key); err != nil {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.h.Reset()
+	if _, err := r.h.Write([]byte(key)); err != nil {
 		logrus.Fatalf("Error calculating hash: %v", err)
 	}
-	hash := h.Sum64()
-	r.setCache(key, hash)
-	return hash
+	rawVal := r.h.Sum64()
+	r.hcache[key] = rawVal
+	return rawVal
 }
 
-func (r *Rendezvous) Calculate(nodeId, value string) uint64 {
-	key := r.getKey(nodeId, value)
-	if hash, ok := r.checkCache(key); ok {
-		return hash
+func (r *Rendezvous) Calculate(node string, weight int, value string) float64 {
+	key := CombineKey(node, value)
+	if raw, ok := r.checkCache(key); ok {
+		return WeightHash(raw, weight)
 	}
-	return r.calcHash(key)
+	raw := r.calcHash(key)
+	return WeightHash(raw, weight)
 }

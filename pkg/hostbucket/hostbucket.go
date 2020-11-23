@@ -12,21 +12,22 @@ import (
 
 func New(ips []string) *HostBucket {
 	return &HostBucket{
-		buck: make(map[string]*neopb.TeamBucket),
-		ids:  nil,
-		ips:  ips,
-		r:    rendezvous.New(),
+		buck:  make(map[string]*neopb.TeamBucket),
+		nodes: nil,
+		ips:   ips,
+		r:     rendezvous.New(),
 	}
 }
 
 type HostBucket struct {
-	m    sync.RWMutex
-	buck map[string]*neopb.TeamBucket
-	ids  []string
-	ips  []string
-	r    *rendezvous.Rendezvous
+	m     sync.RWMutex
+	buck  map[string]*neopb.TeamBucket
+	nodes []*node
+	ips   []string
+	r     *rendezvous.Rendezvous
 }
 
+// TODO: effective ip addition & deletion
 func (hb *HostBucket) UpdateIPS(ips []string) {
 	lessFunc := func(s1, s2 string) bool {
 		return s1 < s2
@@ -45,33 +46,46 @@ func (hb *HostBucket) Buckets() map[string]*neopb.TeamBucket {
 	return hb.buck
 }
 
-func (hb *HostBucket) Exists(tid string) (exists bool) {
+func (hb *HostBucket) Exists(id string) (exists bool) {
 	hb.m.RLock()
 	defer hb.m.RUnlock()
-	_, exists = hb.buck[tid]
+	_, exists = hb.buck[id]
 	return
 }
 
-func (hb *HostBucket) Add(tid string) {
+func (hb *HostBucket) AddNode(id string, weight int) {
 	hb.m.Lock()
 	defer hb.m.Unlock()
-	hb.buck[tid] = &neopb.TeamBucket{}
-	hb.ids = append(hb.ids, tid)
+
+	if _, ok := hb.buck[id]; ok {
+		return
+	}
+
+	hb.buck[id] = &neopb.TeamBucket{}
+	n := &node{
+		ID:     id,
+		Weight: weight,
+	}
+	hb.nodes = append(hb.nodes, n)
+	// TODO: more effective node addition
 	hb.rehash()
 }
 
-func (hb *HostBucket) Delete(tid string) bool {
+func (hb *HostBucket) DeleteNode(id string) bool {
 	hb.m.Lock()
 	defer hb.m.Unlock()
-	if _, ok := hb.buck[tid]; !ok {
+	if _, ok := hb.buck[id]; !ok {
 		return false
 	}
-	for i, v := range hb.ids {
-		if v == tid {
-			hb.ids[i] = hb.ids[len(hb.ids)-1]
-			hb.ids[len(hb.ids)-1] = ""
-			hb.ids = hb.ids[:len(hb.ids)-1]
-			delete(hb.buck, tid)
+	for i, n := range hb.nodes {
+		if n.ID == id {
+			last := len(hb.nodes) - 1
+			hb.nodes[i] = hb.nodes[last]
+			hb.nodes[last] = nil
+			hb.nodes = hb.nodes[:last]
+			delete(hb.buck, id)
+
+			// TODO: more effective node deletion
 			hb.rehash()
 			return true
 		}
@@ -83,17 +97,17 @@ func (hb *HostBucket) rehash() {
 	for _, v := range hb.buck {
 		v.Reset()
 	}
-	if len(hb.ids) == 0 {
+	if len(hb.nodes) == 0 {
 		return
 	}
 	for _, ip := range hb.ips {
-		bestHash := uint64(0)
+		bestHash := 0.0
 		bestNode := ""
 
-		for _, id := range hb.ids {
-			hash := hb.r.Calculate(id, ip)
+		for _, n := range hb.nodes {
+			hash := hb.r.Calculate(n.ID, n.Weight, ip)
 			if bestNode == "" || hash > bestHash {
-				bestNode = id
+				bestNode = n.ID
 				bestHash = hash
 			}
 		}

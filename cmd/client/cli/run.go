@@ -33,6 +33,8 @@ func NewRun(args []string, cfg *client.Config) *runCLI {
 	if err != nil {
 		logrus.Fatalf("run: failed to create client: %v", err)
 	}
+	neocli.Weight = *jc
+
 	runner := exploit.NewRunner(*jc, cfg.ExploitDir, neocli)
 	cli.run = runner
 	return cli

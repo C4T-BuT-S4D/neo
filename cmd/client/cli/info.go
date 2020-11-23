@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"neo/internal/config"
+	"strings"
 
 	"neo/internal/client"
 )
@@ -12,7 +13,7 @@ type infoCLI struct {
 	*baseCLI
 }
 
-func NewInfo(args []string, cfg *client.Config) *infoCLI {
+func NewInfo(_ []string, cfg *client.Config) *infoCLI {
 	return &infoCLI{&baseCLI{cfg}}
 }
 
@@ -21,7 +22,7 @@ func (ic *infoCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	state, err := c.Ping(ctx)
+	state, err := c.Ping(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -32,11 +33,9 @@ func (ic *infoCLI) Run(ctx context.Context) error {
 	fmt.Printf("config: %+v\n", cfg)
 	fmt.Println("IPs buckets: ")
 	for k, v := range state.GetClientTeamMap() {
-		fmt.Print(k, ": ")
-		for _, ip := range v.GetTeamIps() {
-			fmt.Print(ip, ", ")
-		}
-		fmt.Println()
+		fmt.Print(k, ": [")
+		fmt.Print(strings.Join(v.GetTeamIps(), ", "))
+		fmt.Println("]")
 	}
 	fmt.Println("Exploits: ")
 	for _, e := range state.GetExploits() {

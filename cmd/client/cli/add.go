@@ -67,11 +67,11 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	}
 	fmt.Printf("Going to add exploit with id = %s\n", ac.exploitID)
 
-	client, err := ac.client()
+	c, err := ac.client()
 	if err != nil {
 		logrus.Fatalf("add: failed to create client: %v", err)
 	}
-	state, err := client.Ping(ctx)
+	state, err := c.Ping(ctx, false)
 	if err != nil {
 		logrus.Fatalf("add: failed to get config from server: %v", err)
 	}
@@ -116,7 +116,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	}
 	defer f.Close()
 
-	fileInfo, err := client.UploadFile(ctx, f)
+	fileInfo, err := c.UploadFile(ctx, f)
 	if err != nil {
 		logrus.Fatalf("Failed to upload exploit file: %v", err)
 	}
@@ -129,7 +129,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			IsArchive:  ac.isArchive,
 		},
 	}
-	return client.UpdateExploit(ctx, req)
+	return c.UpdateExploit(ctx, req)
 }
 
 func (ac *addCLI) validateEntry(f string) (errors []string) {

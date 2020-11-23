@@ -165,7 +165,7 @@ type UnsafeExploitManagerServer interface {
 	mustEmbedUnimplementedExploitManagerServer()
 }
 
-func RegisterExploitManagerServer(s *grpc.Server, srv ExploitManagerServer) {
+func RegisterExploitManagerServer(s grpc.ServiceRegistrar, srv ExploitManagerServer) {
 	s.RegisterService(&_ExploitManager_serviceDesc, srv)
 }
 
