@@ -114,3 +114,4 @@ neo_client/
 db.db
 dist/
 neo_server/
+/client
