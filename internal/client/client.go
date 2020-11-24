@@ -24,9 +24,9 @@ type Client struct {
 	Weight int
 }
 
-func (nc *Client) Ping(ctx context.Context, heartbeat bool) (*neopb.ServerState, error) {
-	req := &neopb.PingRequest{ClientId: nc.ID}
-	if heartbeat {
+func (nc *Client) Ping(ctx context.Context, t neopb.PingRequest_PingType) (*neopb.ServerState, error) {
+	req := &neopb.PingRequest{ClientId: nc.ID, Type: t}
+	if t == neopb.PingRequest_HEARTBEAT {
 		req.Type = neopb.PingRequest_HEARTBEAT
 		req.Weight = int32(nc.Weight)
 	}

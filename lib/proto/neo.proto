@@ -43,6 +43,7 @@ message PingRequest {
   enum PingType {
     CONFIG_REQUEST = 0;
     HEARTBEAT = 1;
+    LEAVE = 2;
   };
 
   PingType type = 1;

@@ -3,7 +3,9 @@ package cli
 import (
 	"context"
 	"fmt"
+	"github.com/spf13/cobra"
 	"neo/internal/config"
+	neopb "neo/lib/genproto/neo"
 	"strings"
 
 	"neo/internal/client"
@@ -13,7 +15,7 @@ type infoCLI struct {
 	*baseCLI
 }
 
-func NewInfo(_ []string, cfg *client.Config) *infoCLI {
+func NewInfo(_ *cobra.Command, _ []string, cfg *client.Config) *infoCLI {
 	return &infoCLI{&baseCLI{cfg}}
 }
 
@@ -22,7 +24,7 @@ func (ic *infoCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	state, err := c.Ping(ctx, false)
+	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
 	if err != nil {
 		return err
 	}

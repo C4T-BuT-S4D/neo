@@ -110,7 +110,7 @@ func TestExploitManagerServer_Ping(t *testing.T) {
 		t.Fatalf("UpdateExploit(): unexpected error = %v", err)
 	}
 
-	req := &neopb.PingRequest{ClientId: "id1"}
+	req := &neopb.PingRequest{ClientId: "id1", Type: neopb.PingRequest_HEARTBEAT}
 	resp, err := es.Ping(ctx, req)
 	if err != nil {
 		t.Fatalf("Ping(): unexpected error = %v", err)

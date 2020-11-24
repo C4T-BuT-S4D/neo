@@ -80,18 +80,20 @@ func (em *ExploitManagerServer) UpdateConfig(cfg *Configuration) {
 
 func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFileServer) (err error) {
 	info := &neopb.FileInfo{Uuid: uuid.New().String()}
-	of, ferr := em.fs.Create(info.GetUuid())
+	of, err := em.fs.Create(info.GetUuid())
+	if err != nil {
+		return logErrorf(codes.Internal, "Failed to create file: %v", err)
+	}
 	defer func() {
 		if cerr := of.Close(); cerr != nil {
 			err = logErrorf(codes.Internal, "Failed to close output file")
 		}
 		if err != nil {
-			os.Remove(of.Name())
+			if rerr := os.Remove(of.Name()); rerr != nil {
+				logrus.Errorf("Error removing the file on error: %v", err)
+			}
 		}
 	}()
-	if ferr != nil {
-		return logErrorf(codes.Internal, "Failed to create file: %v", err)
-	}
 
 	if err := filestream.Save(stream, of); err != nil {
 		return logErrorf(codes.Internal, "Failed to upload file from stream: %v", err)
@@ -146,9 +148,9 @@ func (em *ExploitManagerServer) Ping(_ context.Context, r *neopb.PingRequest) (*
 		em.cfgMutex.RLock()
 		defer em.cfgMutex.RUnlock()
 		em.visits.Add(r.GetClientId())
-		if !em.buckets.Exists(r.GetClientId()) {
-			em.buckets.AddNode(r.GetClientId(), int(r.GetWeight()))
-		}
+		em.buckets.AddNode(r.GetClientId(), int(r.GetWeight()))
+	} else if r.Type == neopb.PingRequest_LEAVE {
+		em.visits.MarkInvalid(r.GetClientId())
 	}
 
 	return &neopb.PingResponse{
@@ -166,7 +168,6 @@ func (em *ExploitManagerServer) checkClients() {
 	for _, c := range deadClients {
 		em.buckets.DeleteNode(c)
 	}
-
 }
 
 func (em *ExploitManagerServer) HeartBeat(ctx context.Context) {

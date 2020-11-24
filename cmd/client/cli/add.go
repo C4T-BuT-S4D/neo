@@ -2,8 +2,8 @@ package cli
 
 import (
 	"context"
-	"flag"
 	"fmt"
+	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
 	neopb "neo/lib/genproto/neo"
@@ -26,21 +26,20 @@ type addCLI struct {
 	exploitID string
 }
 
-func NewAdd(args []string, cfg *client.Config) *addCLI {
-	flags := flag.NewFlagSet("add", flag.ExitOnError)
-	isDir := flags.Bool("dir", false, "Dump exploit as an archive with entrypoint.")
-	eid := flags.String("id", "", "Id of the exploit. Will determinate it by path by default.")
-	if err := flags.Parse(args); err != nil {
-		logrus.Fatalf("add: failed to parse cli flags: %v", err)
+func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) *addCLI {
+	eid, err := cmd.Flags().GetString("name")
+	if err != nil {
+		logrus.Fatalf("Could not get exploit name")
 	}
-	if flags.NArg() < 1 {
-		logrus.Fatalf("Usage: %s add <path_to_exploit_folder_or_script>", os.Args[0])
+	isDir, err := cmd.Flags().GetBool("dir")
+	if err != nil {
+		logrus.Fatalf("Could not get dir param")
 	}
 	return &addCLI{
 		baseCLI:   &baseCLI{cfg},
-		path:      flags.Arg(0),
-		isArchive: *isDir,
-		exploitID: *eid,
+		path:      args[0],
+		isArchive: isDir,
+		exploitID: eid,
 	}
 }
 
@@ -71,7 +70,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	if err != nil {
 		logrus.Fatalf("add: failed to create client: %v", err)
 	}
-	state, err := c.Ping(ctx, false)
+	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
 	if err != nil {
 		logrus.Fatalf("add: failed to get config from server: %v", err)
 	}

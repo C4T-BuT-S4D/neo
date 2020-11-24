@@ -24,6 +24,16 @@ func (vm *visitsMap) Add(cid string) {
 	vm.visits[cid] = time.Now()
 }
 
+// MarkInvalid resets the client timestamp, so the next Invalidate pass will remove the client
+func (vm *visitsMap) MarkInvalid(cid string) {
+	vm.m.Lock()
+	defer vm.m.Unlock()
+	if _, ok := vm.visits[cid]; !ok {
+		return
+	}
+	vm.visits[cid] = time.Unix(0, 0)
+}
+
 func (vm *visitsMap) Invalidate(now time.Time, pingEvery time.Duration) (res []string) {
 	vm.m.Lock()
 	defer vm.m.Unlock()

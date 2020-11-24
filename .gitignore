@@ -115,3 +115,5 @@ db.db
 dist/
 neo_server/
 /client
+data
+!data/.keep

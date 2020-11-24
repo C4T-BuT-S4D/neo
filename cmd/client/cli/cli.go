@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"neo/pkg/grpc_auth"
 
 	"neo/internal/client"
@@ -16,6 +17,8 @@ import (
 type NeoCLI interface {
 	Run(ctx context.Context) error
 }
+
+type Creator func(cmd *cobra.Command, cfg *client.Config) NeoCLI
 
 type baseCLI struct {
 	c *client.Config
@@ -44,6 +47,6 @@ func (cmd *baseCLI) ClientID() string {
 	return id
 }
 
-func (cmd *baseCLI) Run(ctx context.Context) error {
+func (cmd *baseCLI) Run(_ context.Context) error {
 	return errors.New("unimplemented")
 }
