@@ -18,7 +18,7 @@ var addCmd = &cobra.Command{
 		cli := cli.NewAdd(cmd, args, cfg)
 		ctx := context.Background()
 		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error: %v", err)
+			logrus.Fatalf("Error adding exploit: %v", err)
 		}
 		logrus.Debugf("Add finished")
 	},

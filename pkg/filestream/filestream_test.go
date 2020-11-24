@@ -17,11 +17,11 @@ type failedReadWriter struct {
 
 var readWriteError = errors.New("test read write error")
 
-func (rw *failedReadWriter) Write(p []byte) (n int, err error) {
+func (rw *failedReadWriter) Write(_ []byte) (n int, err error) {
 	return 0, readWriteError
 }
 
-func (rw *failedReadWriter) Read(p []byte) (n int, err error) {
+func (rw *failedReadWriter) Read(_ []byte) (n int, err error) {
 	return 0, readWriteError
 }
 

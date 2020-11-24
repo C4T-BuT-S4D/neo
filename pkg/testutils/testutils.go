@@ -22,7 +22,7 @@ func CanceledContext() context.Context {
 	return ctx
 }
 
-func TimeoutedContext() context.Context {
+func TimedOutContext() context.Context {
 	ctx, c := context.WithTimeout(context.Background(), time.Second*0)
 	defer c()
 	return ctx
