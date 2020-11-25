@@ -1,12 +1,12 @@
 package hostbucket
 
 import (
-	"github.com/denisbrodbeck/machineid"
 	"math"
 	"testing"
 
 	"neo/pkg/testutils"
 
+	"github.com/denisbrodbeck/machineid"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )

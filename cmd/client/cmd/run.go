@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"neo/cmd/client/cli"
 	"neo/internal/client"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 // runCmd represents the run command

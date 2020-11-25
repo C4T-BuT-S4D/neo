@@ -3,12 +3,14 @@ package cli
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/cobra"
-	"neo/internal/config"
-	neopb "neo/lib/genproto/neo"
 	"strings"
 
 	"neo/internal/client"
+	"neo/internal/config"
+
+	"github.com/spf13/cobra"
+
+	neopb "neo/lib/genproto/neo"
 )
 
 type infoCLI struct {

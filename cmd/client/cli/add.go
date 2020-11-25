@@ -4,11 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
-	neopb "neo/lib/genproto/neo"
-	"neo/pkg/archive"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,8 +13,12 @@ import (
 	"strings"
 
 	"neo/internal/client"
+	"neo/pkg/archive"
 
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
+	neopb "neo/lib/genproto/neo"
 )
 
 type addCLI struct {

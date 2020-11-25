@@ -2,11 +2,13 @@ package cli
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"runtime"
+
 	"neo/internal/client"
 	"neo/internal/exploit"
-	"runtime"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 type runCLI struct {

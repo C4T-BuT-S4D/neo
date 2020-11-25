@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-	"neo/cmd/client/cmd"
 	"os"
 	"os/signal"
+
+	"neo/cmd/client/cmd"
 )
 
 func main() {

@@ -3,15 +3,14 @@ package cli
 import (
 	"context"
 	"errors"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"neo/pkg/grpc_auth"
 
 	"neo/internal/client"
-
-	"google.golang.org/grpc"
+	"neo/pkg/grpc_auth"
 
 	"github.com/denisbrodbeck/machineid"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 )
 
 type NeoCLI interface {

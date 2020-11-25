@@ -1,8 +1,9 @@
 package hostbucket
 
 import (
-	"neo/pkg/rendezvous"
 	"sync"
+
+	"neo/pkg/rendezvous"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"

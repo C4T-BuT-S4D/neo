@@ -3,10 +3,11 @@ package server
 import (
 	"context"
 	"io/ioutil"
-	"neo/pkg/hostbucket"
 	"os"
 	"testing"
 	"time"
+
+	"neo/pkg/hostbucket"
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -29,7 +30,9 @@ func testServer() (*ExploitManagerServer, func()) {
 	}, st)
 	return es, func() {
 		cleanupDB()
-		os.RemoveAll(dir)
+		if err := os.RemoveAll(dir); err != nil {
+			panic(err)
+		}
 	}
 }
 

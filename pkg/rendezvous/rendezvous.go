@@ -1,10 +1,11 @@
 package rendezvous
 
 import (
-	"github.com/sirupsen/logrus"
-	"github.com/spaolacci/murmur3"
 	"hash"
 	"sync"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spaolacci/murmur3"
 )
 
 type Rendezvous struct {
