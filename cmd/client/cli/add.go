@@ -29,9 +29,9 @@ type addCLI struct {
 }
 
 func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) *addCLI {
-	eid, err := cmd.Flags().GetString("name")
+	eid, err := cmd.Flags().GetString("id")
 	if err != nil {
-		logrus.Fatalf("Could not get exploit name")
+		logrus.Fatalf("Could not get exploit id")
 	}
 	isDir, err := cmd.Flags().GetBool("dir")
 	if err != nil {
@@ -48,7 +48,7 @@ func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) *addCLI {
 func (ac *addCLI) Run(ctx context.Context) error {
 	_, err := os.Stat(ac.path)
 	if err != nil {
-		return fmt.Errorf("failed to stat file(%s): %w", ac.path, err)
+		return fmt.Errorf("failed to stat file %s: %w", ac.path, err)
 	}
 	// Replace path with abs path.
 	if ac.path, err = filepath.Abs(ac.path); err != nil {
@@ -85,7 +85,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	}
 
 	if exists {
-		fmt.Println("The exploit with this name already exists. Do you want to override (add new version) y/N ?")
+		fmt.Println("The exploit with this id already exists. Do you want to override (add new version) y/N ?")
 		var tmp string
 		if _, err := fmt.Scanln(&tmp); err != nil {
 			return fmt.Errorf("failed to read user input: %w", err)

@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"context"
-
 	"neo/cmd/client/cli"
 	"neo/internal/client"
 
@@ -18,7 +16,7 @@ var addCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := client.MustUnmarshalConfig()
 		cli := cli.NewAdd(cmd, args, cfg)
-		ctx := context.Background()
+		ctx := cmd.Context()
 		if err := cli.Run(ctx); err != nil {
 			logrus.Fatalf("Error adding exploit: %v", err)
 		}
@@ -29,6 +27,6 @@ var addCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(addCmd)
 
-	addCmd.PersistentFlags().String("name", "", "exploit name")
+	addCmd.PersistentFlags().String("id", "", "exploit name")
 	addCmd.PersistentFlags().BoolP("dir", "d", false, "add exploit as a directory")
 }
