@@ -1,23 +1,21 @@
 package client
 
 import (
-	"io/ioutil"
-
-	"gopkg.in/yaml.v3"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
-func ReadConfig(path string) (*Config, error) {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
+func MustUnmarshalConfig() *Config {
+	cfg := new(Config)
+	if err := viper.Unmarshal(&cfg); err != nil {
+		logrus.Fatalf("Could not parse config structure: %v", err)
 	}
-	var config Config
-	err = yaml.Unmarshal(data, &config)
-	return &config, err
+	logrus.Debugf("Unmarshalled config %+v", cfg)
+	return cfg
 }
 
 type Config struct {
-	Host        string `yaml:"host"`
-	ExploitDir  string `yaml:"exploit_dir"`
-	GrpcAuthKey string `yaml:"grpc_auth_key"`
+	Host        string `yaml:"host" mapstructure:"host"`
+	ExploitDir  string `yaml:"exploit_dir" mapstructure:"exploit_dir"`
+	GrpcAuthKey string `yaml:"grpc_auth_key" mapstructure:"grpc_auth_key"`
 }

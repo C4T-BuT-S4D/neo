@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"io/ioutil"
 	"net"
 	"os"
@@ -13,13 +12,14 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
 
 	neopb "neo/lib/genproto/neo"
 )
 
 var (
-	configFile = flag.String("config", "config.yml", "yaml config file to read")
+	configFile = pflag.String("config", "config.yml", "yaml config file to read")
 )
 
 func load(path string, cfg *server.Configuration) error {
@@ -39,7 +39,7 @@ func watchConfig(ctx context.Context, srv *server.ExploitManagerServer) error {
 		for {
 			select {
 			case <-ctx.Done():
-				watcher.Close()
+				err = watcher.Close()
 				return
 			case event, ok := <-watcher.Events:
 				if !ok {
@@ -62,7 +62,7 @@ func watchConfig(ctx context.Context, srv *server.ExploitManagerServer) error {
 }
 
 func main() {
-	flag.Parse()
+	pflag.Parse()
 	cfg := &server.Configuration{}
 	if err := load(*configFile, cfg); err != nil {
 		logrus.Fatalf("Failed to read config: %v", err)

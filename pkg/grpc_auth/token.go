@@ -21,7 +21,7 @@ type ServerTokenInterceptor struct {
 	key string
 }
 
-func (ti *ServerTokenInterceptor) authorize(ctx context.Context, method string) error {
+func (ti *ServerTokenInterceptor) authorize(ctx context.Context, _ string) error {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return status.Errorf(codes.Unauthenticated, "metadata is not provided")

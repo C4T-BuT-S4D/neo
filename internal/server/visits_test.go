@@ -54,3 +54,49 @@ func TestVisitsMap_Invalidate(t *testing.T) {
 		}
 	}
 }
+
+func Test_visitsMap_MarkForDeletion(t *testing.T) {
+	generate := func(m map[string]time.Time) *visitsMap {
+		vm := newVisitsMap()
+		vm.visits = m
+		return vm
+	}
+	for _, tc := range []struct {
+		vm   *visitsMap
+		dur  string
+		now  time.Time
+		mark []string
+		want []string
+	}{
+		{
+			vm:   generate(map[string]time.Time{"1": time.Unix(900, 0), "2": time.Unix(995, 0)}),
+			dur:  "5s",
+			now:  time.Unix(1000, 0),
+			mark: []string{"2"},
+			want: []string{"1", "2"},
+		},
+		{
+			vm:   generate(map[string]time.Time{"1": time.Unix(900, 0), "2": time.Unix(995, 0)}),
+			dur:  "100s",
+			now:  time.Unix(1000, 0),
+			mark: []string{"1"},
+			want: []string{"1"},
+		},
+		{
+			vm:   generate(map[string]time.Time{"1": time.Unix(900, 0), "2": time.Unix(995, 0)}),
+			dur:  "100s",
+			now:  time.Unix(1000, 0),
+			mark: []string{"1", "2"},
+			want: []string{"1", "2"},
+		},
+	} {
+		d, _ := time.ParseDuration(tc.dur)
+		for _, cid := range tc.mark {
+			tc.vm.MarkInvalid(cid)
+		}
+		invalid := tc.vm.Invalidate(tc.now, d)
+		if diff := cmp.Diff(tc.want, invalid, cmpopts.SortSlices(testutils.LessString), cmpopts.EquateEmpty()); diff != "" {
+			t.Errorf("MarkInvalid() ids mismatch (-want +got):\n%s", diff)
+		}
+	}
+}

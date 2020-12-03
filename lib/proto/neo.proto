@@ -40,7 +40,15 @@ message FileStream {
 }
 
 message PingRequest {
-  string client_id = 1;
+  enum PingType {
+    CONFIG_REQUEST = 0;
+    HEARTBEAT = 1;
+    LEAVE = 2;
+  };
+
+  PingType type = 1;
+  string client_id = 2;
+  int32 weight = 3;
 }
 
 message PingResponse {

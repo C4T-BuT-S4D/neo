@@ -2,12 +2,10 @@ package cli
 
 import (
 	"context"
-	"flag"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	neopb "neo/lib/genproto/neo"
-	"neo/pkg/archive"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,8 +13,12 @@ import (
 	"strings"
 
 	"neo/internal/client"
+	"neo/pkg/archive"
 
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
+	neopb "neo/lib/genproto/neo"
 )
 
 type addCLI struct {
@@ -26,54 +28,53 @@ type addCLI struct {
 	exploitID string
 }
 
-func NewAdd(args []string, cfg *client.Config) *addCLI {
-	flags := flag.NewFlagSet("add", flag.ExitOnError)
-	isDir := flags.Bool("dir", false, "Dump exploit as an archive with entrypoint.")
-	eid := flags.String("id", "", "Id of the exploit. Will determinate it by path by default.")
-	if err := flags.Parse(args); err != nil {
-		logrus.Fatalf("add: failed to parse cli flags: %v", err)
+func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) *addCLI {
+	eid, err := cmd.Flags().GetString("id")
+	if err != nil {
+		logrus.Fatalf("Could not get exploit id")
 	}
-	if flags.NArg() < 1 {
-		logrus.Fatalf("Usage: %s add <path_to_exploit_folder_or_script>", os.Args[0])
+	isDir, err := cmd.Flags().GetBool("dir")
+	if err != nil {
+		logrus.Fatalf("Could not get dir param")
 	}
 	return &addCLI{
 		baseCLI:   &baseCLI{cfg},
-		path:      flags.Arg(0),
-		isArchive: *isDir,
-		exploitID: *eid,
+		path:      args[0],
+		isArchive: isDir,
+		exploitID: eid,
 	}
 }
 
 func (ac *addCLI) Run(ctx context.Context) error {
 	_, err := os.Stat(ac.path)
 	if err != nil {
-		logrus.Fatalf("add: failed to stat file(%s): %v", ac.path, err)
+		return fmt.Errorf("failed to stat file %s: %w", ac.path, err)
 	}
 	// Replace path with abs path.
 	if ac.path, err = filepath.Abs(ac.path); err != nil {
-		logrus.Fatalf("Failed to get absolute path: %v", err)
+		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	if errors := ac.validateEntry(ac.path); len(errors) > 0 {
-		for _, v := range errors {
-			fmt.Println(v)
+	if errs := ac.validateEntry(ac.path); len(errs) > 0 {
+		for _, v := range errs {
+			logrus.Errorf("%v", v)
 		}
-		logrus.Fatalf("Entrypoint is invalid.")
+		return errors.New("invalid exploit")
 	}
 
 	dir, file := path.Split(ac.path)
 	if ac.exploitID == "" {
 		ac.exploitID = file
 	}
-	fmt.Printf("Going to add exploit with id = %s\n", ac.exploitID)
+	logrus.Infof("Going to add exploit with id = %s", ac.exploitID)
 
-	client, err := ac.client()
+	c, err := ac.client()
 	if err != nil {
-		logrus.Fatalf("add: failed to create client: %v", err)
+		return fmt.Errorf("failed to create client: %w", err)
 	}
-	state, err := client.Ping(ctx)
+	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
 	if err != nil {
-		logrus.Fatalf("add: failed to get config from server: %v", err)
+		return fmt.Errorf("failed to get config from server: %w", err)
 	}
 	exists := false
 	for _, v := range state.GetExploits() {
@@ -84,9 +85,11 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	}
 
 	if exists {
-		fmt.Println("The exploit with this id already exists. Do you wan't to override(add new version) y/n ?")
+		fmt.Println("The exploit with this id already exists. Do you want to override (add new version) y/N ?")
 		var tmp string
-		fmt.Scanln(&tmp)
+		if _, err := fmt.Scanln(&tmp); err != nil {
+			return fmt.Errorf("failed to read user input: %w", err)
+		}
 		if !strings.Contains(strings.ToLower(tmp), "y") {
 			logrus.Fatalf("Aborted.")
 		}
@@ -96,29 +99,29 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	if ac.isArchive {
 		f, err = ioutil.TempFile("", "ARCHIVE")
 		if err != nil {
-			logrus.Fatalf("Failed to create tmpfile: %v", err)
+			return fmt.Errorf("failed to create tmpfile: %w", err)
 		}
 
 		defer os.Remove(f.Name())
 		if err := archive.Tar(dir, f); err != nil {
-			logrus.Fatalf("Failed to create TarGz archive: %v", err)
+			return fmt.Errorf("failed to create TarGz archive: %w", err)
 		}
 
 		// Seek file to start to correctly use it for reading.
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
-			logrus.Fatalf("Failed to seek archive file: %v", err)
+			return fmt.Errorf("failed to seek archive file: %w", err)
 		}
 	} else {
 		f, err = os.Open(ac.path)
 		if err != nil {
-			logrus.Fatalf("Failed to open exploit path: %v", err)
+			return fmt.Errorf("failed to open exploit path: %w", err)
 		}
 	}
 	defer f.Close()
 
-	fileInfo, err := client.UploadFile(ctx, f)
+	fileInfo, err := c.UploadFile(ctx, f)
 	if err != nil {
-		logrus.Fatalf("Failed to upload exploit file: %v", err)
+		return fmt.Errorf("failed to upload exploit file: %w", err)
 	}
 
 	req := &neopb.UpdateExploitRequest{
@@ -129,7 +132,10 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			IsArchive:  ac.isArchive,
 		},
 	}
-	return client.UpdateExploit(ctx, req)
+	if err := c.UpdateExploit(ctx, req); err != nil {
+		return fmt.Errorf("failed to update exploit: %w", err)
+	}
+	return nil
 }
 
 func (ac *addCLI) validateEntry(f string) (errors []string) {

@@ -19,12 +19,17 @@ func New(cc grpc.ClientConnInterface, id string) *Client {
 }
 
 type Client struct {
-	c  neopb.ExploitManagerClient
-	ID string
+	c      neopb.ExploitManagerClient
+	ID     string
+	Weight int
 }
 
-func (nc *Client) Ping(ctx context.Context) (*neopb.ServerState, error) {
-	req := &neopb.PingRequest{ClientId: nc.ID}
+func (nc *Client) Ping(ctx context.Context, t neopb.PingRequest_PingType) (*neopb.ServerState, error) {
+	req := &neopb.PingRequest{ClientId: nc.ID, Type: t}
+	if t == neopb.PingRequest_HEARTBEAT {
+		req.Type = neopb.PingRequest_HEARTBEAT
+		req.Weight = int32(nc.Weight)
+	}
 	resp, err := nc.c.Ping(ctx, req)
 	if err != nil {
 		return nil, err
