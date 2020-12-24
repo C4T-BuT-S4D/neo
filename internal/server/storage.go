@@ -152,8 +152,12 @@ func (cs *CachedStorage) readDB() error {
 
 func (cs *CachedStorage) initDB() error {
 	return cs.bdb.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(stateBucketKey))
-		_, err = tx.CreateBucketIfNotExists([]byte(configurationBucketKey))
-		return err
+		if _, err := tx.CreateBucketIfNotExists([]byte(stateBucketKey)); err != nil {
+			return err
+		}
+		if _, err := tx.CreateBucketIfNotExists([]byte(configurationBucketKey)); err != nil {
+			return err
+		}
+		return nil
 	})
 }

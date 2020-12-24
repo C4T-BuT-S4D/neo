@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -65,6 +66,12 @@ type ExploitManagerServer struct {
 }
 
 func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
+
+	var env []string
+	for k, v := range cfg.Environ {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	em.cfgMutex.Lock()
 	defer em.cfgMutex.Unlock()
 	em.config = &config.Config{
@@ -74,6 +81,7 @@ func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
 		FarmUrl:      cfg.FarmConfig.Url,
 		FarmPassword: cfg.FarmConfig.Password,
 		FlagRegexp:   regexp.MustCompile(cfg.FarmConfig.FlagRegexp),
+		Environ:      env,
 	}
 	em.buckets.UpdateTeams(cfg.FarmConfig.Teams)
 }
@@ -106,7 +114,11 @@ func (em *ExploitManagerServer) DownloadFile(fi *neopb.FileInfo, stream neopb.Ex
 	if err != nil {
 		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			logrus.Errorf("Error closing downloaded file: %v", err)
+		}
+	}()
 	if err := filestream.Load(f, stream); err != nil {
 		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
 	}

@@ -21,6 +21,7 @@ message Config {
   string farm_password = 4;
   string flag_regexp = 5;
   string ping_every = 6;
+  repeated string environ = 7;
 }
 
 message ServerState {
