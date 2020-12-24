@@ -22,7 +22,7 @@ type Config struct {
 	Timeout     time.Duration     `yaml:"timeout"`
 	FarmConfig  FarmConfig        `yaml:"farm"`
 	GrpcAuthKey string            `yaml:"grpc_auth_key"`
-	Environ     map[string]string `yaml:"env"`
+	Environ     map[string]string `yaml:"var.env"`
 }
 
 type FarmConfig struct {
