@@ -43,11 +43,11 @@ func (o osFs) Open(f string) (fileInterface, error) {
 	return os.Open(path.Join(o.baseDir, f))
 }
 
-func New(cfg *Configuration, storage *CachedStorage) *ExploitManagerServer {
+func New(cfg *Config, storage *CachedStorage) *ExploitManagerServer {
 	ems := &ExploitManagerServer{
 		storage: storage,
 		fs:      osFs{cfg.BaseDir},
-		buckets: hostbucket.New(cfg.IPList),
+		buckets: hostbucket.New(cfg.FarmConfig.Teams),
 		visits:  newVisitsMap(),
 	}
 	ems.UpdateConfig(cfg)
@@ -64,18 +64,18 @@ type ExploitManagerServer struct {
 	fs       filesystem
 }
 
-func (em *ExploitManagerServer) UpdateConfig(cfg *Configuration) {
+func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
 	em.cfgMutex.Lock()
 	defer em.cfgMutex.Unlock()
 	em.config = &config.Config{
 		PingEvery:    cfg.PingEvery,
 		RunEvery:     cfg.RunEvery,
 		Timeout:      cfg.Timeout,
-		FarmUrl:      cfg.FarmUrl,
-		FarmPassword: cfg.FarmPassword,
-		FlagRegexp:   regexp.MustCompile(cfg.FlagRegexp),
+		FarmUrl:      cfg.FarmConfig.Url,
+		FarmPassword: cfg.FarmConfig.Password,
+		FlagRegexp:   regexp.MustCompile(cfg.FarmConfig.FlagRegexp),
 	}
-	em.buckets.UpdateIPS(cfg.IPList)
+	em.buckets.UpdateTeams(cfg.FarmConfig.Teams)
 }
 
 func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFileServer) (err error) {

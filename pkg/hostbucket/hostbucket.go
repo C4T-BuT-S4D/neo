@@ -11,11 +11,11 @@ import (
 	neopb "neo/lib/genproto/neo"
 )
 
-func New(ips []string) *HostBucket {
+func New(teams map[string]string) *HostBucket {
 	return &HostBucket{
 		buck:  make(map[string]*neopb.TeamBucket),
 		nodes: nil,
-		ips:   ips,
+		teams: teams,
 		r:     rendezvous.New(),
 	}
 }
@@ -24,19 +24,19 @@ type HostBucket struct {
 	m     sync.RWMutex
 	buck  map[string]*neopb.TeamBucket
 	nodes []*node
-	ips   []string
+	teams map[string]string
 	r     *rendezvous.Rendezvous
 }
 
 // TODO: effective ip addition & deletion
-func (hb *HostBucket) UpdateIPS(ips []string) {
+func (hb *HostBucket) UpdateTeams(teams map[string]string) {
 	lessFunc := func(s1, s2 string) bool {
 		return s1 < s2
 	}
-	if !cmp.Equal(ips, hb.ips, cmpopts.SortSlices(lessFunc)) {
+	if !cmp.Equal(teams, hb.teams, cmpopts.SortSlices(lessFunc)) {
 		hb.m.Lock()
 		defer hb.m.Unlock()
-		hb.ips = ips
+		hb.teams = teams
 		hb.rehash()
 	}
 }
@@ -101,18 +101,21 @@ func (hb *HostBucket) rehash() {
 	if len(hb.nodes) == 0 {
 		return
 	}
-	for _, ip := range hb.ips {
+	for id, ip := range hb.teams {
 		bestHash := 0.0
 		bestNode := ""
 
 		for _, n := range hb.nodes {
-			hash := hb.r.Calculate(n.id, n.weight, ip)
+			hash := hb.r.Calculate(n.id, n.weight, id)
 			if bestNode == "" || hash > bestHash {
 				bestNode = n.id
 				bestHash = hash
 			}
 		}
 
-		hb.buck[bestNode].TeamIps = append(hb.buck[bestNode].TeamIps, ip)
+		if hb.buck[bestNode].Teams == nil {
+			hb.buck[bestNode].Teams = make(map[string]string)
+		}
+		hb.buck[bestNode].Teams[id] = ip
 	}
 }

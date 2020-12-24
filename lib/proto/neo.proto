@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 message TeamBucket {
-  repeated string team_ips = 1;
+  map<string, string> teams = 1;
 }
 
 message FileInfo {

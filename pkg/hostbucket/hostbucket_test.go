@@ -18,12 +18,12 @@ func TestHostBucket_Add(t *testing.T) {
 		want  map[string]int
 	}{
 		{
-			b:     New([]string{"ip1"}),
+			b:     New(map[string]string{"id1": "ip1"}),
 			users: []string{"u1"},
 			want:  map[string]int{"u1": 1},
 		},
 		{
-			b:     New([]string{"ip1", "ip2", "ip3"}),
+			b:     New(map[string]string{"id1": "ip1", "id2": "ip2", "id3": "ip3"}),
 			users: []string{},
 			want:  map[string]int{},
 		},
@@ -32,20 +32,23 @@ func TestHostBucket_Add(t *testing.T) {
 			tc.b.AddNode(u, 1)
 		}
 		b := tc.b.Buckets()
-		var gotIps []string
+		gotTeams := make(map[string]string)
 		for cid, wantn := range tc.want {
 			ipb := b[cid]
-			if len(ipb.GetTeamIps()) != wantn {
+			teams := ipb.GetTeams()
+			if len(teams) != wantn {
 				t.Errorf("HostBucket.AddNode(): incorrent number of gotIps in user bucket want=%d, got=%d",
-					wantn, len(ipb.GetTeamIps()),
+					wantn, len(ipb.GetTeams()),
 				)
 			}
-			gotIps = append(gotIps, ipb.GetTeamIps()...)
+			for k, v := range teams {
+				gotTeams[k] = v
+			}
 		}
 		less := func(s1, s2 string) bool {
 			return s1 < s2
 		}
-		if diff := cmp.Diff(tc.b.ips, gotIps, cmpopts.SortSlices(less)); diff != "" && len(tc.want) > 0 {
+		if diff := cmp.Diff(tc.b.teams, gotTeams, cmpopts.SortSlices(less)); diff != "" && len(tc.want) > 0 {
 			t.Errorf("HostBucket.AddNode() summary ips mismatch (-want +got):\n%s", diff)
 		}
 	}
@@ -53,11 +56,11 @@ func TestHostBucket_Add(t *testing.T) {
 
 func TestHostBucket_Add_Distribution(t *testing.T) {
 	populate := func(ipCount, idCount int, weightMax int) *HostBucket {
-		ips := make([]string, ipCount)
-		for i := range ips {
-			ips[i] = testutils.RandomIP()
+		teams := make(map[string]string)
+		for id := range teams {
+			teams[id] = testutils.RandomIP()
 		}
-		hb := New(ips)
+		hb := New(teams)
 
 		mid, err := machineid.ID()
 		if err != nil {
@@ -106,7 +109,7 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 			meanSize := 0.0
 			for i := range sizes {
 				id := b.nodes[i].id
-				ips := b.buck[id].GetTeamIps()
+				ips := b.buck[id].GetTeams()
 				sizes[i] = float64(len(ips)) / float64(b.nodes[i].weight)
 				meanSize += sizes[i]
 			}
@@ -146,11 +149,11 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 
 func TestHostBucket_Balancing(t *testing.T) {
 	populate := func(ipCount, idCount int) *HostBucket {
-		ips := make([]string, ipCount)
-		for i := range ips {
-			ips[i] = testutils.RandomIP()
+		teams := make(map[string]string, ipCount)
+		for id := range teams {
+			teams[id] = testutils.RandomIP()
 		}
-		hb := New(ips)
+		hb := New(teams)
 
 		mid, err := machineid.ID()
 		if err != nil {
@@ -189,8 +192,8 @@ func TestHostBucket_Balancing(t *testing.T) {
 
 		beforeByIP := make(map[string]string)
 		for _, n := range b.nodes {
-			ips := b.buck[n.id].GetTeamIps()
-			for _, ip := range ips {
+			teams := b.buck[n.id].GetTeams()
+			for _, ip := range teams {
 				beforeByIP[ip] = n.id
 			}
 		}
@@ -198,8 +201,8 @@ func TestHostBucket_Balancing(t *testing.T) {
 		getCntMoved := func() int {
 			cntMoved := 0
 			for _, n := range b.nodes {
-				ips := b.buck[n.id].GetTeamIps()
-				for _, ip := range ips {
+				teams := b.buck[n.id].GetTeams()
+				for _, ip := range teams {
 					if n.id != beforeByIP[ip] {
 						cntMoved += 1
 					}
@@ -236,8 +239,8 @@ func TestHostBucket_Balancing(t *testing.T) {
 }
 
 func TestHostBucket_Delete(t *testing.T) {
-	populate := func(ips []string, ids []string) *HostBucket {
-		hb := New(ips)
+	populate := func(teams map[string]string, ids []string) *HostBucket {
+		hb := New(teams)
 		for _, id := range ids {
 			hb.AddNode(id, 1)
 		}
@@ -249,12 +252,12 @@ func TestHostBucket_Delete(t *testing.T) {
 		want   map[string]int
 	}{
 		{
-			b:      populate([]string{"ip1", "ip2"}, []string{"id1", "id2"}),
+			b:      populate(map[string]string{"team1": "ip1", "team2": "ip2"}, []string{"id1", "id2"}),
 			delete: []string{"id1"},
 			want:   map[string]int{"id2": 2},
 		},
 		{
-			b:      populate([]string{"ip1", "ip2"}, []string{"id1"}),
+			b:      populate(map[string]string{"team1": "ip1", "team2": "ip2"}, []string{"id1"}),
 			delete: []string{"id1"},
 			want:   map[string]int{},
 		},
@@ -262,17 +265,20 @@ func TestHostBucket_Delete(t *testing.T) {
 		for _, tid := range tc.delete {
 			tc.b.DeleteNode(tid)
 		}
-		var gotIps []string
+		gotTeams := make(map[string]string)
 		for cid, wantn := range tc.want {
 			ipb := tc.b.buck[cid]
-			if len(ipb.GetTeamIps()) != wantn {
+			teams := ipb.GetTeams()
+			if len(teams) != wantn {
 				t.Errorf("HostBucket.DeleteNode(): incorrent number of gotIps in user bucket want=%d, got=%d",
-					wantn, len(ipb.GetTeamIps()),
+					wantn, len(teams),
 				)
 			}
-			gotIps = append(gotIps, ipb.GetTeamIps()...)
+			for k, v := range teams {
+				gotTeams[k] = v
+			}
 		}
-		if diff := cmp.Diff(tc.b.ips, gotIps, cmpopts.SortSlices(testutils.LessString)); diff != "" && len(tc.want) > 0 {
+		if diff := cmp.Diff(tc.b.teams, gotTeams, cmpopts.SortSlices(testutils.LessString)); diff != "" && len(tc.want) > 0 {
 			t.Errorf("HostBucket.DeleteNode() summary ips mismatch (-want +got):\n%s", diff)
 		}
 	}
