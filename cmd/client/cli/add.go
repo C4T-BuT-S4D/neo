@@ -151,7 +151,7 @@ func (ac *addCLI) validateEntry(f string) (errors []string) {
 	if string(data[:2]) != "#!" {
 		errors = append(errors,
 			fmt.Sprintf("Please use shebang (e.g. %s) as the first line of your script",
-				"#!/usr/bin/var.env python3"))
+				"#!/usr/bin/env python3"))
 	}
 	var re = regexp.MustCompile(`(?m)flush[(=]`)
 	if !re.Match(data) {
