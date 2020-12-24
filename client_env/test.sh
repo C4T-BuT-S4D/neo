@@ -6,11 +6,9 @@ source "${DIR}/vars.env"
 NEED_COMMANDS=(curl wget dig nc file nslookup ifconfig python3 pip3)
 NEED_PACKAGES=(pymongo pymysql psycopg2 redis z3 secrets checklib requests pwn)
 
-for cmd in "${NEED_COMMANDS[@]}"
-do
+for cmd in "${NEED_COMMANDS[@]}"; do
   echo "Checking for command ${cmd}..."
-  if docker run --entrypoint /bin/bash --rm "${IMAGE}" which "${cmd}" >/dev/null;
-  then
+  if docker run --entrypoint /bin/bash --rm "${IMAGE}" which "${cmd}" >/dev/null; then
     echo "ok"
   else
     echo "Command ${cmd} not found in image"
@@ -18,11 +16,9 @@ do
   fi
 done
 
-for pkg in "${NEED_PACKAGES[@]}"
-do
+for pkg in "${NEED_PACKAGES[@]}"; do
   echo "Checking for package ${pkg}..."
-  if docker run --entrypoint "/bin/bash" --rm "${IMAGE}" -c "python3 -c 'import ${pkg}'"
-  then
+  if docker run --entrypoint "/bin/bash" --rm "${IMAGE}" -c "python3 -c 'import ${pkg}'"; then
     echo "ok"
   else
     echo "Package ${pkg} not found in image"

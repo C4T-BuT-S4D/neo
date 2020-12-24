@@ -8,7 +8,7 @@ RUN go mod download
 COPY . .
 RUN go build -ldflags="-s -w" -o client cmd/client/main.go
 
-FROM python:3.7
+FROM python:3.9
 
 ENV PYTHONUNBUFFERED 1
 ENV PWNLIB_NOTERM 1
