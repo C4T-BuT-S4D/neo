@@ -7,4 +7,9 @@ source "${DIR}/vars.env"
 
 echo "Make sure you're logged in as ${ACCOUNT}"
 docker build -t "${IMAGE}" -f "${DIRNAME}/Dockerfile" "${DIR}/../"
-docker push "${IMAGE}"
+
+"${DIR}/test.sh"
+
+if [[ $* == *'--push'* ]]; then
+  docker push "${IMAGE}"
+fi

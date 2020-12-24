@@ -1,24 +1,24 @@
-#!/bin/bash
+#!/bin/bash -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
-ARGS="$*"
+COMMAND="$*"
 
 source "${DIR}/vars.env"
-OUT=$(docker ps -a | grep "${CONTAINER_NAME}")
-
-set -e
+OUT=$(docker ps --filter "name=${CONTAINER_NAME}" --format "{{ .Names }}")
 
 if [[ $OUT ]]; then
-  docker exec -it "$NAME" "$ARGS"
+  # shellcheck disable=SC2068
+  docker exec -it "${CONTAINER_NAME}" ${COMMAND[@]}
 else
-  docker run -v "${DIR}":/work -w /work \
+  docker run -it \
+    --rm \
+    --volume "${DIR}":/work \
     --security-opt seccomp=unconfined \
     --security-opt apparmor=unconfined \
     --cap-add=NET_ADMIN \
     --privileged \
     --name "${CONTAINER_NAME}" \
     --hostname "${CONTAINER_NAME}" \
-    -it --rm \
     "${IMAGE}" \
-    "${ARGS}"
+    "${COMMAND}"
 fi
