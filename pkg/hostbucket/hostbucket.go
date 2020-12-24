@@ -64,8 +64,8 @@ func (hb *HostBucket) AddNode(id string, weight int) {
 
 	hb.buck[id] = &neopb.TeamBucket{}
 	n := &node{
-		ID:     id,
-		Weight: weight,
+		id:     id,
+		weight: weight,
 	}
 	hb.nodes = append(hb.nodes, n)
 	// TODO: more effective node addition
@@ -79,7 +79,7 @@ func (hb *HostBucket) DeleteNode(id string) bool {
 		return false
 	}
 	for i, n := range hb.nodes {
-		if n.ID == id {
+		if n.id == id {
 			last := len(hb.nodes) - 1
 			hb.nodes[i] = hb.nodes[last]
 			hb.nodes[last] = nil
@@ -106,9 +106,9 @@ func (hb *HostBucket) rehash() {
 		bestNode := ""
 
 		for _, n := range hb.nodes {
-			hash := hb.r.Calculate(n.ID, n.Weight, ip)
+			hash := hb.r.Calculate(n.id, n.weight, ip)
 			if bestNode == "" || hash > bestHash {
-				bestNode = n.ID
+				bestNode = n.id
 				bestHash = hash
 			}
 		}

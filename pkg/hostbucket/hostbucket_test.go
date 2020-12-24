@@ -105,16 +105,16 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 			sizes := make([]float64, tc.idCount)
 			meanSize := 0.0
 			for i := range sizes {
-				id := b.nodes[i].ID
+				id := b.nodes[i].id
 				ips := b.buck[id].GetTeamIps()
-				sizes[i] = float64(len(ips)) / float64(b.nodes[i].Weight)
+				sizes[i] = float64(len(ips)) / float64(b.nodes[i].weight)
 				meanSize += sizes[i]
 			}
 			meanSize /= float64(len(sizes))
 
 			stdDev := 0.0
 			for i := range sizes {
-				id := b.nodes[i].ID
+				id := b.nodes[i].id
 				deviation := math.Abs((sizes[i] - meanSize) / meanSize)
 				if deviation > tc.maxDeviation {
 					t.Errorf(
@@ -123,7 +123,7 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 						deviation,
 						tc.maxDeviation,
 						meanSize,
-						b.nodes[i].Weight,
+						b.nodes[i].weight,
 						sizes[i],
 					)
 				}
@@ -189,21 +189,21 @@ func TestHostBucket_Balancing(t *testing.T) {
 
 		beforeByIP := make(map[string]string)
 		for _, n := range b.nodes {
-			ips := b.buck[n.ID].GetTeamIps()
+			ips := b.buck[n.id].GetTeamIps()
 			for _, ip := range ips {
-				beforeByIP[ip] = n.ID
+				beforeByIP[ip] = n.id
 			}
 		}
 
 		getCntMoved := func() int {
 			cntMoved := 0
 			for _, n := range b.nodes {
-				ips := b.buck[n.ID].GetTeamIps()
+				ips := b.buck[n.id].GetTeamIps()
 				for _, ip := range ips {
-					if n.ID != beforeByIP[ip] {
+					if n.id != beforeByIP[ip] {
 						cntMoved += 1
 					}
-					beforeByIP[ip] = n.ID
+					beforeByIP[ip] = n.id
 				}
 			}
 			return cntMoved
@@ -211,7 +211,7 @@ func TestHostBucket_Balancing(t *testing.T) {
 
 		for i := 0; i < tc.cntDelete; i += 1 {
 			toDelete := testutils.RandomInt(0, tc.idCount)
-			b.DeleteNode(b.nodes[toDelete].ID)
+			b.DeleteNode(b.nodes[toDelete].id)
 		}
 		cntMoved := getCntMoved()
 		movedFraction := float64(cntMoved) / float64(tc.ipCount)

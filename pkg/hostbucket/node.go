@@ -1,6 +1,6 @@
 package hostbucket
 
 type node struct {
-	ID     string
-	Weight int
+	id     string
+	weight int
 }

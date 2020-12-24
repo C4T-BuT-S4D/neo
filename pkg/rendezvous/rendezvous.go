@@ -42,10 +42,10 @@ func (r *Rendezvous) calcHash(key string) uint64 {
 }
 
 func (r *Rendezvous) Calculate(node string, weight int, value string) float64 {
-	key := CombineKey(node, value)
+	key := combineKey(node, value)
 	if raw, ok := r.checkCache(key); ok {
-		return WeightHash(raw, weight)
+		return weightHash(raw, weight)
 	}
 	raw := r.calcHash(key)
-	return WeightHash(raw, weight)
+	return weightHash(raw, weight)
 }
