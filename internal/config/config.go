@@ -14,6 +14,7 @@ type Config struct {
 	FarmUrl      string
 	FarmPassword string
 	FlagRegexp   *regexp.Regexp
+	Environ      []string
 }
 
 func ToProto(c *Config) *neopb.Config {
@@ -24,6 +25,7 @@ func ToProto(c *Config) *neopb.Config {
 		FarmPassword: c.FarmPassword,
 		FlagRegexp:   c.FlagRegexp.String(),
 		PingEvery:    c.PingEvery.String(),
+		Environ:      c.Environ,
 	}
 }
 
@@ -46,5 +48,6 @@ func FromProto(config *neopb.Config) (*Config, error) {
 	}
 	cfg.FarmUrl = config.GetFarmUrl()
 	cfg.FarmPassword = config.GetFarmPassword()
+	cfg.Environ = config.GetEnviron()
 	return &cfg, nil
 }

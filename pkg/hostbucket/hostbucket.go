@@ -11,11 +11,11 @@ import (
 	neopb "neo/lib/genproto/neo"
 )
 
-func New(ips []string) *HostBucket {
+func New(teams map[string]string) *HostBucket {
 	return &HostBucket{
 		buck:  make(map[string]*neopb.TeamBucket),
 		nodes: nil,
-		ips:   ips,
+		teams: teams,
 		r:     rendezvous.New(),
 	}
 }
@@ -24,19 +24,19 @@ type HostBucket struct {
 	m     sync.RWMutex
 	buck  map[string]*neopb.TeamBucket
 	nodes []*node
-	ips   []string
+	teams map[string]string
 	r     *rendezvous.Rendezvous
 }
 
 // TODO: effective ip addition & deletion
-func (hb *HostBucket) UpdateIPS(ips []string) {
+func (hb *HostBucket) UpdateTeams(teams map[string]string) {
 	lessFunc := func(s1, s2 string) bool {
 		return s1 < s2
 	}
-	if !cmp.Equal(ips, hb.ips, cmpopts.SortSlices(lessFunc)) {
+	if !cmp.Equal(teams, hb.teams, cmpopts.SortSlices(lessFunc)) {
 		hb.m.Lock()
 		defer hb.m.Unlock()
-		hb.ips = ips
+		hb.teams = teams
 		hb.rehash()
 	}
 }
@@ -64,8 +64,8 @@ func (hb *HostBucket) AddNode(id string, weight int) {
 
 	hb.buck[id] = &neopb.TeamBucket{}
 	n := &node{
-		ID:     id,
-		Weight: weight,
+		id:     id,
+		weight: weight,
 	}
 	hb.nodes = append(hb.nodes, n)
 	// TODO: more effective node addition
@@ -79,7 +79,7 @@ func (hb *HostBucket) DeleteNode(id string) bool {
 		return false
 	}
 	for i, n := range hb.nodes {
-		if n.ID == id {
+		if n.id == id {
 			last := len(hb.nodes) - 1
 			hb.nodes[i] = hb.nodes[last]
 			hb.nodes[last] = nil
@@ -101,18 +101,21 @@ func (hb *HostBucket) rehash() {
 	if len(hb.nodes) == 0 {
 		return
 	}
-	for _, ip := range hb.ips {
+	for id, ip := range hb.teams {
 		bestHash := 0.0
 		bestNode := ""
 
 		for _, n := range hb.nodes {
-			hash := hb.r.Calculate(n.ID, n.Weight, ip)
+			hash := hb.r.Calculate(n.id, n.weight, id)
 			if bestNode == "" || hash > bestHash {
-				bestNode = n.ID
+				bestNode = n.id
 				bestHash = hash
 			}
 		}
 
-		hb.buck[bestNode].TeamIps = append(hb.buck[bestNode].TeamIps, ip)
+		if hb.buck[bestNode].Teams == nil {
+			hb.buck[bestNode].Teams = make(map[string]string)
+		}
+		hb.buck[bestNode].Teams[id] = ip
 	}
 }

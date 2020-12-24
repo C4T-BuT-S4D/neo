@@ -1,0 +1,16 @@
+checklib
+eventlet
+flask
+gevent
+psycopg2-binary
+pwntools
+pycryptodome
+pymongo
+PyMySQL
+pyopenssl
+python-socketio[asyncio_client]
+python-socketio[client]
+redis
+requests
+websockets
+z3-solver

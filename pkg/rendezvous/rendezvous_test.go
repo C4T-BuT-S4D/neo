@@ -26,12 +26,12 @@ func TestRendezvous_Calculate(t *testing.T) {
 				t.Error("Zero hash returned")
 			}
 
-			k := CombineKey(tt.nodeID, tt.value)
+			k := combineKey(tt.nodeID, tt.value)
 			rhash, ok := r.checkCache(k)
 			if !ok {
 				t.Error("Key is not cached after add")
 			} else {
-				needHash := WeightHash(rhash, tt.nodeWeight)
+				needHash := weightHash(rhash, tt.nodeWeight)
 				if needHash != hash {
 					t.Errorf("Cached %f, but returned %f", needHash, hash)
 				}

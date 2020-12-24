@@ -25,7 +25,7 @@ func testServer() (*ExploitManagerServer, func()) {
 	if err != nil {
 		panic(err)
 	}
-	es := New(&Configuration{
+	es := New(&Config{
 		BaseDir: dir,
 	}, st)
 	return es, func() {
@@ -97,7 +97,7 @@ func TestExploitManagerServer_Exploit(t *testing.T) {
 func TestExploitManagerServer_Ping(t *testing.T) {
 	es, clean := testServer()
 	defer clean()
-	es.buckets = hostbucket.New([]string{"ip1", "ip2"})
+	es.buckets = hostbucket.New(map[string]string{"id1": "ip1", "id2": "ip2"})
 	es.config.FarmUrl = "test"
 	ctx := context.Background()
 	r := &neopb.UpdateExploitRequest{
@@ -125,7 +125,7 @@ func TestExploitManagerServer_Ping(t *testing.T) {
 	if diff := cmp.Diff(es.buckets.Buckets(), resp.GetState().GetClientTeamMap(), protocmp.Transform()); diff != "" {
 		t.Errorf("Ping() bucket mismatch (-want +got):\n%s", diff)
 	}
-	if len(es.buckets.Buckets()[req.ClientId].GetTeamIps()) == 0 {
+	if len(es.buckets.Buckets()[req.ClientId].GetTeams()) == 0 {
 		t.Errorf("Ping() ip bucket with zero len")
 	}
 	gotUrl := resp.GetState().GetConfig().GetFarmUrl()

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -43,11 +44,11 @@ func (o osFs) Open(f string) (fileInterface, error) {
 	return os.Open(path.Join(o.baseDir, f))
 }
 
-func New(cfg *Configuration, storage *CachedStorage) *ExploitManagerServer {
+func New(cfg *Config, storage *CachedStorage) *ExploitManagerServer {
 	ems := &ExploitManagerServer{
 		storage: storage,
 		fs:      osFs{cfg.BaseDir},
-		buckets: hostbucket.New(cfg.IPList),
+		buckets: hostbucket.New(cfg.FarmConfig.Teams),
 		visits:  newVisitsMap(),
 	}
 	ems.UpdateConfig(cfg)
@@ -64,18 +65,25 @@ type ExploitManagerServer struct {
 	fs       filesystem
 }
 
-func (em *ExploitManagerServer) UpdateConfig(cfg *Configuration) {
+func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
+
+	var env []string
+	for k, v := range cfg.Environ {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	em.cfgMutex.Lock()
 	defer em.cfgMutex.Unlock()
 	em.config = &config.Config{
 		PingEvery:    cfg.PingEvery,
 		RunEvery:     cfg.RunEvery,
 		Timeout:      cfg.Timeout,
-		FarmUrl:      cfg.FarmUrl,
-		FarmPassword: cfg.FarmPassword,
-		FlagRegexp:   regexp.MustCompile(cfg.FlagRegexp),
+		FarmUrl:      cfg.FarmConfig.Url,
+		FarmPassword: cfg.FarmConfig.Password,
+		FlagRegexp:   regexp.MustCompile(cfg.FarmConfig.FlagRegexp),
+		Environ:      env,
 	}
-	em.buckets.UpdateIPS(cfg.IPList)
+	em.buckets.UpdateTeams(cfg.FarmConfig.Teams)
 }
 
 func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFileServer) (err error) {
@@ -106,7 +114,11 @@ func (em *ExploitManagerServer) DownloadFile(fi *neopb.FileInfo, stream neopb.Ex
 	if err != nil {
 		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			logrus.Errorf("Error closing downloaded file: %v", err)
+		}
+	}()
 	if err := filestream.Load(f, stream); err != nil {
 		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
 	}

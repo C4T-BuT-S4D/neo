@@ -22,7 +22,7 @@ var (
 	configFile = pflag.String("config", "config.yml", "yaml config file to read")
 )
 
-func load(path string, cfg *server.Configuration) error {
+func load(path string, cfg *server.Config) error {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func watchConfig(ctx context.Context, srv *server.ExploitManagerServer) error {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Rename == fsnotify.Rename {
-					cfg := &server.Configuration{}
+					cfg := &server.Config{}
 					err := load(*configFile, cfg)
 					if err != nil {
 						logrus.Errorf("Failed to reload read configuration: %v", err)
@@ -63,10 +63,16 @@ func watchConfig(ctx context.Context, srv *server.ExploitManagerServer) error {
 
 func main() {
 	pflag.Parse()
-	cfg := &server.Configuration{}
+	cfg := &server.Config{}
 	if err := load(*configFile, cfg); err != nil {
 		logrus.Fatalf("Failed to read config: %v", err)
 	}
+
+	fc := server.NewFarmClient(cfg.FarmConfig)
+	if err := fc.FillConfig(&cfg.FarmConfig); err != nil {
+		logrus.Fatalf("Failed to fetch config from farm: %v", err)
+	}
+
 	st, err := server.NewBoltStorage(cfg.DBPath)
 	if err != nil {
 		logrus.Fatalf("Failed to create bolt storage: %v", err)

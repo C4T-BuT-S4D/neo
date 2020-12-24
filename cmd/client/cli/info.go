@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"neo/internal/client"
 	"neo/internal/config"
@@ -38,7 +37,7 @@ func (ic *infoCLI) Run(ctx context.Context) error {
 	fmt.Println("IPs buckets: ")
 	for k, v := range state.GetClientTeamMap() {
 		fmt.Print(k, ": [")
-		fmt.Print(strings.Join(v.GetTeamIps(), ", "))
+		fmt.Printf("%+v", v.GetTeams())
 		fmt.Println("]")
 	}
 	fmt.Println("Exploits: ")

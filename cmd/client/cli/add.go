@@ -102,7 +102,9 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			return fmt.Errorf("failed to create tmpfile: %w", err)
 		}
 
-		defer os.Remove(f.Name())
+		defer func() {
+			_ = os.Remove(f.Name())
+		}()
 		if err := archive.Tar(dir, f); err != nil {
 			return fmt.Errorf("failed to create TarGz archive: %w", err)
 		}
@@ -117,7 +119,9 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			return fmt.Errorf("failed to open exploit path: %w", err)
 		}
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	fileInfo, err := c.UploadFile(ctx, f)
 	if err != nil {
