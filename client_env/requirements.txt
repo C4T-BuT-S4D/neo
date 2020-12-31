@@ -2,6 +2,7 @@ checklib
 eventlet
 flask
 gevent
+numpy
 psycopg2-binary
 pwntools
 pycryptodome

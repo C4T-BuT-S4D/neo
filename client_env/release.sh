@@ -6,7 +6,9 @@ DIRNAME=$(basename "$DIR")
 source "${DIR}/vars.env"
 
 echo "Make sure you're logged in as ${ACCOUNT}"
-docker build -t "${IMAGE}" -f "${DIRNAME}/Dockerfile" "${DIR}/../"
+pushd "${DIR}/../"
+docker build -t "${IMAGE}" -f "${DIRNAME}/Dockerfile" .
+popd
 
 "${DIR}/test.sh"
 
