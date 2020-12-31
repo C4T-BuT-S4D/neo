@@ -1,18 +1,18 @@
-#!/bin/bash
+#!/bin/bash -e
 
-mkdir -p neo_client
-cp configs/client/config.yml neo_client/config.yml
-mkdir -p neo_client/exploits
-touch neo_client/exploits/.keep
-cp -r client_env/ neo_client/
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 
-mkdir -p neo_server/data
-cp configs/server/config.yml neo_server/config.yml
-touch neo_server/data/.keep
+pushd "${DIR}/../"
 
+./scripts/setup_release.sh
 
-goreleaser --rm-dist
+if [[ $* == *"--dry-run"* ]]; then
+  goreleaser --skip-validate --skip-publish
+else
+  goreleaser --rm-dist
+fi
 
-rm -rf client/
-rm -rf server/
+rm -rf neo_client/
+rm -rf neo_server/
 
+popd

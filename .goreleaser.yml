@@ -1,16 +1,26 @@
 before:
   hooks:
     - go mod tidy
+    - go mod download
+
 builds:
-  - id: "neo_client"
+  - &neo-client-build
+    id: "neo_client"
     main: "./cmd/client"
     binary: "./neo_client/neo"
     env:
       - CGO_ENABLED=0
     goos:
+      - darwin
       - linux
     goarch:
       - amd64
+
+  - <<: *neo-client-build
+    id: "neo_client_for_docker"
+    goos:
+      - linux
+
   - id: "neo_server"
     main: "./cmd/server"
     binary: "./neo_server/neo_server"
@@ -21,59 +31,57 @@ builds:
       - linux
     goarch:
       - amd64
+
 archives:
-  - format: zip
+  - id: full_binaries
+    format: zip
+    builds:
+      - "neo_client"
+      - "neo_server"
     replacements:
-      darwin: MacOs
-      linux: Linux
-      windows: Windows
+      darwin: macOS
       386: i386
       amd64: x64
     format_overrides:
       - goos: linux
         format: tar.gz
     files:
-      - README*.md
-      - configs/client/config.yml
-      - configs/server/config.yml
+      - README.md
+      - neo_server/config.yml
+      - neo_client/config.yml
 
-  - id: client
+  - id: client_for_docker
     format: zip
     builds:
-      - "neo_client"
+      - "neo_client_for_docker"
     name_template: "{{ .ProjectName }}_client_{{ .Version }}"
     replacements:
-      darwin: MacOs
-      linux: Linux
-      windows: Windows
+      darwin: macOS
       386: i386
       amd64: x64
     files:
-      - README.MD
-      - neo_client/config.yml
       - neo_client/*
+
   - id: server
     format: zip
     builds:
       - "neo_server"
     name_template: "{{ .ProjectName }}_server_{{ .Version }}_{{ .Os }}"
     replacements:
-      darwin: MacOs
-      linux: Linux
-      windows: Windows
+      darwin: macOS
       386: i386
       amd64: x64
     format_overrides:
       - goos: linux
         format: tar.gz
     files:
-      - README.MD
-      - neo_server/config.yml
-      - neo_server/data/.keep
+      - neo_server/*
+
 checksum:
   name_template: 'checksums.txt'
 snapshot:
   name_template: "{{ .Tag }}-next"
+
 changelog:
   sort: asc
   filters:
