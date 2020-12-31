@@ -148,14 +148,20 @@ func (ac *addCLI) validateEntry(f string) (errors []string) {
 		errors = append(errors, err.Error())
 		return
 	}
-	if string(data[:2]) != "#!" {
-		errors = append(errors,
-			fmt.Sprintf("Please use shebang (e.g. %s) as the first line of your script",
-				"#!/usr/bin/env python3"))
-	}
-	var re = regexp.MustCompile(`(?m)flush[(=]`)
-	if !re.Match(data) {
-		errors = append(errors, fmt.Sprintf("Please use print(..., flush=True)"))
+	ext := path.Ext(f)
+	if !isExtBinary(ext) {
+		if string(data[:2]) != "#!" {
+			desc := fmt.Sprintf(
+				"Please use shebang (e.g. %s) as the first line of your script",
+				"#!/usr/bin/env python3",
+			)
+			errors = append(errors, desc)
+		}
+		re := regexp.MustCompile(`(?m)flush[(=]`)
+		if !re.Match(data) {
+			desc := fmt.Sprintf("Please flush the output, e.g. print(..., flush=True) in python")
+			errors = append(errors, desc)
+		}
 	}
 	return
 }
