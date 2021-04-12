@@ -22,6 +22,8 @@ type ExploitManagerClient interface {
 	DownloadFile(ctx context.Context, in *FileInfo, opts ...grpc.CallOption) (ExploitManager_DownloadFileClient, error)
 	Exploit(ctx context.Context, in *ExploitRequest, opts ...grpc.CallOption) (*ExploitResponse, error)
 	UpdateExploit(ctx context.Context, in *UpdateExploitRequest, opts ...grpc.CallOption) (*UpdateExploitResponse, error)
+	BroadcastCommand(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Empty, error)
+	BroadcastRequests(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ExploitManager_BroadcastRequestsClient, error)
 }
 
 type exploitManagerClient struct {
@@ -125,6 +127,47 @@ func (c *exploitManagerClient) UpdateExploit(ctx context.Context, in *UpdateExpl
 	return out, nil
 }
 
+func (c *exploitManagerClient) BroadcastCommand(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/ExploitManager/BroadcastCommand", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *exploitManagerClient) BroadcastRequests(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ExploitManager_BroadcastRequestsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_ExploitManager_serviceDesc.Streams[2], "/ExploitManager/BroadcastRequests", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &exploitManagerBroadcastRequestsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ExploitManager_BroadcastRequestsClient interface {
+	Recv() (*Command, error)
+	grpc.ClientStream
+}
+
+type exploitManagerBroadcastRequestsClient struct {
+	grpc.ClientStream
+}
+
+func (x *exploitManagerBroadcastRequestsClient) Recv() (*Command, error) {
+	m := new(Command)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ExploitManagerServer is the server API for ExploitManager service.
 // All implementations must embed UnimplementedExploitManagerServer
 // for forward compatibility
@@ -134,6 +177,8 @@ type ExploitManagerServer interface {
 	DownloadFile(*FileInfo, ExploitManager_DownloadFileServer) error
 	Exploit(context.Context, *ExploitRequest) (*ExploitResponse, error)
 	UpdateExploit(context.Context, *UpdateExploitRequest) (*UpdateExploitResponse, error)
+	BroadcastCommand(context.Context, *Command) (*Empty, error)
+	BroadcastRequests(*Empty, ExploitManager_BroadcastRequestsServer) error
 	mustEmbedUnimplementedExploitManagerServer()
 }
 
@@ -155,6 +200,12 @@ func (UnimplementedExploitManagerServer) Exploit(context.Context, *ExploitReques
 }
 func (UnimplementedExploitManagerServer) UpdateExploit(context.Context, *UpdateExploitRequest) (*UpdateExploitResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateExploit not implemented")
+}
+func (UnimplementedExploitManagerServer) BroadcastCommand(context.Context, *Command) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BroadcastCommand not implemented")
+}
+func (UnimplementedExploitManagerServer) BroadcastRequests(*Empty, ExploitManager_BroadcastRequestsServer) error {
+	return status.Errorf(codes.Unimplemented, "method BroadcastRequests not implemented")
 }
 func (UnimplementedExploitManagerServer) mustEmbedUnimplementedExploitManagerServer() {}
 
@@ -270,6 +321,45 @@ func _ExploitManager_UpdateExploit_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ExploitManager_BroadcastCommand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Command)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExploitManagerServer).BroadcastCommand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ExploitManager/BroadcastCommand",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExploitManagerServer).BroadcastCommand(ctx, req.(*Command))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ExploitManager_BroadcastRequests_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ExploitManagerServer).BroadcastRequests(m, &exploitManagerBroadcastRequestsServer{stream})
+}
+
+type ExploitManager_BroadcastRequestsServer interface {
+	Send(*Command) error
+	grpc.ServerStream
+}
+
+type exploitManagerBroadcastRequestsServer struct {
+	grpc.ServerStream
+}
+
+func (x *exploitManagerBroadcastRequestsServer) Send(m *Command) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _ExploitManager_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "ExploitManager",
 	HandlerType: (*ExploitManagerServer)(nil),
@@ -286,6 +376,10 @@ var _ExploitManager_serviceDesc = grpc.ServiceDesc{
 			MethodName: "UpdateExploit",
 			Handler:    _ExploitManager_UpdateExploit_Handler,
 		},
+		{
+			MethodName: "BroadcastCommand",
+			Handler:    _ExploitManager_BroadcastCommand_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -296,6 +390,11 @@ var _ExploitManager_serviceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "DownloadFile",
 			Handler:       _ExploitManager_DownloadFile_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "BroadcastRequests",
+			Handler:       _ExploitManager_BroadcastRequests_Handler,
 			ServerStreams: true,
 		},
 	},

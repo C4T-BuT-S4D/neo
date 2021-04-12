@@ -138,6 +138,9 @@ func (cs *CachedStorage) readDB() error {
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		b = tx.Bucket([]byte(configurationBucketKey))
 		err = b.ForEach(func(k, v []byte) error {
 			cfg := new(neopb.ExploitConfiguration)

@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 
+	"github.com/sirupsen/logrus"
+
 	"neo/pkg/filestream"
 
 	"google.golang.org/grpc"
@@ -73,4 +75,48 @@ func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*neopb.FileInfo,
 		return nil, err
 	}
 	return client.CloseAndRecv()
+}
+
+func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
+	req := &neopb.Command{Command: command}
+	_, err := nc.c.BroadcastCommand(ctx, req)
+	return err
+}
+
+func (nc *Client) ListenBroadcasts(ctx context.Context) (chan<- *neopb.Command, error) {
+	req := &neopb.Empty{}
+	stream, err := nc.c.BroadcastRequests(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(chan *neopb.Command)
+	go func() {
+		commands := make(chan *neopb.Command)
+		go func() {
+			for {
+				cmd, err := stream.Recv()
+				if err != nil {
+					logrus.Errorf("Error reading from broadcasts channel: %v", err)
+					close(commands)
+					return
+				}
+				commands <- cmd
+			}
+		}()
+
+		for {
+			select {
+			case cmd := <-commands:
+				logrus.Infof("Received a new command from broadcast: %v", cmd)
+				results <- cmd
+			case <-ctx.Done():
+				logrus.Infof("Shutting down broadcast listener")
+				close(results)
+				return
+			}
+		}
+	}()
+
+	return results, nil
 }

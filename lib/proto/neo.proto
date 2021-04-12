@@ -75,10 +75,18 @@ message UpdateExploitResponse {
   ExploitState state = 1;
 }
 
+message Command {
+  string command = 1;
+}
+
+message Empty {}
+
 service ExploitManager {
   rpc Ping (PingRequest) returns (PingResponse) {}
   rpc UploadFile(stream FileStream) returns (FileInfo) {}
   rpc DownloadFile(FileInfo) returns (stream FileStream) {}
   rpc Exploit(ExploitRequest)  returns (ExploitResponse) {}
   rpc UpdateExploit(UpdateExploitRequest) returns (UpdateExploitResponse) {}
+  rpc BroadcastCommand(Command) returns (Empty) {}
+  rpc BroadcastRequests(Empty) returns (stream Command) {}
 }
