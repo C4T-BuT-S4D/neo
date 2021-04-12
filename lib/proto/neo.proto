@@ -1,4 +1,5 @@
 syntax = "proto3";
+option go_package = "github.com/pomo-mondreganto/neo";
 
 message TeamBucket {
   map<string, string> teams = 1;

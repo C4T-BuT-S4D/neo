@@ -159,7 +159,7 @@ func (ac *addCLI) validateEntry(f string) (errors []string) {
 		}
 		re := regexp.MustCompile(`(?m)flush[(=]`)
 		if !re.Match(data) {
-			desc := fmt.Sprintf("Please flush the output, e.g. print(..., flush=True) in python")
+			desc := "Please flush the output, e.g. print(..., flush=True) in python"
 			errors = append(errors, desc)
 		}
 	}
