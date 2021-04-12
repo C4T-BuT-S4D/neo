@@ -1,5 +1,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/pomo-mondreganto/neo)](https://goreportcard.com/report/github.com/pomo-mondreganto/neo)
 [![tests](https://github.com/pomo-mondreganto/neo/actions/workflows/tests.yml/badge.svg)](https://github.com/pomo-mondreganto/neo/actions/workflows/tests.yml)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/pomo-mondreganto/neo)
 
 # neo
 
