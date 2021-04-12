@@ -5,9 +5,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
+
+	bolt "go.etcd.io/bbolt"
 
 	neopb "neo/lib/genproto/neo"
 )

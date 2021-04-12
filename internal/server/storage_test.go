@@ -6,10 +6,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/boltdb/bolt"
+	"github.com/sirupsen/logrus"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
+
+	bolt "go.etcd.io/bbolt"
 
 	neopb "neo/lib/genproto/neo"
 )
@@ -24,7 +27,12 @@ func testDB() (*bolt.DB, func()) {
 		panic(err)
 	}
 	return db, func() {
-		defer os.Remove(tmpFile.Name())
+		defer func(name string) {
+			err := os.Remove(name)
+			if err != nil {
+				logrus.Errorf("Error removing file: %v", err)
+			}
+		}(tmpFile.Name())
 		if err := db.Close(); err != nil {
 			panic(err)
 		}
