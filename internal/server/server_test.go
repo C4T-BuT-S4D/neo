@@ -145,8 +145,10 @@ func TestExploitManagerServer_BroadcastCommand(t *testing.T) {
 	defer cancel()
 
 	var received *neopb.Command
+	signal := make(chan struct{})
 	handler := func(cmd *neopb.Command) error {
 		received = cmd
+		close(signal)
 		return nil
 	}
 	testSub := newBroadcastSubscription("test", handler)
@@ -159,7 +161,12 @@ func TestExploitManagerServer_BroadcastCommand(t *testing.T) {
 		t.Errorf("Error received from broadcast command: %v", err)
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	select {
+	case <-signal:
+		break
+	case <-time.After(time.Millisecond * 100):
+		t.Errorf("Handler was not called in time")
+	}
 
 	if received != r {
 		t.Errorf("Received incorrect command: expected = %v, actual = %v", r, received)
