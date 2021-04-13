@@ -146,14 +146,18 @@ func TestExploitManagerServer_BroadcastCommand(t *testing.T) {
 
 	var received *neopb.Command
 	signal := make(chan struct{})
-	handler := func(cmd *neopb.Command) error {
+	handler := func(msg interface{}) error {
+		cmd, ok := msg.(*neopb.Command)
+		if !ok {
+			t.Errorf("Invalid message passed to handler: %v", msg)
+		}
 		received = cmd
 		close(signal)
 		return nil
 	}
-	testSub := newBroadcastSubscription("test", handler)
+	testSub := es.ps.Subscribe(broadcastChannel, handler)
+	defer es.ps.Unsubscribe(testSub)
 	go testSub.Run(ctx)
-	es.bcSubs["test"] = testSub
 
 	r := &neopb.Command{Command: "echo 123"}
 	_, err := es.BroadcastCommand(ctx, r)

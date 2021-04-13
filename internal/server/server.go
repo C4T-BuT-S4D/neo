@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"regexp"
 	"sync"
 	"time"
+
+	"neo/pkg/pubsub"
 
 	"neo/internal/config"
 	"neo/pkg/filestream"
@@ -20,6 +23,15 @@ import (
 	"google.golang.org/grpc/status"
 
 	neopb "neo/lib/genproto/neo"
+)
+
+const (
+	broadcastChannel = "broadcast"
+	singleRunChannel = "single_run"
+)
+
+var (
+	ErrInvalidMessageType = errors.New("invalid message type")
 )
 
 type fileInterface interface {
@@ -58,7 +70,7 @@ func New(cfg *Config, storage *CachedStorage) *ExploitManagerServer {
 		fs:      osFs{cfg.BaseDir},
 		buckets: hostbucket.New(cfg.FarmConfig.Teams),
 		visits:  newVisitsMap(),
-		bcSubs:  make(map[string]*broadcastSubscription),
+		ps:      pubsub.NewPubSub(),
 	}
 	ems.UpdateConfig(cfg)
 	return ems
@@ -73,8 +85,7 @@ type ExploitManagerServer struct {
 	visits   *visitsMap
 	fs       filesystem
 
-	bcSubs map[string]*broadcastSubscription
-	subMu  sync.RWMutex
+	ps pubsub.PubSub
 }
 
 func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
@@ -189,35 +200,50 @@ func (em *ExploitManagerServer) Ping(_ context.Context, r *neopb.PingRequest) (*
 }
 
 func (em *ExploitManagerServer) BroadcastCommand(_ context.Context, r *neopb.Command) (*neopb.Empty, error) {
-	logrus.Infof("Sent received broadcast request to run %v", r)
-	em.subMu.RLock()
-	defer em.subMu.RUnlock()
-	for _, sub := range em.bcSubs {
-		sub.Push(r)
-	}
+	logrus.Infof("Received broadcast request to run %v", r)
+	em.ps.Publish(broadcastChannel, r)
 	return &neopb.Empty{}, nil
 }
 
 func (em *ExploitManagerServer) BroadcastRequests(_ *neopb.Empty, stream neopb.ExploitManager_BroadcastRequestsServer) error {
-	subID := uuid.NewString()
-	handler := func(cmd *neopb.Command) error {
+	handler := func(msg interface{}) error {
+		cmd, ok := msg.(*neopb.Command)
+		if !ok {
+			return ErrInvalidMessageType
+		}
 		if err := stream.Send(cmd); err != nil {
 			return logErrorf(codes.Internal, "Could not send command: %v", err)
 		}
 		return nil
 	}
-	sub := newBroadcastSubscription(subID, handler)
-
-	em.subMu.Lock()
-	em.bcSubs[subID] = sub
-	em.subMu.Unlock()
+	sub := em.ps.Subscribe(broadcastChannel, handler)
+	defer em.ps.Unsubscribe(sub)
 
 	sub.Run(stream.Context())
+	return nil
+}
 
-	em.subMu.Lock()
-	delete(em.bcSubs, subID)
-	em.subMu.Unlock()
+func (em *ExploitManagerServer) SingleRun(_ context.Context, r *neopb.ExploitRequest) (*neopb.Empty, error) {
+	logrus.Infof("Received single run request %v", r)
+	em.ps.Publish(singleRunChannel, r)
+	return &neopb.Empty{}, nil
+}
 
+func (em *ExploitManagerServer) SingleRunRequests(_ *neopb.Empty, stream neopb.ExploitManager_SingleRunRequestsServer) error {
+	handler := func(msg interface{}) error {
+		req, ok := msg.(*neopb.ExploitRequest)
+		if !ok {
+			return ErrInvalidMessageType
+		}
+		if err := stream.Send(req); err != nil {
+			return logErrorf(codes.Internal, "Could not single run request: %v", err)
+		}
+		return nil
+	}
+	sub := em.ps.Subscribe(singleRunChannel, handler)
+	defer em.ps.Unsubscribe(sub)
+
+	sub.Run(stream.Context())
 	return nil
 }
 

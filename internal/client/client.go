@@ -95,9 +95,16 @@ func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
 	return nil
 }
 
+func (nc *Client) SingleRun(ctx context.Context, exploitID string) error {
+	req := &neopb.ExploitRequest{ExploitId: exploitID}
+	if _, err := nc.c.SingleRun(ctx, req); err != nil {
+		return fmt.Errorf("making broadcast command request: %w", err)
+	}
+	return nil
+}
+
 func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, error) {
-	req := &neopb.Empty{}
-	stream, err := nc.c.BroadcastRequests(ctx, req)
+	stream, err := nc.c.BroadcastRequests(ctx, &neopb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("creating broadcast requests stream: %w", err)
 	}
@@ -124,6 +131,43 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, 
 				results <- cmd
 			case <-ctx.Done():
 				logrus.Infof("Shutting down broadcast listener")
+				close(results)
+				return
+			}
+		}
+	}()
+
+	return results, nil
+}
+
+func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.ExploitRequest, error) {
+	stream, err := nc.c.SingleRunRequests(ctx, &neopb.Empty{})
+	if err != nil {
+		return nil, fmt.Errorf("creating single run requests stream: %w", err)
+	}
+
+	results := make(chan *neopb.ExploitRequest)
+	go func() {
+		requests := make(chan *neopb.ExploitRequest)
+		go func() {
+			for {
+				req, err := stream.Recv()
+				if err != nil {
+					logrus.Errorf("Error reading from single runs channel: %v", err)
+					close(requests)
+					return
+				}
+				requests <- req
+			}
+		}()
+
+		for {
+			select {
+			case cmd := <-requests:
+				logrus.Infof("Received a new single run request: %v", cmd)
+				results <- cmd
+			case <-ctx.Done():
+				logrus.Infof("Shutting down single run listener")
 				close(results)
 				return
 			}

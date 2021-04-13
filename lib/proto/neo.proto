@@ -90,4 +90,7 @@ service ExploitManager {
   rpc UpdateExploit(UpdateExploitRequest) returns (UpdateExploitResponse) {}
   rpc BroadcastCommand(Command) returns (Empty) {}
   rpc BroadcastRequests(Empty) returns (stream Command) {}
+
+  rpc SingleRun(ExploitRequest) returns (Empty) {}
+  rpc SingleRunRequests(Empty) returns (stream ExploitRequest) {}
 }
