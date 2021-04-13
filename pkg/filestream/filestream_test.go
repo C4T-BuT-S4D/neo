@@ -123,8 +123,11 @@ func TestSave(t *testing.T) {
 		},
 	} {
 		err := Save(tc.stream, tc.writer)
-		if errors.Is(err, tc.err) {
-			t.Errorf("Save(): got unexpected error = %v", err)
+		if tc.err == nil && err != nil {
+			t.Errorf("Save(): error was not expected = %v", err)
+		}
+		if tc.err != nil && !errors.Is(err, tc.err) {
+			t.Errorf("Save(): expected error %v, got = %v", tc.err, err)
 		}
 		if diff := cmp.Diff(tc.want, tc.writer.String()); diff != "" {
 			t.Errorf("Save() result mismatch (-want +got):\n%s", diff)
