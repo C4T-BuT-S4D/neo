@@ -111,7 +111,7 @@ func Tar(src string, w io.Writer) error {
 	}(tw)
 
 	// walk path
-	return filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
+	if err := filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
 		// return on any error
 		if err != nil {
 			return err
@@ -154,5 +154,8 @@ func Tar(src string, w io.Writer) error {
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return fmt.Errorf("walking path %s: %w", src, err)
+	}
+	return nil
 }

@@ -28,7 +28,10 @@ func load(path string, cfg *server.Config) error {
 	if err != nil {
 		return fmt.Errorf("reading file %s: %w", path, err)
 	}
-	return server.ReadConfig(data, cfg)
+	if err := server.ReadConfig(data, cfg); err != nil {
+		return fmt.Errorf("reading config: %w", err)
+	}
+	return nil
 }
 
 func watchConfig(ctx context.Context, srv *server.ExploitManagerServer) error {
@@ -59,7 +62,10 @@ func watchConfig(ctx context.Context, srv *server.ExploitManagerServer) error {
 			}
 		}
 	}()
-	return watcher.Add(*configFile)
+	if err := watcher.Add(*configFile); err != nil {
+		return fmt.Errorf("adding watched file %s: %w", *configFile, err)
+	}
+	return nil
 }
 
 func main() {

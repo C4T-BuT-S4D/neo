@@ -124,7 +124,7 @@ func (cs *CachedStorage) initCache() {
 }
 
 func (cs *CachedStorage) readDB() error {
-	return cs.bdb.View(func(tx *bolt.Tx) error {
+	if err := cs.bdb.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(stateBucketKey))
 		if err := b.ForEach(func(k, v []byte) error {
 			key := string(k)
@@ -152,11 +152,14 @@ func (cs *CachedStorage) readDB() error {
 			return fmt.Errorf("reading exploit configs: %w", err)
 		}
 		return nil
-	})
+	}); err != nil {
+		return fmt.Errorf("reading state from db: %w", err)
+	}
+	return nil
 }
 
 func (cs *CachedStorage) initDB() error {
-	return cs.bdb.Update(func(tx *bolt.Tx) error {
+	if err := cs.bdb.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucketIfNotExists([]byte(stateBucketKey)); err != nil {
 			return fmt.Errorf("creating state bucket: %w", err)
 		}
@@ -164,5 +167,8 @@ func (cs *CachedStorage) initDB() error {
 			return fmt.Errorf("creating config bucket: %w", err)
 		}
 		return nil
-	})
+	}); err != nil {
+		return fmt.Errorf("initializing db: %w", err)
+	}
+	return nil
 }

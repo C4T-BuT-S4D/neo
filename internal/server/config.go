@@ -10,7 +10,10 @@ import (
 )
 
 func ReadConfig(data []byte, cfg *Config) error {
-	return yaml.Unmarshal(data, cfg)
+	if err := yaml.Unmarshal(data, cfg); err != nil {
+		return fmt.Errorf("unmarshalling yaml: %w", err)
+	}
+	return nil
 }
 
 type Config struct {

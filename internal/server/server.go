@@ -37,11 +37,19 @@ type osFs struct {
 }
 
 func (o osFs) Create(f string) (fileInterface, error) {
-	return os.Create(path.Join(o.baseDir, f))
+	fi, err := os.Create(path.Join(o.baseDir, f))
+	if err != nil {
+		return nil, fmt.Errorf("creating file %s in %s: %w", f, o.baseDir, err)
+	}
+	return fi, nil
 }
 
 func (o osFs) Open(f string) (fileInterface, error) {
-	return os.Open(path.Join(o.baseDir, f))
+	fi, err := os.Open(path.Join(o.baseDir, f))
+	if err != nil {
+		return nil, fmt.Errorf("opening file %s in %s: %w", f, o.baseDir, err)
+	}
+	return fi, nil
 }
 
 func New(cfg *Config, storage *CachedStorage) *ExploitManagerServer {
@@ -87,7 +95,7 @@ func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
 	em.buckets.UpdateTeams(cfg.FarmConfig.Teams)
 }
 
-func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFileServer) (err error) {
+func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFileServer) error {
 	info := &neopb.FileInfo{Uuid: uuid.New().String()}
 	of, err := em.fs.Create(info.GetUuid())
 	if err != nil {
@@ -107,7 +115,10 @@ func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFil
 	if err := filestream.Save(stream, of); err != nil {
 		return logErrorf(codes.Internal, "Failed to upload file from stream: %v", err)
 	}
-	return stream.SendAndClose(info)
+	if err := stream.SendAndClose(info); err != nil {
+		return logErrorf(codes.Internal, "Failed to send response & close connection: %v", err)
+	}
+	return nil
 }
 
 func (em *ExploitManagerServer) DownloadFile(fi *neopb.FileInfo, stream neopb.ExploitManager_DownloadFileServer) error {

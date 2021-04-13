@@ -66,7 +66,10 @@ func (nc *Client) DownloadFile(ctx context.Context, info *neopb.FileInfo, out io
 	if err := filestream.Save(resp, out); err != nil {
 		return fmt.Errorf("saving downloaded file: %w", err)
 	}
-	return resp.CloseSend()
+	if err := resp.CloseSend(); err != nil {
+		return fmt.Errorf("closing the stream: %w", err)
+	}
+	return nil
 }
 
 func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*neopb.FileInfo, error) {
@@ -77,7 +80,11 @@ func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*neopb.FileInfo,
 	if err := filestream.Load(r, client); err != nil {
 		return nil, fmt.Errorf("loading filestream: %w", err)
 	}
-	return client.CloseAndRecv()
+	fileInfo, err := client.CloseAndRecv()
+	if err != nil {
+		return nil, fmt.Errorf("closing & reading upload response: %w", err)
+	}
+	return fileInfo, nil
 }
 
 func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {

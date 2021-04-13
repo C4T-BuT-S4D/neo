@@ -42,5 +42,5 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) *runCLI {
 }
 
 func (rc *runCLI) Run(ctx context.Context) error {
-	return rc.run.Run(ctx)
+	return rc.run.Run(ctx) // nolint:wrapcheck
 }
