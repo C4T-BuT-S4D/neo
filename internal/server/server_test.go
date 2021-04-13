@@ -136,3 +136,32 @@ func TestExploitManagerServer_Ping(t *testing.T) {
 		t.Errorf("Ping() visits missmatch")
 	}
 }
+
+func TestExploitManagerServer_BroadcastCommand(t *testing.T) {
+	es, clean := testServer()
+	defer clean()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var received *neopb.Command
+	handler := func(cmd *neopb.Command) error {
+		received = cmd
+		return nil
+	}
+	testSub := newBroadcastSubscription("test", handler)
+	go testSub.Run(ctx)
+	es.bcSubs["test"] = testSub
+
+	r := &neopb.Command{Command: "echo 123"}
+	_, err := es.BroadcastCommand(ctx, r)
+	if err != nil {
+		t.Errorf("Error received from broadcast command: %v", err)
+	}
+
+	time.Sleep(time.Millisecond * 100)
+
+	if received != r {
+		t.Errorf("Received incorrect command: expected = %v, actual = %v", r, received)
+	}
+}
