@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"neo/internal/client"
 	"neo/pkg/grpc_auth"
@@ -33,7 +34,7 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 	}
 	conn, err := grpc.Dial(cmd.c.Host, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dialing grpc: %w", err)
 	}
 	return client.New(conn, cmd.ClientID()), nil
 }

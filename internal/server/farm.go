@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -24,9 +25,9 @@ type FarmClient struct {
 	client   http.Client
 }
 
-func (fc *FarmClient) FillConfig(cfg *FarmConfig) error {
+func (fc *FarmClient) FillConfig(ctx context.Context, cfg *FarmConfig) error {
 	url := fmt.Sprintf("%s/api/get_config", fc.url)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}

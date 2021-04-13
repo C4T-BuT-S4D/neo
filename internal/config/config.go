@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"regexp"
 	"time"
 
@@ -35,16 +36,16 @@ func FromProto(config *neopb.Config) (*Config, error) {
 		err error
 	)
 	if cfg.FlagRegexp, err = regexp.Compile(config.GetFlagRegexp()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compiling regex: %w", err)
 	}
 	if cfg.PingEvery, err = time.ParseDuration(config.GetPingEvery()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing ping interval: %w", err)
 	}
 	if cfg.RunEvery, err = time.ParseDuration(config.GetRunEvery()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing run interval: %w", err)
 	}
 	if cfg.Timeout, err = time.ParseDuration(config.GetTimeout()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing timeout: %w", err)
 	}
 	cfg.FarmUrl = config.GetFarmUrl()
 	cfg.FarmPassword = config.GetFarmPassword()

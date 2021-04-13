@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/sirupsen/logrus"
@@ -34,7 +35,7 @@ func (nc *Client) Ping(ctx context.Context, t neopb.PingRequest_PingType) (*neop
 	}
 	resp, err := nc.c.Ping(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("making ping request: %w", err)
 	}
 	return resp.GetState(), nil
 }
@@ -45,23 +46,25 @@ func (nc *Client) ExploitConfig(ctx context.Context, id string) (*neopb.ExploitC
 	}
 	resp, err := nc.c.Exploit(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("making exploit request: %w", err)
 	}
 	return resp.GetConfig(), nil
 }
 
 func (nc *Client) UpdateExploit(ctx context.Context, req *neopb.UpdateExploitRequest) error {
-	_, err := nc.c.UpdateExploit(ctx, req)
-	return err
+	if _, err := nc.c.UpdateExploit(ctx, req); err != nil {
+		return fmt.Errorf("aking update exploit request: %w", err)
+	}
+	return nil
 }
 
 func (nc *Client) DownloadFile(ctx context.Context, info *neopb.FileInfo, out io.Writer) error {
 	resp, err := nc.c.DownloadFile(ctx, info)
 	if err != nil {
-		return err
+		return fmt.Errorf("making download file request: %w", err)
 	}
 	if err := filestream.Save(resp, out); err != nil {
-		return err
+		return fmt.Errorf("saving downloaded file: %w", err)
 	}
 	return resp.CloseSend()
 }
@@ -69,25 +72,27 @@ func (nc *Client) DownloadFile(ctx context.Context, info *neopb.FileInfo, out io
 func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*neopb.FileInfo, error) {
 	client, err := nc.c.UploadFile(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("making upload file request: %w", err)
 	}
 	if err := filestream.Load(r, client); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("loading filestream: %w", err)
 	}
 	return client.CloseAndRecv()
 }
 
 func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
 	req := &neopb.Command{Command: command}
-	_, err := nc.c.BroadcastCommand(ctx, req)
-	return err
+	if _, err := nc.c.BroadcastCommand(ctx, req); err != nil {
+		return fmt.Errorf("making broadcast command request: %w", err)
+	}
+	return nil
 }
 
 func (nc *Client) ListenBroadcasts(ctx context.Context) (chan<- *neopb.Command, error) {
 	req := &neopb.Empty{}
 	stream, err := nc.c.BroadcastRequests(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating broadcast requests stream: %w", err)
 	}
 
 	results := make(chan *neopb.Command)

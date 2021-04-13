@@ -21,7 +21,7 @@ const (
 func NewBoltStorage(path string) (*CachedStorage, error) {
 	db, err := bolt.Open(path, 0755, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening bolt db %s: %w", path, err)
 	}
 	return NewStorage(db)
 }
@@ -49,7 +49,7 @@ type CachedStorage struct {
 func (cs *CachedStorage) States() []*neopb.ExploitState {
 	cs.m.RLock()
 	defer cs.m.RUnlock()
-	var res []*neopb.ExploitState
+	res := make([]*neopb.ExploitState, 0, len(cs.stateCache))
 	for _, v := range cs.stateCache {
 		res = append(res, v)
 	}
@@ -84,22 +84,22 @@ func (cs *CachedStorage) UpdateExploitVersion(newState *neopb.ExploitState, cfg 
 		key := []byte(fmt.Sprintf("%s:%d", newState.ExploitId, newState.Version))
 		stateBytes, err := proto.Marshal(newState)
 		if err != nil {
-			return err
+			return fmt.Errorf("marshalling state: %w", err)
 		}
 		if err := b.Put(key, stateBytes); err != nil {
-			return err
+			return fmt.Errorf("setting state in db: %w", err)
 		}
 		b = tx.Bucket([]byte(configurationBucketKey))
 		confBytes, err := proto.Marshal(cfg)
 		if err != nil {
-			return err
+			return fmt.Errorf("marshalling config: %w", err)
 		}
 		if err := b.Put(key, confBytes); err != nil {
-			return err
+			return fmt.Errorf("setting config in db: %w", err)
 		}
 		return nil
 	}); err != nil {
-		return err
+		return fmt.Errorf("updating db state: %w", err)
 	}
 
 	cs.stateCache[newState.ExploitId] = newState
@@ -126,41 +126,42 @@ func (cs *CachedStorage) initCache() {
 func (cs *CachedStorage) readDB() error {
 	return cs.bdb.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(stateBucketKey))
-		err := b.ForEach(func(k, v []byte) error {
+		if err := b.ForEach(func(k, v []byte) error {
 			key := string(k)
 			eId := strings.Split(key, ":")[0]
 			es := new(neopb.ExploitState)
 			if err := proto.Unmarshal(v, es); err != nil {
-				return err
+				return fmt.Errorf("unmarshalling exploit state: %w", err)
 			}
 			if v, ok := cs.stateCache[eId]; !ok || es.Version > v.Version {
 				cs.stateCache[eId] = es
 			}
 			return nil
-		})
-		if err != nil {
-			return err
+		}); err != nil {
+			return fmt.Errorf("reading exploit states: %w", err)
 		}
 		b = tx.Bucket([]byte(configurationBucketKey))
-		err = b.ForEach(func(k, v []byte) error {
+		if err := b.ForEach(func(k, v []byte) error {
 			cfg := new(neopb.ExploitConfiguration)
 			if err := proto.Unmarshal(v, cfg); err != nil {
-				return err
+				return fmt.Errorf("unmarshalling exploit config: %w", err)
 			}
 			cs.configCache[string(k)] = cfg
 			return nil
-		})
-		return err
+		}); err != nil {
+			return fmt.Errorf("reading exploit configs: %w", err)
+		}
+		return nil
 	})
 }
 
 func (cs *CachedStorage) initDB() error {
 	return cs.bdb.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucketIfNotExists([]byte(stateBucketKey)); err != nil {
-			return err
+			return fmt.Errorf("creating state bucket: %w", err)
 		}
 		if _, err := tx.CreateBucketIfNotExists([]byte(configurationBucketKey)); err != nil {
-			return err
+			return fmt.Errorf("creating config bucket: %w", err)
 		}
 		return nil
 	})

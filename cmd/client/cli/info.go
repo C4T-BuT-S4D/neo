@@ -27,11 +27,11 @@ func (ic *infoCLI) Run(ctx context.Context) error {
 	}
 	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
 	if err != nil {
-		return err
+		return fmt.Errorf("making ping config request: %w", err)
 	}
 	cfg, err := config.FromProto(state.GetConfig())
 	if err != nil {
-		return err
+		return fmt.Errorf("unmarshalling config: %w", err)
 	}
 	fmt.Printf("config: %+v\n", cfg)
 	fmt.Println("IPs buckets: ")

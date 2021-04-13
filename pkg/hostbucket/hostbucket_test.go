@@ -55,7 +55,7 @@ func TestHostBucket_Add(t *testing.T) {
 }
 
 func TestHostBucket_Add_Distribution(t *testing.T) {
-	populate := func(ipCount, idCount int, weightMax int) *HostBucket {
+	populate := func(idCount int, weightMax int) *HostBucket {
 		teams := make(map[string]string)
 		for id := range teams {
 			teams[id] = testutils.RandomIP()
@@ -104,7 +104,7 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 	} {
 		meanStdDev := 0.0
 		for i := 0; i < tc.runs; i += 1 {
-			b := populate(tc.ipCount, tc.idCount, tc.weightMax)
+			b := populate(tc.idCount, tc.weightMax)
 			sizes := make([]float64, tc.idCount)
 			meanSize := 0.0
 			for i := range sizes {

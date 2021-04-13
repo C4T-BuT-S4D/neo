@@ -3,6 +3,7 @@ package filestream
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -49,11 +50,14 @@ func (ms *mockDownloadStream) Recv() (*neopb.FileStream, error) {
 		ms.chunkSize = chunkSize
 	}
 	if ms.withError {
-		return &neopb.FileStream{}, readWriteError
+		return nil, readWriteError
 	}
 	b := make([]byte, ms.chunkSize)
 	n, err := ms.data.Read(b)
-	return &neopb.FileStream{Chunk: b[:n]}, err
+	if err != nil {
+		return nil, fmt.Errorf("reading stream content: %w", err)
+	}
+	return &neopb.FileStream{Chunk: b[:n]}, nil
 }
 
 func TestLoad(t *testing.T) {
@@ -83,7 +87,7 @@ func TestLoad(t *testing.T) {
 		},
 	} {
 		err := Load(tc.reader, tc.stream)
-		if tc.err != err {
+		if !errors.Is(err, tc.err) {
 			t.Errorf("Load(): got unexpected error = %v", err)
 		}
 		if diff := cmp.Diff(tc.want, tc.stream.buf.String()); diff != "" {
@@ -119,7 +123,7 @@ func TestSave(t *testing.T) {
 		},
 	} {
 		err := Save(tc.stream, tc.writer)
-		if tc.err != err {
+		if errors.Is(err, tc.err) {
 			t.Errorf("Save(): got unexpected error = %v", err)
 		}
 		if diff := cmp.Diff(tc.want, tc.writer.String()); diff != "" {

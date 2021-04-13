@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -25,7 +26,7 @@ var (
 func load(path string, cfg *server.Config) error {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("reading file %s: %w", path, err)
 	}
 	return server.ReadConfig(data, cfg)
 }
@@ -33,7 +34,7 @@ func load(path string, cfg *server.Config) error {
 func watchConfig(ctx context.Context, srv *server.ExploitManagerServer) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return err
+		return fmt.Errorf("creating file watcher: %w", err)
 	}
 	go func() {
 		for {
@@ -68,8 +69,9 @@ func main() {
 		logrus.Fatalf("Failed to read config: %v", err)
 	}
 
+	ctx := context.Background()
 	fc := server.NewFarmClient(cfg.FarmConfig)
-	if err := fc.FillConfig(&cfg.FarmConfig); err != nil {
+	if err := fc.FillConfig(ctx, &cfg.FarmConfig); err != nil {
 		logrus.Fatalf("Failed to fetch config from farm: %v", err)
 	}
 

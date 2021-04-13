@@ -68,8 +68,7 @@ type ExploitManagerServer struct {
 }
 
 func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
-
-	var env []string
+	env := make([]string, 0, len(cfg.Environ))
 	for k, v := range cfg.Environ {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
@@ -222,5 +221,5 @@ func (em *ExploitManagerServer) HeartBeat(ctx context.Context) {
 func logErrorf(code codes.Code, fmt string, values ...interface{}) error {
 	err := status.Errorf(code, fmt, values...)
 	logrus.Errorf("%v", err)
-	return err
+	return err // nolint
 }

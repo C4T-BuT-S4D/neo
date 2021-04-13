@@ -174,15 +174,15 @@ func TestCachedStorage_readDB(t *testing.T) {
 		}
 		stateKey := []byte(fmt.Sprintf("%s:%d", state.ExploitId, state.Version))
 		if err := b.Put(stateKey, stateBytes); err != nil {
-			return err
+			return fmt.Errorf("setting state in db: %w", err)
 		}
 		b = tx.Bucket([]byte(configurationBucketKey))
 		confBytes, err := proto.Marshal(config)
 		if err != nil {
-			return err
+			return fmt.Errorf("marshalling config: %w", err)
 		}
 		if err := b.Put(stateKey, confBytes); err != nil {
-			return err
+			return fmt.Errorf("setting config in db: %w", err)
 		}
 		return nil
 	}); err != nil {
