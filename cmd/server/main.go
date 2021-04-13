@@ -120,6 +120,7 @@ func main() {
 	go srv.HeartBeat(ctx)
 	go func() {
 		<-c
+		logrus.Info("Received shutdown signal, stopping server")
 		cancel()
 		s.GracefulStop()
 	}()

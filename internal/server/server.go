@@ -54,11 +54,11 @@ func (o osFs) Open(f string) (fileInterface, error) {
 
 func New(cfg *Config, storage *CachedStorage) *ExploitManagerServer {
 	ems := &ExploitManagerServer{
-		storage:    storage,
-		fs:         osFs{cfg.BaseDir},
-		buckets:    hostbucket.New(cfg.FarmConfig.Teams),
-		visits:     newVisitsMap(),
-		bcCommands: make(chan *neopb.Command),
+		storage: storage,
+		fs:      osFs{cfg.BaseDir},
+		buckets: hostbucket.New(cfg.FarmConfig.Teams),
+		visits:  newVisitsMap(),
+		bcSubs:  make(map[string]*broadcastSubscription),
 	}
 	ems.UpdateConfig(cfg)
 	return ems
@@ -66,13 +66,15 @@ func New(cfg *Config, storage *CachedStorage) *ExploitManagerServer {
 
 type ExploitManagerServer struct {
 	neopb.UnimplementedExploitManagerServer
-	storage    *CachedStorage
-	config     *config.Config
-	cfgMutex   sync.RWMutex
-	buckets    *hostbucket.HostBucket
-	visits     *visitsMap
-	fs         filesystem
-	bcCommands chan *neopb.Command
+	storage  *CachedStorage
+	config   *config.Config
+	cfgMutex sync.RWMutex
+	buckets  *hostbucket.HostBucket
+	visits   *visitsMap
+	fs       filesystem
+
+	bcSubs map[string]*broadcastSubscription
+	subMu  sync.RWMutex
 }
 
 func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
@@ -187,25 +189,36 @@ func (em *ExploitManagerServer) Ping(_ context.Context, r *neopb.PingRequest) (*
 }
 
 func (em *ExploitManagerServer) BroadcastCommand(_ context.Context, r *neopb.Command) (*neopb.Empty, error) {
-	em.bcCommands <- r
+	logrus.Infof("Sent received broadcast request to run %v", r)
+	em.subMu.RLock()
+	defer em.subMu.RUnlock()
+	for _, sub := range em.bcSubs {
+		sub.Push(r)
+	}
 	return &neopb.Empty{}, nil
 }
 
 func (em *ExploitManagerServer) BroadcastRequests(_ *neopb.Empty, stream neopb.ExploitManager_BroadcastRequestsServer) error {
-	for {
-		select {
-		case cmd, ok := <-em.bcCommands:
-			if !ok {
-				return nil
-			}
-			if err := stream.Send(cmd); err != nil {
-				return logErrorf(codes.Internal, "Could not send command: %v", err)
-			}
-		case <-stream.Context().Done():
-			logrus.Infof("Client contect cancelled in broadcast requests")
-			return nil
+	subID := uuid.NewString()
+	handler := func(cmd *neopb.Command) error {
+		if err := stream.Send(cmd); err != nil {
+			return logErrorf(codes.Internal, "Could not send command: %v", err)
 		}
+		return nil
 	}
+	sub := newBroadcastSubscription(subID, handler)
+
+	em.subMu.Lock()
+	em.bcSubs[subID] = sub
+	em.subMu.Unlock()
+
+	sub.Run(stream.Context())
+
+	em.subMu.Lock()
+	delete(em.bcSubs, subID)
+	em.subMu.Unlock()
+
+	return nil
 }
 
 func (em *ExploitManagerServer) checkClients() {

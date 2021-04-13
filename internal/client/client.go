@@ -95,7 +95,7 @@ func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
 	return nil
 }
 
-func (nc *Client) ListenBroadcasts(ctx context.Context) (chan<- *neopb.Command, error) {
+func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, error) {
 	req := &neopb.Empty{}
 	stream, err := nc.c.BroadcastRequests(ctx, req)
 	if err != nil {
