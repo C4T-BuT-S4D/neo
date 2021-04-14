@@ -16,7 +16,7 @@ type runCLI struct {
 	run *exploit.Runner
 }
 
-func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) *runCLI {
+func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 	jobs, err := cmd.Flags().GetInt("jobs")
 	if err != nil {
 		logrus.Fatalf("Could not get jobs number: %v", err)

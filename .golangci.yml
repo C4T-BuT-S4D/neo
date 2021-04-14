@@ -7,6 +7,7 @@ linters:
     - asciicheck
     - bodyclose
     - dogsled
+    - dupl
     - durationcheck
     - errorlint
     - exhaustive
@@ -16,6 +17,7 @@ linters:
     - noctx
     - prealloc
     - predeclared
+    - revive
     - thelper
     - tparallel
     - unconvert

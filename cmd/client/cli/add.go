@@ -28,7 +28,7 @@ type addCLI struct {
 	exploitID string
 }
 
-func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) *addCLI {
+func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	eid, err := cmd.Flags().GetString("id")
 	if err != nil {
 		logrus.Fatalf("Could not get exploit id")

@@ -56,10 +56,10 @@ func (cs *CachedStorage) States() []*neopb.ExploitState {
 	return res
 }
 
-func (cs *CachedStorage) State(exploitId string) (*neopb.ExploitState, bool) {
+func (cs *CachedStorage) State(exploitID string) (*neopb.ExploitState, bool) {
 	cs.m.RLock()
 	defer cs.m.RUnlock()
-	val, ok := cs.stateCache[exploitId]
+	val, ok := cs.stateCache[exploitID]
 	return val, ok
 }
 
@@ -128,13 +128,13 @@ func (cs *CachedStorage) readDB() error {
 		b := tx.Bucket([]byte(stateBucketKey))
 		if err := b.ForEach(func(k, v []byte) error {
 			key := string(k)
-			eId := strings.Split(key, ":")[0]
+			eID := strings.Split(key, ":")[0]
 			es := new(neopb.ExploitState)
 			if err := proto.Unmarshal(v, es); err != nil {
 				return fmt.Errorf("unmarshalling exploit state: %w", err)
 			}
-			if v, ok := cs.stateCache[eId]; !ok || es.Version > v.Version {
-				cs.stateCache[eId] = es
+			if v, ok := cs.stateCache[eID]; !ok || es.Version > v.Version {
+				cs.stateCache[eID] = es
 			}
 			return nil
 		}); err != nil {

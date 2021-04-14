@@ -100,7 +100,7 @@ func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
 		PingEvery:    cfg.PingEvery,
 		RunEvery:     cfg.RunEvery,
 		Timeout:      cfg.Timeout,
-		FarmUrl:      cfg.FarmConfig.Url,
+		FarmURL:      cfg.FarmConfig.URL,
 		FarmPassword: cfg.FarmConfig.Password,
 		FlagRegexp:   regexp.MustCompile(cfg.FarmConfig.FlagRegexp),
 		Environ:      env,

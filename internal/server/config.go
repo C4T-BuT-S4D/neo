@@ -29,13 +29,13 @@ type Config struct {
 }
 
 type FarmConfig struct {
-	Url        string            `yaml:"url"`
+	URL        string            `yaml:"url"`
 	Password   string            `yaml:"password"`
 	FlagRegexp string            `json:"FLAG_FORMAT"`
 	Teams      map[string]string `json:"TEAMS"`
 }
 
-func (cfg *FarmConfig) ParseJson(r io.Reader) error {
+func (cfg *FarmConfig) ParseJSON(r io.Reader) error {
 	dec := json.NewDecoder(r)
 	if err := dec.Decode(cfg); err != nil {
 		return fmt.Errorf("decoding json: %w", err)

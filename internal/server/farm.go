@@ -11,7 +11,7 @@ import (
 
 func NewFarmClient(cfg FarmConfig) *FarmClient {
 	return &FarmClient{
-		cfg.Url,
+		cfg.URL,
 		cfg.Password,
 		http.Client{
 			Timeout: time.Second * 3,
@@ -41,7 +41,7 @@ func (fc *FarmClient) FillConfig(ctx context.Context, cfg *FarmConfig) error {
 			logrus.Errorf("Error closing farm client response body: %v", err)
 		}
 	}()
-	if err := cfg.ParseJson(resp.Body); err != nil {
+	if err := cfg.ParseJSON(resp.Body); err != nil {
 		return fmt.Errorf("parsing response: %w", err)
 	}
 	return nil

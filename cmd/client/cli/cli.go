@@ -6,19 +6,16 @@ import (
 	"fmt"
 
 	"neo/internal/client"
-	"neo/pkg/grpc_auth"
+	"neo/pkg/grpcauth"
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 )
 
 type NeoCLI interface {
 	Run(ctx context.Context) error
 }
-
-type Creator func(cmd *cobra.Command, cfg *client.Config) NeoCLI
 
 type baseCLI struct {
 	c *client.Config
@@ -28,7 +25,7 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
 	if cmd.c.GrpcAuthKey != "" {
-		interceptor := grpc_auth.NewClientInterceptor(cmd.c.GrpcAuthKey)
+		interceptor := grpcauth.NewClientInterceptor(cmd.c.GrpcAuthKey)
 		opts = append(opts, grpc.WithUnaryInterceptor(interceptor.Unary()))
 		opts = append(opts, grpc.WithStreamInterceptor(interceptor.Stream()))
 	}

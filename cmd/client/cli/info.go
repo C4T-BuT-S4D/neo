@@ -16,7 +16,7 @@ type infoCLI struct {
 	*baseCLI
 }
 
-func NewInfo(_ *cobra.Command, _ []string, cfg *client.Config) *infoCLI {
+func NewInfo(_ *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 	return &infoCLI{&baseCLI{cfg}}
 }
 

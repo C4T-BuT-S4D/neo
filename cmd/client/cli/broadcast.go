@@ -15,7 +15,7 @@ type broadcastCLI struct {
 	cmd string
 }
 
-func NewBroadcast(_ *cobra.Command, args []string, cfg *client.Config) *broadcastCLI {
+func NewBroadcast(_ *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	return &broadcastCLI{
 		baseCLI: &baseCLI{cfg},
 		cmd:     args[0],

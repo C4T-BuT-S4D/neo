@@ -17,7 +17,7 @@ type singleRunCLI struct {
 	exploitID string
 }
 
-func NewSingleRun(_ *cobra.Command, args []string, cfg *client.Config) *singleRunCLI {
+func NewSingleRun(_ *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	return &singleRunCLI{
 		baseCLI:   &baseCLI{cfg},
 		exploitID: args[0],

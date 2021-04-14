@@ -12,7 +12,7 @@ type Config struct {
 	PingEvery    time.Duration
 	RunEvery     time.Duration
 	Timeout      time.Duration
-	FarmUrl      string
+	FarmURL      string
 	FarmPassword string
 	FlagRegexp   *regexp.Regexp
 	Environ      []string
@@ -22,7 +22,7 @@ func ToProto(c *Config) *neopb.Config {
 	return &neopb.Config{
 		RunEvery:     c.RunEvery.String(),
 		Timeout:      c.Timeout.String(),
-		FarmUrl:      c.FarmUrl,
+		FarmUrl:      c.FarmURL,
 		FarmPassword: c.FarmPassword,
 		FlagRegexp:   c.FlagRegexp.String(),
 		PingEvery:    c.PingEvery.String(),
@@ -47,7 +47,7 @@ func FromProto(config *neopb.Config) (*Config, error) {
 	if cfg.Timeout, err = time.ParseDuration(config.GetTimeout()); err != nil {
 		return nil, fmt.Errorf("parsing timeout: %w", err)
 	}
-	cfg.FarmUrl = config.GetFarmUrl()
+	cfg.FarmURL = config.GetFarmUrl()
 	cfg.FarmPassword = config.GetFarmPassword()
 	cfg.Environ = config.GetEnviron()
 	return &cfg, nil

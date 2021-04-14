@@ -98,7 +98,7 @@ func TestExploitManagerServer_Ping(t *testing.T) {
 	es, clean := testServer()
 	defer clean()
 	es.buckets = hostbucket.New(map[string]string{"id1": "ip1", "id2": "ip2"})
-	es.config.FarmUrl = "test"
+	es.config.FarmURL = "test"
 	ctx := context.Background()
 	r := &neopb.UpdateExploitRequest{
 		ExploitId: "1",
@@ -128,9 +128,9 @@ func TestExploitManagerServer_Ping(t *testing.T) {
 	if len(es.buckets.Buckets()[req.ClientId].GetTeams()) == 0 {
 		t.Errorf("Ping() ip bucket with zero len")
 	}
-	gotUrl := resp.GetState().GetConfig().GetFarmUrl()
-	if es.config.FarmUrl != gotUrl {
-		t.Errorf("Ping() config mismatch want farmURL: %s, got: %s", es.config.FarmUrl, gotUrl)
+	gotURL := resp.GetState().GetConfig().GetFarmUrl()
+	if es.config.FarmURL != gotURL {
+		t.Errorf("Ping() config mismatch want farmURL: %s, got: %s", es.config.FarmURL, gotURL)
 	}
 	if !es.visits.visits["id1"].Before(time.Now()) {
 		t.Errorf("Ping() visits missmatch")

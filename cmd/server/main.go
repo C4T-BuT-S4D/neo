@@ -9,7 +9,7 @@ import (
 	"os/signal"
 
 	"neo/internal/server"
-	"neo/pkg/grpc_auth"
+	"neo/pkg/grpcauth"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
@@ -102,7 +102,7 @@ func main() {
 	}
 	var opts []grpc.ServerOption
 	if cfg.GrpcAuthKey != "" {
-		authInterceptor := grpc_auth.NewServerInterceptor(cfg.GrpcAuthKey)
+		authInterceptor := grpcauth.NewServerInterceptor(cfg.GrpcAuthKey)
 		opts = append(opts, grpc.UnaryInterceptor(authInterceptor.Unary()))
 		opts = append(opts, grpc.StreamInterceptor(authInterceptor.Stream()))
 	}

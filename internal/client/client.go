@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -111,27 +112,21 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, 
 
 	results := make(chan *neopb.Command)
 	go func() {
-		commands := make(chan *neopb.Command)
-		go func() {
-			for {
-				cmd, err := stream.Recv()
-				if err != nil {
-					logrus.Errorf("Error reading from broadcasts channel: %v", err)
-					close(commands)
-					return
-				}
-				commands <- cmd
-			}
-		}()
-
+		defer close(results)
 		for {
+			cmd, err := stream.Recv()
+			if errors.Is(err, io.EOF) {
+				logrus.Errorf("Broadcast stream closed")
+				return
+			}
+			if err != nil {
+				logrus.Errorf("Error reading from broadcasts stream: %v", err)
+				return
+			}
 			select {
-			case cmd := <-commands:
-				logrus.Infof("Received a new command from broadcast: %v", cmd)
-				results <- cmd
+			case results <- cmd:
 			case <-ctx.Done():
-				logrus.Infof("Shutting down broadcast listener")
-				close(results)
+				logrus.Warningf("Broadcast context cancelled")
 				return
 			}
 		}
@@ -148,27 +143,21 @@ func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.ExploitRe
 
 	results := make(chan *neopb.ExploitRequest)
 	go func() {
-		requests := make(chan *neopb.ExploitRequest)
-		go func() {
-			for {
-				req, err := stream.Recv()
-				if err != nil {
-					logrus.Errorf("Error reading from single runs channel: %v", err)
-					close(requests)
-					return
-				}
-				requests <- req
-			}
-		}()
-
+		defer close(results)
 		for {
+			er, err := stream.Recv()
+			if errors.Is(err, io.EOF) {
+				logrus.Errorf("Single runs stream closed by server")
+				return
+			}
+			if err != nil {
+				logrus.Errorf("Error reading from single runs stream: %v", err)
+				return
+			}
 			select {
-			case cmd := <-requests:
-				logrus.Infof("Received a new single run request: %v", cmd)
-				results <- cmd
+			case results <- er:
 			case <-ctx.Done():
-				logrus.Infof("Shutting down single run listener")
-				close(results)
+				logrus.Warningf("Single runs context cancelled")
 				return
 			}
 		}
