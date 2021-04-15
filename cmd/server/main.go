@@ -85,14 +85,8 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Failed to create bolt storage: %v", err)
 	}
-	if cfg.RunEvery <= 0 {
-		logrus.Fatalf("run_every should be positive")
-	}
 	if cfg.PingEvery <= 0 {
 		logrus.Fatalf("ping_every should be positive")
-	}
-	if cfg.Timeout <= 0 {
-		logrus.Fatalf("timeout should be positive")
 	}
 	logrus.Infof("Config: %+v", cfg)
 	srv := server.New(cfg, st)

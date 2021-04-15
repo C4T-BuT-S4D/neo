@@ -21,8 +21,6 @@ type Config struct {
 	DBPath      string            `yaml:"db_path"`
 	BaseDir     string            `yaml:"base_dir"`
 	PingEvery   time.Duration     `yaml:"ping_every"`
-	RunEvery    time.Duration     `yaml:"run_every"`
-	Timeout     time.Duration     `yaml:"timeout"`
 	FarmConfig  FarmConfig        `yaml:"farm"`
 	GrpcAuthKey string            `yaml:"grpc_auth_key"`
 	Environ     map[string]string `yaml:"env"`

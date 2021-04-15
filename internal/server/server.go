@@ -102,8 +102,6 @@ func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
 	defer em.cfgMutex.Unlock()
 	em.config = &config.Config{
 		PingEvery:    cfg.PingEvery,
-		RunEvery:     cfg.RunEvery,
-		Timeout:      cfg.Timeout,
 		FarmURL:      cfg.FarmConfig.URL,
 		FarmPassword: cfg.FarmConfig.Password,
 		FlagRegexp:   regexp.MustCompile(cfg.FarmConfig.FlagRegexp),

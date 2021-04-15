@@ -19,13 +19,12 @@ message ExploitState {
 }
 
 message Config {
-  string run_every = 1;
-  string timeout = 2;
-  string farm_url = 3;
-  string farm_password = 4;
-  string flag_regexp = 5;
-  string ping_every = 6;
-  repeated string environ = 7;
+  string timeout = 1;
+  string farm_url = 2;
+  string farm_password = 3;
+  string flag_regexp = 4;
+  string ping_every = 5;
+  repeated string environ = 6;
 }
 
 message ServerState {
@@ -38,6 +37,8 @@ message ServerState {
 message ExploitConfiguration {
   string entrypoint = 1;
   bool is_archive = 2;
+  string run_every = 3;
+  string timeout = 4;
 }
 
 message FileStream {

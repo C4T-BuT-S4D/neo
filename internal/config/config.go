@@ -10,8 +10,6 @@ import (
 
 type Config struct {
 	PingEvery    time.Duration
-	RunEvery     time.Duration
-	Timeout      time.Duration
 	FarmURL      string
 	FarmPassword string
 	FlagRegexp   *regexp.Regexp
@@ -20,8 +18,6 @@ type Config struct {
 
 func ToProto(c *Config) *neopb.Config {
 	return &neopb.Config{
-		RunEvery:     c.RunEvery.String(),
-		Timeout:      c.Timeout.String(),
 		FarmUrl:      c.FarmURL,
 		FarmPassword: c.FarmPassword,
 		FlagRegexp:   c.FlagRegexp.String(),
@@ -40,12 +36,6 @@ func FromProto(config *neopb.Config) (*Config, error) {
 	}
 	if cfg.PingEvery, err = time.ParseDuration(config.GetPingEvery()); err != nil {
 		return nil, fmt.Errorf("parsing ping interval: %w", err)
-	}
-	if cfg.RunEvery, err = time.ParseDuration(config.GetRunEvery()); err != nil {
-		return nil, fmt.Errorf("parsing run interval: %w", err)
-	}
-	if cfg.Timeout, err = time.ParseDuration(config.GetTimeout()); err != nil {
-		return nil, fmt.Errorf("parsing timeout: %w", err)
 	}
 	cfg.FarmURL = config.GetFarmUrl()
 	cfg.FarmPassword = config.GetFarmPassword()
