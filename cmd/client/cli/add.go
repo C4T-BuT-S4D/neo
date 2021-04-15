@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -167,10 +168,14 @@ func (ac *addCLI) validateEntry(f string) (errors []string) {
 			)
 			errors = append(errors, desc)
 		}
-		re := regexp.MustCompile(`(?m)flush[(=]`)
-		if !re.Match(data) {
-			desc := "Please flush the output, e.g. print(..., flush=True) in python"
-			errors = append(errors, desc)
+
+		// PYTHONUNBUFFERED=1 is set for python scripts, so no need to flush the buffer
+		if !bytes.Contains(data, []byte("#!/usr/bin/env python")) {
+			re := regexp.MustCompile(`(?m)flush[(=]`)
+			if !re.Match(data) {
+				desc := "Please flush the output, e.g. print(..., flush=True) in python"
+				errors = append(errors, desc)
+			}
 		}
 	}
 	return
