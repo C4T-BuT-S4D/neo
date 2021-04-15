@@ -1,8 +1,8 @@
 package queue
 
 import (
-	"bytes"
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -90,22 +90,22 @@ func (eq *simpleQueue) runExploit(ctx context.Context, et Task) ([]byte, error) 
 	logrus.Infof("Going to run: %s %s", et.executable, et.teamIP)
 	cmd := et.Command(cmdCtx)
 
-	res := new(bytes.Buffer)
+	var out []byte
 	errC := make(chan error, 1)
 	go func() {
-		cmd.Stdout = res
-		cmd.Stderr = res
-		errC <- cmd.Run()
+		var err error
+		out, err = cmd.CombinedOutput()
+		errC <- err
 	}()
 	select {
 	case <-eq.done:
 		cancel()
 		<-errC
-		return res.Bytes(), context.Canceled
+		return out, context.Canceled
 	case <-ctx.Done():
 		<-errC
-		return res.Bytes(), ctx.Err()
+		return out, fmt.Errorf("context terminated: %w", ctx.Err())
 	case err := <-errC:
-		return res.Bytes(), err
+		return out, err
 	}
 }

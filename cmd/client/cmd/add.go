@@ -33,4 +33,5 @@ func init() {
 	addCmd.PersistentFlags().BoolP("dir", "d", false, "add exploit as a directory")
 	addCmd.PersistentFlags().DurationP("interval", "i", time.Second*15, "run interval")
 	addCmd.PersistentFlags().DurationP("timeout", "t", time.Second*15, "timeout for a single run")
+	addCmd.PersistentFlags().BoolP("endless", "e", false, "mark script as endless")
 }

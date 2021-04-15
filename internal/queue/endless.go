@@ -1,17 +1,13 @@
 package queue
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	truncateOut = 4096
 )
 
 type endlessQueue struct {
@@ -79,26 +75,51 @@ func (eq *endlessQueue) worker(ctx context.Context) {
 				if ctx.Err() != nil {
 					return
 				}
-				// any other error -> retry
+				if err != nil {
+					logrus.Errorf("Unexpected error returned from endless exploit %v: %v", job, err)
+				} else {
+					logrus.Errorf("Endless exploit %v terminated unexpectedly", job)
+				}
 			}
 		}
 	}
 }
 
-func (eq *endlessQueue) runExploit(ctx context.Context, et Task) error {
+func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 	cmdCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	logrus.Infof("Going to run endlessly: %s %s", et.executable, et.teamIP)
-	cmd := et.Command(cmdCtx)
+	logrus.Infof("Going to run endlessly: %s %s", job.executable, job.teamIP)
+	cmd := job.Command(cmdCtx)
 
-	res := new(bytes.Buffer)
+	r, w := io.Pipe()
 	errC := make(chan error, 1)
 	go func() {
-		cmd.Stdout = res
-		cmd.Stderr = res
+		defer func(w *io.PipeWriter) {
+			if err := w.Close(); err != nil {
+				logrus.Errorf("Error closing pipe: %v", err)
+			}
+		}(w)
+
+		cmd.Stdout = w
+		cmd.Stderr = w
 		errC <- cmd.Run()
 	}()
+
+	dataCb := func(data []byte) {
+		eq.out <- &Output{
+			Name: job.name,
+			Out:  data,
+			Team: job.teamID,
+		}
+	}
+	go func() {
+		err := safeReadOutput(r, dataCb)
+		if err != nil && ctx.Err() == nil {
+			logrus.Errorf("Unexpected error reading endless script output: %v", err)
+		}
+	}()
+
 	select {
 	case <-eq.done:
 		cancel()
@@ -111,11 +132,10 @@ func (eq *endlessQueue) runExploit(ctx context.Context, et Task) error {
 		}
 		return nil
 	case err := <-errC:
-		out := res.Bytes()
-		if len(out) > truncateOut {
-			out = out[len(out)-truncateOut:]
+		logrus.Errorf("Endless sploit %v terminated: %v", job, err)
+		if err != nil {
+			return fmt.Errorf("unexpected error in endless exploit %v: %w", job, err)
 		}
-		logrus.Errorf("Endless sploit %v terminated: %v. Out: %s", et, err, out)
-		return fmt.Errorf("unexpected error in endless exploit %v: %w", et, err)
+		return nil
 	}
 }

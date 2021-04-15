@@ -117,7 +117,7 @@ func TestSimpleQueue_runExploit(t *testing.T) {
 	}
 }
 
-func TestSimpleQueue_Run(t *testing.T) {
+func TestSimpleQueue_Start(t *testing.T) {
 	q := NewSimpleQueue(10)
 	task := Task{name: "kek", executable: "echo", dir: "", teamID: "id", teamIP: "ip", timeout: time.Second * 2}
 	if err := q.Add(task); err != nil {

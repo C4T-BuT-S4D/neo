@@ -172,6 +172,7 @@ func (em *ExploitManagerServer) UpdateExploit(_ context.Context, r *neopb.Update
 		ExploitId: r.GetExploitId(),
 		File:      r.GetFile(),
 		Disabled:  r.GetDisabled(),
+		Endless:   r.GetEndless(),
 	}
 	if err := em.storage.UpdateExploitVersion(ns, r.GetConfig()); err != nil {
 		return nil, logErrorf(codes.Internal, "Failed to update exploit version: %v", err)

@@ -16,15 +16,15 @@ message ExploitState {
   int64 version = 2;
   FileInfo file = 3;
   bool disabled = 4;
+  bool endless = 5;
 }
 
 message Config {
-  string timeout = 1;
-  string farm_url = 2;
-  string farm_password = 3;
-  string flag_regexp = 4;
-  string ping_every = 5;
-  repeated string environ = 6;
+  string farm_url = 1;
+  string farm_password = 2;
+  string flag_regexp = 3;
+  string ping_every = 4;
+  repeated string environ = 5;
 }
 
 message ServerState {
@@ -75,6 +75,7 @@ message UpdateExploitRequest {
   FileInfo file = 2;
   ExploitConfiguration config = 3;
   bool disabled = 4;
+  bool endless = 5;
 }
 
 message UpdateExploitResponse {

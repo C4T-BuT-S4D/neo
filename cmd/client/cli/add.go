@@ -30,6 +30,7 @@ type addCLI struct {
 	exploitID string
 	runEvery  time.Duration
 	timeout   time.Duration
+	endless   bool
 }
 
 func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
@@ -50,6 +51,9 @@ func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	}
 	if c.timeout, err = cmd.Flags().GetDuration("timeout"); err != nil {
 		logrus.Fatalf("Could not parse run timeout: %v", err)
+	}
+	if c.endless, err = cmd.Flags().GetBool("endless"); err != nil {
+		logrus.Fatalf("Could not parse endless: %v", err)
 	}
 	return c
 }
@@ -146,6 +150,8 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			RunEvery:   ac.runEvery.String(),
 			Timeout:    ac.timeout.String(),
 		},
+		Endless:  ac.endless,
+		Disabled: false,
 	}
 	if err := c.UpdateExploit(ctx, req); err != nil {
 		return fmt.Errorf("failed to update exploit: %w", err)
