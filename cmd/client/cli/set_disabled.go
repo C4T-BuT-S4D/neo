@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"neo/internal/client"
@@ -12,19 +11,21 @@ import (
 	neopb "neo/lib/genproto/neo"
 )
 
-type singleRunCLI struct {
+type setDisabledCli struct {
 	*baseCLI
 	exploitID string
+	disabled  bool
 }
 
-func NewSingleRun(_ *cobra.Command, args []string, cfg *client.Config) NeoCLI {
-	return &singleRunCLI{
+func NewSetDisabled(_ *cobra.Command, args []string, cfg *client.Config, disabled bool) NeoCLI {
+	return &setDisabledCli{
 		baseCLI:   &baseCLI{cfg},
 		exploitID: args[0],
+		disabled:  disabled,
 	}
 }
 
-func (sc *singleRunCLI) Run(ctx context.Context) error {
+func (sc *setDisabledCli) Run(ctx context.Context) error {
 	c, err := sc.client()
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
@@ -33,19 +34,20 @@ func (sc *singleRunCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
-	exists := false
+
+	var spl *neopb.ExploitState
 	for _, v := range state.GetExploits() {
 		if v.GetExploitId() == sc.exploitID {
-			exists = true
+			spl = v
 			break
 		}
 	}
 
-	if !exists {
-		logrus.Fatalf("Exploit %s does not exist. Please, add it first.", sc.exploitID)
+	if spl == nil {
+		return fmt.Errorf("exploit %s does not exist", sc.exploitID)
 	}
-	if err := c.SingleRun(ctx, sc.exploitID); err != nil {
-		return fmt.Errorf("single run failed: %w", err)
+	if err := c.SetExploitDisabled(ctx, spl.GetExploitId(), sc.disabled); err != nil {
+		return fmt.Errorf("set disabled failed: %w", err)
 	}
 
 	return nil

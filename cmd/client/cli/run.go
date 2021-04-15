@@ -27,6 +27,7 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 	if jobs <= 0 {
 		logrus.Fatal("run: job count should be positive")
 	}
+
 	cli := &runCLI{
 		baseCLI: &baseCLI{c: cfg},
 	}

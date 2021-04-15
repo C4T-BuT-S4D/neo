@@ -34,6 +34,10 @@ var (
 	ErrInvalidMessageType = errors.New("invalid message type")
 )
 
+var (
+	noResponse = &neopb.Empty{}
+)
+
 type fileInterface interface {
 	io.ReadWriteCloser
 	Name() string
@@ -169,6 +173,7 @@ func (em *ExploitManagerServer) UpdateExploit(_ context.Context, r *neopb.Update
 	ns := &neopb.ExploitState{
 		ExploitId: r.GetExploitId(),
 		File:      r.GetFile(),
+		Disabled:  r.GetDisabled(),
 	}
 	if err := em.storage.UpdateExploitVersion(ns, r.GetConfig()); err != nil {
 		return nil, logErrorf(codes.Internal, "Failed to update exploit version: %v", err)
@@ -202,7 +207,7 @@ func (em *ExploitManagerServer) Ping(_ context.Context, r *neopb.PingRequest) (*
 func (em *ExploitManagerServer) BroadcastCommand(_ context.Context, r *neopb.Command) (*neopb.Empty, error) {
 	logrus.Infof("Received broadcast request to run %v", r)
 	em.ps.Publish(broadcastChannel, r)
-	return &neopb.Empty{}, nil
+	return noResponse, nil
 }
 
 func (em *ExploitManagerServer) BroadcastRequests(_ *neopb.Empty, stream neopb.ExploitManager_BroadcastRequestsServer) error {
@@ -226,7 +231,7 @@ func (em *ExploitManagerServer) BroadcastRequests(_ *neopb.Empty, stream neopb.E
 func (em *ExploitManagerServer) SingleRun(_ context.Context, r *neopb.ExploitRequest) (*neopb.Empty, error) {
 	logrus.Infof("Received single run request %v", r)
 	em.ps.Publish(singleRunChannel, r)
-	return &neopb.Empty{}, nil
+	return noResponse, nil
 }
 
 func (em *ExploitManagerServer) SingleRunRequests(_ *neopb.Empty, stream neopb.ExploitManager_SingleRunRequestsServer) error {

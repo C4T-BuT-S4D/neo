@@ -41,7 +41,7 @@ func (nc *Client) Ping(ctx context.Context, t neopb.PingRequest_PingType) (*neop
 	return resp.GetState(), nil
 }
 
-func (nc *Client) ExploitConfig(ctx context.Context, id string) (*neopb.ExploitConfiguration, error) {
+func (nc *Client) Exploit(ctx context.Context, id string) (*neopb.ExploitResponse, error) {
 	req := &neopb.ExploitRequest{
 		ExploitId: id,
 	}
@@ -49,7 +49,7 @@ func (nc *Client) ExploitConfig(ctx context.Context, id string) (*neopb.ExploitC
 	if err != nil {
 		return nil, fmt.Errorf("making exploit request: %w", err)
 	}
-	return resp.GetConfig(), nil
+	return resp, nil
 }
 
 func (nc *Client) UpdateExploit(ctx context.Context, req *neopb.UpdateExploitRequest) error {
@@ -99,7 +99,24 @@ func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
 func (nc *Client) SingleRun(ctx context.Context, exploitID string) error {
 	req := &neopb.ExploitRequest{ExploitId: exploitID}
 	if _, err := nc.c.SingleRun(ctx, req); err != nil {
-		return fmt.Errorf("making broadcast command request: %w", err)
+		return fmt.Errorf("making single run request: %w", err)
+	}
+	return nil
+}
+
+func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bool) error {
+	resp, err := nc.Exploit(ctx, id)
+	if err != nil {
+		return fmt.Errorf("fetching current exploit config: %w", err)
+	}
+	req := &neopb.UpdateExploitRequest{
+		ExploitId: id,
+		File:      resp.GetState().GetFile(),
+		Config:    resp.GetConfig(),
+		Disabled:  disabled,
+	}
+	if _, err := nc.c.UpdateExploit(ctx, req); err != nil {
+		return fmt.Errorf("making delete exploit request: %w", err)
 	}
 	return nil
 }
@@ -119,6 +136,10 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, 
 				logrus.Errorf("Broadcast stream closed")
 				return
 			}
+			if errors.Is(stream.Context().Err(), context.Canceled) {
+				logrus.Debugf("Broadcast context cancelled")
+				return
+			}
 			if err != nil {
 				logrus.Errorf("Error reading from broadcasts stream: %v", err)
 				return
@@ -126,7 +147,7 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, 
 			select {
 			case results <- cmd:
 			case <-ctx.Done():
-				logrus.Warningf("Broadcast context cancelled")
+				logrus.Debugf("Broadcast context cancelled")
 				return
 			}
 		}
@@ -148,6 +169,10 @@ func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.ExploitRe
 			er, err := stream.Recv()
 			if errors.Is(err, io.EOF) {
 				logrus.Errorf("Single runs stream closed by server")
+				return
+			}
+			if errors.Is(stream.Context().Err(), context.Canceled) {
+				logrus.Debugf("Single runs context cancelled")
 				return
 			}
 			if err != nil {

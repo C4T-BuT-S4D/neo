@@ -1,4 +1,6 @@
 syntax = "proto3";
+package neo;
+
 option go_package = "github.com/pomo-mondreganto/neo";
 
 message TeamBucket {
@@ -13,6 +15,7 @@ message ExploitState {
   string exploit_id = 1;
   int64 version = 2;
   FileInfo file = 3;
+  bool disabled = 4;
 }
 
 message Config {
@@ -70,6 +73,7 @@ message UpdateExploitRequest {
   string exploit_id = 1;
   FileInfo file = 2;
   ExploitConfiguration config = 3;
+  bool disabled = 4;
 }
 
 message UpdateExploitResponse {
@@ -84,10 +88,13 @@ message Empty {}
 
 service ExploitManager {
   rpc Ping (PingRequest) returns (PingResponse) {}
+
   rpc UploadFile(stream FileStream) returns (FileInfo) {}
   rpc DownloadFile(FileInfo) returns (stream FileStream) {}
+
   rpc Exploit(ExploitRequest)  returns (ExploitResponse) {}
   rpc UpdateExploit(UpdateExploitRequest) returns (UpdateExploitResponse) {}
+
   rpc BroadcastCommand(Command) returns (Empty) {}
   rpc BroadcastRequests(Empty) returns (stream Command) {}
 
