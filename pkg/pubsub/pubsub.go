@@ -1,6 +1,8 @@
 package pubsub
 
-import "sync"
+import (
+	"sync"
+)
 
 type PubSub interface {
 	Publish(string, interface{})

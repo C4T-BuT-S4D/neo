@@ -216,7 +216,7 @@ func (em *ExploitManagerServer) BroadcastRequests(_ *neopb.Empty, stream neopb.E
 			return ErrInvalidMessageType
 		}
 		if err := stream.Send(cmd); err != nil {
-			return logErrorf(codes.Internal, "Could not send command: %v", err)
+			return fmt.Errorf("sending command: %w", err)
 		}
 		return nil
 	}
@@ -240,7 +240,7 @@ func (em *ExploitManagerServer) SingleRunRequests(_ *neopb.Empty, stream neopb.E
 			return ErrInvalidMessageType
 		}
 		if err := stream.Send(req); err != nil {
-			return logErrorf(codes.Internal, "Could not single run request: %v", err)
+			return fmt.Errorf("sending single run request: %w", err)
 		}
 		return nil
 	}
