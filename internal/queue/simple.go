@@ -1,0 +1,111 @@
+package queue
+
+import (
+	"bytes"
+	"context"
+	"sync"
+
+	"github.com/sirupsen/logrus"
+)
+
+const maxBufferSize = 10000
+const (
+	maxJobsMultiplier = 10
+)
+
+type simpleQueue struct {
+	out     chan *Output
+	c       chan Task
+	maxJobs int
+	wg      sync.WaitGroup
+	done    chan struct{}
+}
+
+func NewSimpleQueue(maxJobs int) Queue {
+	maxJobs *= maxJobsMultiplier
+
+	return &simpleQueue{
+		out:     make(chan *Output, maxBufferSize),
+		c:       make(chan Task, maxBufferSize),
+		done:    make(chan struct{}),
+		maxJobs: maxJobs,
+	}
+}
+
+func (eq *simpleQueue) Start(ctx context.Context) {
+	logrus.Infof("Starting a queue with %d jobs", eq.maxJobs)
+	eq.wg.Add(eq.maxJobs)
+	for i := 0; i < eq.maxJobs; i++ {
+		go eq.worker(ctx)
+	}
+}
+
+func (eq *simpleQueue) Results() <-chan *Output {
+	return eq.out
+}
+
+func (eq *simpleQueue) Add(et Task) error {
+	select {
+	case eq.c <- et:
+		return nil
+	default:
+		return ErrQueueFull
+	}
+}
+
+func (eq *simpleQueue) Stop() {
+	close(eq.done)
+	eq.wg.Wait()
+	close(eq.out)
+}
+
+func (eq *simpleQueue) worker(ctx context.Context) {
+	defer eq.wg.Done()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-eq.done:
+			return
+		case job := <-eq.c:
+			res, err := eq.runExploit(ctx, job)
+			if err != nil {
+				logrus.Errorf("Failed to run %v: %v. Output: %s", job, err, res)
+			} else {
+				logrus.Infof("Successfully run: %v", job)
+			}
+			eq.out <- &Output{
+				Name: job.name,
+				Out:  res,
+				Team: job.teamID,
+			}
+		}
+	}
+}
+
+func (eq *simpleQueue) runExploit(ctx context.Context, et Task) ([]byte, error) {
+	cmdCtx, cancel := context.WithTimeout(ctx, et.timeout)
+	defer cancel()
+
+	logrus.Infof("Going to run: %s %s", et.executable, et.teamIP)
+	cmd := et.Command(cmdCtx)
+
+	res := new(bytes.Buffer)
+	errC := make(chan error, 1)
+	go func() {
+		cmd.Stdout = res
+		cmd.Stderr = res
+		errC <- cmd.Run()
+	}()
+	select {
+	case <-eq.done:
+		cancel()
+		<-errC
+		return res.Bytes(), context.Canceled
+	case <-ctx.Done():
+		<-errC
+		return res.Bytes(), ctx.Err()
+	case err := <-errC:
+		return res.Bytes(), err
+	}
+}

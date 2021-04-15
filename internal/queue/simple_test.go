@@ -1,4 +1,4 @@
-package exploit
+package queue
 
 import (
 	"context"
@@ -14,14 +14,14 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func TestQueue_Add(t *testing.T) {
-	makeQueue := func(s int) *Queue {
-		q := NewQueue(1)
+func TestSimpleQueue_Add(t *testing.T) {
+	makeQueue := func(s int) *simpleQueue {
+		q := NewSimpleQueue(1).(*simpleQueue)
 		q.c = make(chan Task, s)
 		return q
 	}
 	for _, tc := range []struct {
-		q        *Queue
+		q        *simpleQueue
 		t        *Task
 		wantTask *Task
 		wantErr  error
@@ -32,61 +32,61 @@ func TestQueue_Add(t *testing.T) {
 	} {
 		err := tc.q.Add(*tc.t)
 		if !errors.Is(err, tc.wantErr) {
-			t.Errorf("Queue.Add(): got error = %v, want = %v", err, tc.wantErr)
+			t.Errorf("simpleQueue.Add(): got error = %v, want = %v", err, tc.wantErr)
 			continue
 		}
 		if err != nil {
 			continue
 		}
 		if tk := <-tc.q.c; tk.executable != tc.t.executable {
-			t.Errorf("Queue.Add(): got unexpected data = %v, want = %v", tk, tc.t)
+			t.Errorf("simpleQueue.Add(): got unexpected data = %v, want = %v", tk, tc.t)
 		}
 	}
 }
 
-func TestQueue_runExploit(t *testing.T) {
-	closedQueue := func() *Queue {
-		q := NewQueue(1)
+func TestSimpleQueue_runExploit(t *testing.T) {
+	closedQueue := func() *simpleQueue {
+		q := NewSimpleQueue(1).(*simpleQueue)
 		q.Stop()
 		return q
 	}
 	for _, tc := range []struct {
-		q        *Queue
+		q        *simpleQueue
 		t        Task
 		ctx      context.Context
 		wantErr  error
 		wantData []byte
 	}{
 		{
-			q:        NewQueue(1),
+			q:        NewSimpleQueue(1).(*simpleQueue),
 			t:        Task{name: "echo", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
 			wantErr:  nil,
 			wantData: []byte("ip\n"),
 			ctx:      context.Background(),
 		},
 		{
-			q:        NewQueue(1),
+			q:        NewSimpleQueue(1).(*simpleQueue),
 			t:        Task{name: "bad executable", executable: "notfoundcli", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
 			wantErr:  &exec.Error{},
 			wantData: nil,
 			ctx:      context.Background(),
 		},
 		{
-			q:        NewQueue(1),
+			q:        NewSimpleQueue(1).(*simpleQueue),
 			t:        Task{name: "cancelled ctx", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
 			wantErr:  context.Canceled,
 			wantData: nil,
 			ctx:      testutils.CanceledContext(),
 		},
 		{
-			q:        NewQueue(1),
+			q:        NewSimpleQueue(1).(*simpleQueue),
 			t:        Task{name: "timed out ctx", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
 			wantErr:  context.DeadlineExceeded,
 			wantData: nil,
 			ctx:      testutils.TimedOutContext(),
 		},
 		{
-			q:        NewQueue(1),
+			q:        NewSimpleQueue(1).(*simpleQueue),
 			t:        Task{name: "zero timeout", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 0},
 			wantErr:  context.DeadlineExceeded,
 			wantData: nil,
@@ -108,36 +108,36 @@ func TestQueue_runExploit(t *testing.T) {
 			return reflect.TypeOf(e1) == reflect.TypeOf(e2)
 		}
 		if !cmpErr(err, tc.wantErr) {
-			t.Errorf("Queue.runExploit() [%s]: got unexpected err = %v, want = %v", tc.t.name, err, tc.wantErr)
+			t.Errorf("simpleQueue.runExploit() [%s]: got unexpected err = %v, want = %v", tc.t.name, err, tc.wantErr)
 		}
 
 		if diff := cmp.Diff(data, tc.wantData, cmpopts.EquateEmpty()); diff != "" {
-			t.Errorf("Queue.runExploit() returned data mismatch (-want +got):\n%s", diff)
+			t.Errorf("simpleQueue.runExploit() returned data mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
 
-func TestQueue_Run(t *testing.T) {
-	q := NewQueue(10)
+func TestSimpleQueue_Run(t *testing.T) {
+	q := NewSimpleQueue(10)
 	task := Task{name: "kek", executable: "echo", dir: "", teamID: "id", teamIP: "ip", timeout: time.Second * 2}
 	if err := q.Add(task); err != nil {
-		t.Errorf("Queue.Add(): got unexpected error = %v", err)
+		t.Errorf("simpleQueue.Add(): got unexpected error = %v", err)
 	}
 
 	var out *Output
 	ctx, cancel := context.WithCancel(context.Background())
-	q.Run(ctx)
+	q.Start(ctx)
 	defer q.Stop()
-	out = <-q.Output
+	out = <-q.Results()
 	cancel()
 
 	if out.Name != task.name {
-		t.Errorf("Queue.Run(): got unexpected result name: got = %v, want = %v", out.Name, task.name)
+		t.Errorf("simpleQueue.Start(): got unexpected result name: got = %v, want = %v", out.Name, task.name)
 	}
 	if out.Team != task.teamID {
-		t.Errorf("Queue.Run(): got unexpected result team: got = %v, want = %v", out.Team, task.teamID)
+		t.Errorf("simpleQueue.Start(): got unexpected result team: got = %v, want = %v", out.Team, task.teamID)
 	}
 	if string(out.Out) != task.teamIP+"\n" {
-		t.Errorf("Queue.Run(): got unexpected result: got = %v, want = %v", out.Out, task.teamIP+"\n")
+		t.Errorf("simpleQueue.Start(): got unexpected result: got = %v, want = %v", out.Out, task.teamIP+"\n")
 	}
 }
