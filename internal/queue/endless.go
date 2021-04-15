@@ -106,6 +106,11 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 		errC <- cmd.Run()
 	}()
 
+	readDone := make(chan struct{})
+	defer func() {
+		logrus.Info("Waiting for endless read to finish")
+		<-readDone
+	}()
 	dataCb := func(data []byte) {
 		eq.out <- &Output{
 			Name: job.name,
@@ -114,6 +119,7 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 		}
 	}
 	go func() {
+		defer close(readDone)
 		err := safeReadOutput(r, dataCb)
 		if err != nil && ctx.Err() == nil {
 			logrus.Errorf("Unexpected error reading endless script output: %v", err)

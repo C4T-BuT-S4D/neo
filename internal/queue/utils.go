@@ -1,6 +1,8 @@
 package queue
 
 import (
+	"errors"
+	"fmt"
 	"io"
 )
 
@@ -21,6 +23,7 @@ func safeReadOutput(r io.Reader, cb readCallback) error {
 		make([]byte, chunkSize),
 	}
 
+	prevLen := 0
 	// b is current buffer index
 	for b := 0; ; b = (b + 1) % 2 {
 		var (
@@ -31,7 +34,8 @@ func safeReadOutput(r io.Reader, cb readCallback) error {
 		// second buffer index
 		ot := (b + 1) % 2
 
-		n, err = r.Read(buffers[b])
+		n, err = r.Read(buffers[b][prevLen:])
+		n += prevLen
 		// if the full buffer is read, it's possible for
 		// the second part of the same data chunk to be next
 		if n == chunkSize {
@@ -54,15 +58,20 @@ func safeReadOutput(r io.Reader, cb readCallback) error {
 				}
 				res = make([]byte, resLen)
 				copy(res, buffers[b])
-				copy(res, buffers[ot][:resLen-n])
+				copy(res[n:], buffers[ot][:resLen-n])
+				prevLen = sn
 			} else {
 				res = buffers[b]
 				resLen = n
+				prevLen = 0
 			}
 			cb(res[:resLen])
 		}
 		if err != nil {
-			return err
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return fmt.Errorf("reading chunk: %w", err)
 		}
 	}
 }
