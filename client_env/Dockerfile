@@ -6,7 +6,7 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-RUN go build -ldflags="-s -w" -o client cmd/client/main.go
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o client cmd/client/main.go
 
 FROM python:3.9
 
