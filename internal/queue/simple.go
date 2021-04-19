@@ -13,6 +13,10 @@ const (
 	maxJobsMultiplier = 10
 )
 
+// Compile-time type checks
+var _ Queue = (*simpleQueue)(nil)
+var _ Factory = NewSimpleQueue
+
 type simpleQueue struct {
 	out     chan *Output
 	c       chan Task

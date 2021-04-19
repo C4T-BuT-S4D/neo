@@ -10,6 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Compile-time type checks
+var _ Queue = (*endlessQueue)(nil)
+var _ Factory = NewEndlessQueue
+
 type endlessQueue struct {
 	out     chan *Output
 	c       chan Task
