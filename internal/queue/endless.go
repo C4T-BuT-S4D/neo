@@ -23,8 +23,6 @@ type endlessQueue struct {
 }
 
 func NewEndlessQueue(maxJobs int) Queue {
-	maxJobs *= maxJobsMultiplier
-
 	return &endlessQueue{
 		out:     make(chan *Output, maxBufferSize),
 		c:       make(chan Task, maxBufferSize),

@@ -27,5 +27,5 @@ var runCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().IntP("jobs", "j", runtime.NumCPU(), "exploit jobs multiplier")
+	runCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "exploit jobs multiplier")
 }

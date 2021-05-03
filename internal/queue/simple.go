@@ -9,9 +9,6 @@ import (
 )
 
 const maxBufferSize = 10000
-const (
-	maxJobsMultiplier = 10
-)
 
 // Compile-time type checks
 var _ Queue = (*simpleQueue)(nil)
@@ -26,8 +23,6 @@ type simpleQueue struct {
 }
 
 func NewSimpleQueue(maxJobs int) Queue {
-	maxJobs *= maxJobsMultiplier
-
 	return &simpleQueue{
 		out:     make(chan *Output, maxBufferSize),
 		c:       make(chan Task, maxBufferSize),
