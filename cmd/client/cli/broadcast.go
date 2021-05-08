@@ -15,10 +15,14 @@ type broadcastCLI struct {
 	cmd string
 }
 
-func NewBroadcast(_ *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+func NewBroadcast(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
+	command, err := cmd.Flags().GetString("command")
+	if err != nil {
+		logrus.Fatalf("Could not parse command: %v", cmd)
+	}
 	return &broadcastCLI{
 		baseCLI: &baseCLI{cfg},
-		cmd:     args[0],
+		cmd:     command,
 	}
 }
 
