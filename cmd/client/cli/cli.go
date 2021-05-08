@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
+
 	"neo/internal/client"
 	"neo/pkg/grpcauth"
 
-	"github.com/denisbrodbeck/machineid"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -37,10 +37,11 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 }
 
 func (cmd *baseCLI) ClientID() string {
-	id, err := machineid.ID()
-	if err != nil {
-		logrus.Fatalf("Failed to get unique client name: %v", err)
-	}
+	//id, err := machineid.ID()
+	//if err != nil {
+	//	logrus.Fatalf("Failed to get unique client name: %v", err)
+	//}
+	id := uuid.NewString()
 	return id
 }
 
