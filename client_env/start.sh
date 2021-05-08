@@ -1,9 +1,11 @@
 #!/bin/bash -e
 
+IMAGE=c4tbuts4d/neo_env:latest
+CONTAINER_NAME=neo_env
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 COMMAND="$*"
 
-source "${DIR}/vars.env"
 OUT=$(docker ps --filter "name=${CONTAINER_NAME}" --format "{{ .Names }}")
 
 if [[ $OUT ]]; then

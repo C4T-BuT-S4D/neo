@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
         dnsutils \
         netcat \
         net-tools \
+#        sagemath \
     && rm -rf /var/lib/apt/lists/*
 
 COPY client_env/requirements.txt /requirements.txt

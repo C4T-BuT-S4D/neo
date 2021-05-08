@@ -14,7 +14,6 @@ mkdir -p neo_client/exploits
 touch neo_client/exploits/.keep
 cp client_env/requirements.txt neo_client/
 cp client_env/start.sh neo_client/
-cp client_env/vars.env neo_client/
 cp README.md neo_client/
 
 # setup server release
