@@ -4,7 +4,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 source "${DIR}/vars.env"
 
 NEED_COMMANDS=(curl wget dig nc file nslookup ifconfig python3 pip3)
-NEED_PACKAGES=(pymongo pymysql psycopg2 redis z3 secrets checklib requests pwn numpy)
+NEED_PACKAGES=(pymongo pymysql psycopg2 redis z3 secrets checklib requests pwn numpy bs4 hashpumpy dnslib regex lxml gmpy2 sympy)
 
 for cmd in "${NEED_COMMANDS[@]}"; do
   echo "Checking for command ${cmd}..."

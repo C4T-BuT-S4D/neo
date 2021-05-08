@@ -14,6 +14,9 @@ ENV PYTHONUNBUFFERED 1
 ENV PWNLIB_NOTERM 1
 
 RUN apt-get update && apt-get install -y \
+        gcc \
+        libmpc-dev \
+        libmpfr-dev \
         dnsutils \
         netcat \
         net-tools \
