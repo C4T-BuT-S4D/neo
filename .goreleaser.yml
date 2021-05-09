@@ -29,8 +29,9 @@ builds:
         - "mv neo_client_docker neo_{{ .Version }}"
         - "zip -r neo_{{ .Version }}.zip neo_{{ .Version }}"
         - "rm -rf neo_{{ .Version }}"
-        - "mv neo_{{ .Version }}.zip dist/"
-        - "ls -lh dist/neo_{{ .Version }}.zip"
+        - "mkdir dist/other"
+        - "mv neo_{{ .Version }}.zip dist/other/"
+        - "ls -lh dist/other/neo_{{ .Version }}.zip"
 
   - id: "neo_server"
     main: "./cmd/server"
@@ -81,7 +82,7 @@ release:
   prerelease: auto
   name_template: "{{.ProjectName}}-{{.Version}}"
   extra_files:
-    - glob: "./neo_{{ .Version }}.zip"
+    - glob: "./dist/other/*"
 
 checksum:
   name_template: 'checksums.txt'
