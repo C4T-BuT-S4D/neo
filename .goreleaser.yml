@@ -78,8 +78,10 @@ archives:
       - neo_server/*
 
 release:
+  prerelease: auto
+  name_template: "{{.ProjectName}}-{{.Version}}"
   extra_files:
-    - glob: "dist/neo_{{ .Version }}.zip"
+    - glob: "./neo_{{ .Version }}.zip"
 
 checksum:
   name_template: 'checksums.txt'
