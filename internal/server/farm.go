@@ -32,6 +32,7 @@ func (fc *FarmClient) FillConfig(ctx context.Context, cfg *FarmConfig) error {
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Add("Authorization", fc.password)
+	req.Header.Add("X-Token", fc.password)
 	resp, err := fc.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("making request: %w", err)
