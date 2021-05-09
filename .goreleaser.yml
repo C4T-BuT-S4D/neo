@@ -25,9 +25,12 @@ builds:
     goarch:
       - amd64
     hooks:
-      post: |
-        mv neo_client_docker neo_client_{{ .Version }} &&
-        zip -r neo_client_{{ .Version }}.zip neo_client_{{ .Version }}
+      post:
+        - "mv neo_client_docker neo_{{ .Version }}"
+        - "zip -r neo_{{ .Version }}.zip neo_{{ .Version }}"
+        - "rm -rf neo_{{ .Version }}"
+        - "mv neo_{{ .Version }}.zip dist/"
+        - "ls -lh dist/neo_{{ .Version }}.zip"
 
   - id: "neo_server"
     main: "./cmd/server"
@@ -46,6 +49,7 @@ archives:
     builds:
       - "neo_client"
       - "neo_server"
+    name_template: "{{ .ProjectName }}_full_{{ .Version }}_{{ .Os }}"
     replacements:
       darwin: macOS
       386: i386
@@ -75,7 +79,7 @@ archives:
 
 release:
   extra_files:
-    - glob: "neo_client_{{ .Version }}.zip"
+    - glob: "dist/neo_client_{{ .Version }}.zip"
 
 checksum:
   name_template: 'checksums.txt'

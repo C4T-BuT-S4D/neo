@@ -12,6 +12,7 @@
 db.db
 /dist
 /client
+/client_env/.version
 data
 !data/.keep
 

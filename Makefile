@@ -1,7 +1,6 @@
 SHELL := /bin/bash
 
-ACCOUNT := c4tbuts4d
-IMAGE := c4tbuts4d/neo_env:latest
+IMAGE := ghcr.io/pomo-mondreganto/neo_env:latest
 CONTAINER_NAME := neo_env
 
 NEED_COMMANDS := curl wget dig nc file nslookup ifconfig python3 pip3
@@ -24,7 +23,6 @@ test-cov:
 
 .PHONY: build-image
 build-image:
-	@echo "Make sure you're logged in as ${ACCOUNT}"
 	docker build -t "${IMAGE}" -f client_env/Dockerfile .
 
 .PHONY: test-image
@@ -59,12 +57,16 @@ prepare-image: build-image test-image
 .PHONY: release-image
 release-image: prepare-image push-image
 
+.PHONY: cleanup-release-all
+cleanup-release-all:
+	rm -rf dist neo_client neo_client_docker neo_server
+
 .PHONY: cleanup-release
 cleanup-release:
 	rm -rf neo_client neo_client_docker neo_server
 
 .PHONY: setup-release
-setup-release: cleanup-release
+setup-release: cleanup-release-all
 	@echo "[*] Preparing client image release"
 	mkdir -p neo_client_docker
 	cp configs/client/config.yml neo_client_docker/config.yml
@@ -72,6 +74,7 @@ setup-release: cleanup-release
 	touch neo_client_docker/exploits/.keep
 	cp client_env/requirements.txt neo_client_docker/
 	cp client_env/start.sh neo_client_docker/
+	cp client_env/.version neo_client_docker/ || :
 	cp README.md neo_client_docker/
 
 	@echo "[*] Preparing client binary release"
