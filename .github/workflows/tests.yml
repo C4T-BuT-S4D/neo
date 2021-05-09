@@ -3,7 +3,7 @@ on:
   - push
   - pull_request
 jobs:
-  tests:
+  code-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -21,3 +21,13 @@ jobs:
         run: make test-cov
       - name: Upload coverage to Codecov
         run: bash <(curl -s https://codecov.io/bash)
+      - name: check client environment image
+        run: make prepare-image
+
+  image-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: check client environment image
+        run: make prepare-image
