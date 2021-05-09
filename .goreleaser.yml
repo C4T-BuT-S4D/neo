@@ -79,7 +79,7 @@ archives:
 
 release:
   extra_files:
-    - glob: "dist/neo_client_{{ .Version }}.zip"
+    - glob: "dist/neo_{{ .Version }}.zip"
 
 checksum:
   name_template: 'checksums.txt'
