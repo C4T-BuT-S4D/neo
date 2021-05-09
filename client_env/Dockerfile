@@ -13,6 +13,8 @@ FROM python:3.9
 ENV PYTHONUNBUFFERED 1
 ENV PWNLIB_NOTERM 1
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 RUN apt-get update && apt-get install -y \
         gcc \
         libmpc-dev \
@@ -20,6 +22,7 @@ RUN apt-get update && apt-get install -y \
         dnsutils \
         netcat \
         net-tools \
+        dbus \
 #        sagemath \
     && rm -rf /var/lib/apt/lists/*
 
@@ -28,5 +31,8 @@ RUN pip install -r /requirements.txt
 
 COPY --from=build /app/client /usr/local/bin/neo
 
+COPY client_env/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 WORKDIR /work
-ENTRYPOINT ["/bin/bash", "-c"]
+ENTRYPOINT ["/entrypoint.sh"]
