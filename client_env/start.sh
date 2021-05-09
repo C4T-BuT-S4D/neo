@@ -12,7 +12,7 @@ if [[ -z "${VERSION}" ]]; then
 fi
 
 IMAGE="ghcr.io/pomo-mondreganto/neo_env:${VERSION}"
-CONTAINER_NAME=neo_env
+CONTAINER_NAME="neo-${VERSION}"
 
 echo "Using image: ${IMAGE}"
 
