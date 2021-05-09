@@ -4,8 +4,7 @@ before:
     - go mod download
 
 builds:
-  - &neo-client-build
-    id: "neo_client"
+  - id: "neo_client"
     main: "./cmd/client"
     binary: "./neo_client/neo"
     env:
@@ -16,10 +15,19 @@ builds:
     goarch:
       - amd64
 
-  - <<: *neo-client-build
-    id: "neo_client_for_docker"
+  - id: "dummy"
+    main: "./cmd/client"
+    binary: "neo"
+    env:
+      - CGO_ENABLED=0
     goos:
       - linux
+    goarch:
+      - amd64
+    hooks:
+      post: |
+        mv neo_client_docker neo_client_{{ .Version }} &&
+        zip -r neo_client_{{ .Version }}.zip neo_client_{{ .Version }}
 
   - id: "neo_server"
     main: "./cmd/server"
@@ -50,18 +58,6 @@ archives:
       - neo_server/config.yml
       - neo_client/config.yml
 
-  - id: client_for_docker
-    format: zip
-    builds:
-      - "neo_client_for_docker"
-    name_template: "{{ .ProjectName }}_client_{{ .Version }}"
-    replacements:
-      darwin: macOS
-      386: i386
-      amd64: x64
-    files:
-      - neo_client/*
-
   - id: server
     format: zip
     builds:
@@ -76,6 +72,10 @@ archives:
         format: tar.gz
     files:
       - neo_server/*
+
+release:
+  extra_files:
+    - glob: "neo_client_{{ .Version }}.zip"
 
 checksum:
   name_template: 'checksums.txt'
