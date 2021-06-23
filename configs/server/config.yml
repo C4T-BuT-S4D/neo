@@ -2,6 +2,7 @@ port: "5005"
 db_path: "./db.db"
 base_dir: "data"
 ping_every: "5s"
+submit_every: "2s"
 grpc_auth_key: "s3cret_t0ken_pls_d0nt_leak"
 
 farm:
