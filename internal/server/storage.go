@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	stateBucketKey         = "states"
-	configurationBucketKey = "configuration"
+	stateBucketKey = "states"
 )
 
 func NewBoltStorage(path string) (*CachedStorage, error) {
@@ -28,9 +27,8 @@ func NewBoltStorage(path string) (*CachedStorage, error) {
 
 func NewStorage(db *bolt.DB) (*CachedStorage, error) {
 	cs := &CachedStorage{
-		stateCache:  nil,
-		configCache: nil,
-		bdb:         db,
+		stateCache: nil,
+		bdb:        db,
 	}
 	if err := cs.initDB(); err != nil {
 		return nil, err
@@ -40,10 +38,9 @@ func NewStorage(db *bolt.DB) (*CachedStorage, error) {
 }
 
 type CachedStorage struct {
-	stateCache  map[string]*neopb.ExploitState
-	configCache map[string]*neopb.ExploitConfiguration
-	m           sync.RWMutex
-	bdb         *bolt.DB
+	stateCache map[string]*neopb.ExploitState
+	m          sync.RWMutex
+	bdb        *bolt.DB
 }
 
 func (cs *CachedStorage) States() []*neopb.ExploitState {
@@ -56,21 +53,14 @@ func (cs *CachedStorage) States() []*neopb.ExploitState {
 	return res
 }
 
-func (cs *CachedStorage) State(exploitID string) (*neopb.ExploitState, bool) {
+func (cs *CachedStorage) GetState(exploitID string) (*neopb.ExploitState, bool) {
 	cs.m.RLock()
 	defer cs.m.RUnlock()
 	val, ok := cs.stateCache[exploitID]
 	return val, ok
 }
 
-func (cs *CachedStorage) Configuration(s *neopb.ExploitState) (*neopb.ExploitConfiguration, bool) {
-	cs.m.RLock()
-	defer cs.m.RUnlock()
-	val, ok := cs.configCache[cs.configCacheKey(s)]
-	return val, ok
-}
-
-func (cs *CachedStorage) UpdateExploitVersion(newState *neopb.ExploitState, cfg *neopb.ExploitConfiguration) error {
+func (cs *CachedStorage) UpdateExploitVersion(newState *neopb.ExploitState) (*neopb.ExploitState, error) {
 	cs.m.Lock()
 	defer cs.m.Unlock()
 	if state, ok := cs.stateCache[newState.ExploitId]; ok {
@@ -89,34 +79,20 @@ func (cs *CachedStorage) UpdateExploitVersion(newState *neopb.ExploitState, cfg 
 		if err := b.Put(key, stateBytes); err != nil {
 			return fmt.Errorf("setting state in db: %w", err)
 		}
-		b = tx.Bucket([]byte(configurationBucketKey))
-		confBytes, err := proto.Marshal(cfg)
-		if err != nil {
-			return fmt.Errorf("marshalling config: %w", err)
-		}
-		if err := b.Put(key, confBytes); err != nil {
-			return fmt.Errorf("setting config in db: %w", err)
-		}
 		return nil
 	}); err != nil {
-		return fmt.Errorf("updating db state: %w", err)
+		return nil, fmt.Errorf("updating db state: %w", err)
 	}
 
 	cs.stateCache[newState.ExploitId] = newState
-	cs.configCache[cs.configCacheKey(newState)] = cfg
-	return nil
-}
-
-func (cs *CachedStorage) configCacheKey(s *neopb.ExploitState) string {
-	return fmt.Sprintf("%s:%d", s.ExploitId, s.Version)
+	return newState, nil
 }
 
 func (cs *CachedStorage) initCache() {
 	cs.m.Lock()
 	defer cs.m.Unlock()
-	if cs.stateCache == nil || cs.configCache == nil {
+	if cs.stateCache == nil {
 		cs.stateCache = make(map[string]*neopb.ExploitState)
-		cs.configCache = make(map[string]*neopb.ExploitConfiguration)
 		if err := cs.readDB(); err != nil {
 			logrus.Errorf("Failed to read exploit data from DB: %v", err)
 		}
@@ -140,17 +116,6 @@ func (cs *CachedStorage) readDB() error {
 		}); err != nil {
 			return fmt.Errorf("reading exploit states: %w", err)
 		}
-		b = tx.Bucket([]byte(configurationBucketKey))
-		if err := b.ForEach(func(k, v []byte) error {
-			cfg := new(neopb.ExploitConfiguration)
-			if err := proto.Unmarshal(v, cfg); err != nil {
-				return fmt.Errorf("unmarshalling exploit config: %w", err)
-			}
-			cs.configCache[string(k)] = cfg
-			return nil
-		}); err != nil {
-			return fmt.Errorf("reading exploit configs: %w", err)
-		}
 		return nil
 	}); err != nil {
 		return fmt.Errorf("reading state from db: %w", err)
@@ -162,9 +127,6 @@ func (cs *CachedStorage) initDB() error {
 	if err := cs.bdb.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucketIfNotExists([]byte(stateBucketKey)); err != nil {
 			return fmt.Errorf("creating state bucket: %w", err)
-		}
-		if _, err := tx.CreateBucketIfNotExists([]byte(configurationBucketKey)); err != nil {
-			return fmt.Errorf("creating config bucket: %w", err)
 		}
 		return nil
 	}); err != nil {

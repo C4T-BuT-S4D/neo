@@ -111,6 +111,27 @@ func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
 	em.buckets.UpdateTeams(cfg.FarmConfig.Teams)
 }
 
+func (em *ExploitManagerServer) Ping(_ context.Context, r *neopb.PingRequest) (*neopb.PingResponse, error) {
+	logrus.Infof("Got %s from: %s", neopb.PingRequest_PingType_name[int32(r.GetType())], r.GetClientId())
+
+	if r.Type == neopb.PingRequest_HEARTBEAT {
+		em.cfgMutex.RLock()
+		defer em.cfgMutex.RUnlock()
+		em.visits.Add(r.GetClientId())
+		em.buckets.AddNode(r.GetClientId(), int(r.GetWeight()))
+	} else if r.Type == neopb.PingRequest_LEAVE {
+		em.visits.MarkInvalid(r.GetClientId())
+	}
+
+	return &neopb.PingResponse{
+		State: &neopb.ServerState{
+			ClientTeamMap: em.buckets.Buckets(),
+			Exploits:      em.storage.States(),
+			Config:        config.ToProto(em.config),
+		},
+	}, nil
+}
+
 func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFileServer) error {
 	info := &neopb.FileInfo{Uuid: uuid.New().String()}
 	of, err := em.fs.Create(info.GetUuid())
@@ -154,54 +175,21 @@ func (em *ExploitManagerServer) DownloadFile(fi *neopb.FileInfo, stream neopb.Ex
 }
 
 func (em *ExploitManagerServer) Exploit(_ context.Context, r *neopb.ExploitRequest) (*neopb.ExploitResponse, error) {
-	state, ok := em.storage.State(r.GetExploitId())
+	state, ok := em.storage.GetState(r.GetExploitId())
 	if !ok {
 		return nil, logErrorf(codes.NotFound, "Failed to find an exploit state = %v", state.ExploitId)
 	}
-	cfg, ok := em.storage.Configuration(state)
-	if !ok {
-		return nil, logErrorf(codes.NotFound, "Failed to find an exploit configuration = %v", state.ExploitId)
-	}
 	return &neopb.ExploitResponse{
-		State:  state,
-		Config: cfg,
+		State: state,
 	}, nil
 }
 
 func (em *ExploitManagerServer) UpdateExploit(_ context.Context, r *neopb.UpdateExploitRequest) (*neopb.UpdateExploitResponse, error) {
-	ns := &neopb.ExploitState{
-		ExploitId: r.GetExploitId(),
-		File:      r.GetFile(),
-		Disabled:  r.GetDisabled(),
-		Endless:   r.GetEndless(),
-	}
-	if err := em.storage.UpdateExploitVersion(ns, r.GetConfig()); err != nil {
+	newState, err := em.storage.UpdateExploitVersion(r.GetState())
+	if err != nil {
 		return nil, logErrorf(codes.Internal, "Failed to update exploit version: %v", err)
 	}
-	return &neopb.UpdateExploitResponse{
-		State: ns,
-	}, nil
-}
-
-func (em *ExploitManagerServer) Ping(_ context.Context, r *neopb.PingRequest) (*neopb.PingResponse, error) {
-	logrus.Infof("Got %s from: %s", neopb.PingRequest_PingType_name[int32(r.GetType())], r.GetClientId())
-
-	if r.Type == neopb.PingRequest_HEARTBEAT {
-		em.cfgMutex.RLock()
-		defer em.cfgMutex.RUnlock()
-		em.visits.Add(r.GetClientId())
-		em.buckets.AddNode(r.GetClientId(), int(r.GetWeight()))
-	} else if r.Type == neopb.PingRequest_LEAVE {
-		em.visits.MarkInvalid(r.GetClientId())
-	}
-
-	return &neopb.PingResponse{
-		State: &neopb.ServerState{
-			ClientTeamMap: em.buckets.Buckets(),
-			Exploits:      em.storage.States(),
-			Config:        config.ToProto(em.config),
-		},
-	}, nil
+	return &neopb.UpdateExploitResponse{State: newState}, nil
 }
 
 func (em *ExploitManagerServer) BroadcastCommand(_ context.Context, r *neopb.Command) (*neopb.Empty, error) {
@@ -228,7 +216,7 @@ func (em *ExploitManagerServer) BroadcastRequests(_ *neopb.Empty, stream neopb.E
 	return nil
 }
 
-func (em *ExploitManagerServer) SingleRun(_ context.Context, r *neopb.ExploitRequest) (*neopb.Empty, error) {
+func (em *ExploitManagerServer) SingleRun(_ context.Context, r *neopb.SingleRunRequest) (*neopb.Empty, error) {
 	logrus.Infof("Received single run request %v", r)
 	em.ps.Publish(singleRunChannel, r)
 	return noResponse, nil
@@ -236,7 +224,7 @@ func (em *ExploitManagerServer) SingleRun(_ context.Context, r *neopb.ExploitReq
 
 func (em *ExploitManagerServer) SingleRunRequests(_ *neopb.Empty, stream neopb.ExploitManager_SingleRunRequestsServer) error {
 	handler := func(msg interface{}) error {
-		req, ok := msg.(*neopb.ExploitRequest)
+		req, ok := msg.(*neopb.SingleRunRequest)
 		if !ok {
 			return ErrInvalidMessageType
 		}

@@ -24,7 +24,7 @@ type ExploitManagerClient interface {
 	UpdateExploit(ctx context.Context, in *UpdateExploitRequest, opts ...grpc.CallOption) (*UpdateExploitResponse, error)
 	BroadcastCommand(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Empty, error)
 	BroadcastRequests(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ExploitManager_BroadcastRequestsClient, error)
-	SingleRun(ctx context.Context, in *ExploitRequest, opts ...grpc.CallOption) (*Empty, error)
+	SingleRun(ctx context.Context, in *SingleRunRequest, opts ...grpc.CallOption) (*Empty, error)
 	SingleRunRequests(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ExploitManager_SingleRunRequestsClient, error)
 }
 
@@ -170,7 +170,7 @@ func (x *exploitManagerBroadcastRequestsClient) Recv() (*Command, error) {
 	return m, nil
 }
 
-func (c *exploitManagerClient) SingleRun(ctx context.Context, in *ExploitRequest, opts ...grpc.CallOption) (*Empty, error) {
+func (c *exploitManagerClient) SingleRun(ctx context.Context, in *SingleRunRequest, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/neo.ExploitManager/SingleRun", in, out, opts...)
 	if err != nil {
@@ -195,7 +195,7 @@ func (c *exploitManagerClient) SingleRunRequests(ctx context.Context, in *Empty,
 }
 
 type ExploitManager_SingleRunRequestsClient interface {
-	Recv() (*ExploitRequest, error)
+	Recv() (*SingleRunRequest, error)
 	grpc.ClientStream
 }
 
@@ -203,8 +203,8 @@ type exploitManagerSingleRunRequestsClient struct {
 	grpc.ClientStream
 }
 
-func (x *exploitManagerSingleRunRequestsClient) Recv() (*ExploitRequest, error) {
-	m := new(ExploitRequest)
+func (x *exploitManagerSingleRunRequestsClient) Recv() (*SingleRunRequest, error) {
+	m := new(SingleRunRequest)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ type ExploitManagerServer interface {
 	UpdateExploit(context.Context, *UpdateExploitRequest) (*UpdateExploitResponse, error)
 	BroadcastCommand(context.Context, *Command) (*Empty, error)
 	BroadcastRequests(*Empty, ExploitManager_BroadcastRequestsServer) error
-	SingleRun(context.Context, *ExploitRequest) (*Empty, error)
+	SingleRun(context.Context, *SingleRunRequest) (*Empty, error)
 	SingleRunRequests(*Empty, ExploitManager_SingleRunRequestsServer) error
 	mustEmbedUnimplementedExploitManagerServer()
 }
@@ -252,7 +252,7 @@ func (UnimplementedExploitManagerServer) BroadcastCommand(context.Context, *Comm
 func (UnimplementedExploitManagerServer) BroadcastRequests(*Empty, ExploitManager_BroadcastRequestsServer) error {
 	return status.Errorf(codes.Unimplemented, "method BroadcastRequests not implemented")
 }
-func (UnimplementedExploitManagerServer) SingleRun(context.Context, *ExploitRequest) (*Empty, error) {
+func (UnimplementedExploitManagerServer) SingleRun(context.Context, *SingleRunRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SingleRun not implemented")
 }
 func (UnimplementedExploitManagerServer) SingleRunRequests(*Empty, ExploitManager_SingleRunRequestsServer) error {
@@ -412,7 +412,7 @@ func (x *exploitManagerBroadcastRequestsServer) Send(m *Command) error {
 }
 
 func _ExploitManager_SingleRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ExploitRequest)
+	in := new(SingleRunRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -424,7 +424,7 @@ func _ExploitManager_SingleRun_Handler(srv interface{}, ctx context.Context, dec
 		FullMethod: "/neo.ExploitManager/SingleRun",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ExploitManagerServer).SingleRun(ctx, req.(*ExploitRequest))
+		return srv.(ExploitManagerServer).SingleRun(ctx, req.(*SingleRunRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -438,7 +438,7 @@ func _ExploitManager_SingleRunRequests_Handler(srv interface{}, stream grpc.Serv
 }
 
 type ExploitManager_SingleRunRequestsServer interface {
-	Send(*ExploitRequest) error
+	Send(*SingleRunRequest) error
 	grpc.ServerStream
 }
 
@@ -446,7 +446,7 @@ type exploitManagerSingleRunRequestsServer struct {
 	grpc.ServerStream
 }
 
-func (x *exploitManagerSingleRunRequestsServer) Send(m *ExploitRequest) error {
+func (x *exploitManagerSingleRunRequestsServer) Send(m *SingleRunRequest) error {
 	return x.ServerStream.SendMsg(m)
 }
 

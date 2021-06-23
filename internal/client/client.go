@@ -51,11 +51,13 @@ func (nc *Client) Exploit(ctx context.Context, id string) (*neopb.ExploitRespons
 	return resp, nil
 }
 
-func (nc *Client) UpdateExploit(ctx context.Context, req *neopb.UpdateExploitRequest) error {
-	if _, err := nc.c.UpdateExploit(ctx, req); err != nil {
-		return fmt.Errorf("aking update exploit request: %w", err)
+func (nc *Client) UpdateExploit(ctx context.Context, state *neopb.ExploitState) (*neopb.ExploitState, error) {
+	req := &neopb.UpdateExploitRequest{State: state}
+	resp, err := nc.c.UpdateExploit(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("aking update exploit request: %w", err)
 	}
-	return nil
+	return resp.GetState(), nil
 }
 
 func (nc *Client) DownloadFile(ctx context.Context, info *neopb.FileInfo, out io.Writer) error {
@@ -96,7 +98,7 @@ func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
 }
 
 func (nc *Client) SingleRun(ctx context.Context, exploitID string) error {
-	req := &neopb.ExploitRequest{ExploitId: exploitID}
+	req := &neopb.SingleRunRequest{ExploitId: exploitID}
 	if _, err := nc.c.SingleRun(ctx, req); err != nil {
 		return fmt.Errorf("making single run request: %w", err)
 	}
@@ -108,12 +110,10 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 	if err != nil {
 		return fmt.Errorf("fetching current exploit config: %w", err)
 	}
-	req := &neopb.UpdateExploitRequest{
-		ExploitId: id,
-		File:      resp.GetState().GetFile(),
-		Config:    resp.GetConfig(),
-		Disabled:  disabled,
-	}
+
+	req := &neopb.UpdateExploitRequest{State: resp.GetState()}
+	req.State.Disabled = disabled
+
 	if _, err := nc.c.UpdateExploit(ctx, req); err != nil {
 		return fmt.Errorf("making delete exploit request: %w", err)
 	}
@@ -146,13 +146,13 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, 
 	return results, nil
 }
 
-func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.ExploitRequest, error) {
+func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.SingleRunRequest, error) {
 	stream, err := nc.c.SingleRunRequests(ctx, &neopb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("creating single run requests stream: %w", err)
 	}
 
-	results := make(chan *neopb.ExploitRequest)
+	results := make(chan *neopb.SingleRunRequest)
 	go func() {
 		defer close(results)
 		for {

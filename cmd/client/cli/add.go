@@ -141,7 +141,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to upload exploit file: %w", err)
 	}
 
-	req := &neopb.UpdateExploitRequest{
+	exState := &neopb.ExploitState{
 		ExploitId: ac.exploitID,
 		File:      fileInfo,
 		Config: &neopb.ExploitConfiguration{
@@ -153,9 +153,11 @@ func (ac *addCLI) Run(ctx context.Context) error {
 		Endless:  ac.endless,
 		Disabled: false,
 	}
-	if err := c.UpdateExploit(ctx, req); err != nil {
+	newState, err := c.UpdateExploit(ctx, exState)
+	if err != nil {
 		return fmt.Errorf("failed to update exploit: %w", err)
 	}
+	logrus.Infof("Updated exploit state: %v", newState)
 	return nil
 }
 

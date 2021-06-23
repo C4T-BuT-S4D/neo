@@ -11,12 +11,20 @@ message FileInfo {
   string uuid = 1;
 }
 
+message ExploitConfiguration {
+  string entrypoint = 1;
+  bool is_archive = 2;
+  string run_every = 3;
+  string timeout = 4;
+}
+
 message ExploitState {
   string exploit_id = 1;
   int64 version = 2;
   FileInfo file = 3;
   bool disabled = 4;
   bool endless = 5;
+  ExploitConfiguration config = 6;
 }
 
 message Config {
@@ -33,13 +41,6 @@ message ServerState {
   map<string, TeamBucket> client_team_map = 1;
   repeated ExploitState exploits = 2;
   Config config = 3;
-}
-
-message ExploitConfiguration {
-  string entrypoint = 1;
-  bool is_archive = 2;
-  string run_every = 3;
-  string timeout = 4;
 }
 
 message FileStream {
@@ -68,19 +69,18 @@ message ExploitRequest {
 
 message ExploitResponse {
   ExploitState state = 1;
-  ExploitConfiguration config = 2;
 }
 
 message UpdateExploitRequest {
-  string exploit_id = 1;
-  FileInfo file = 2;
-  ExploitConfiguration config = 3;
-  bool disabled = 4;
-  bool endless = 5;
+  ExploitState state = 1;
 }
 
 message UpdateExploitResponse {
   ExploitState state = 1;
+}
+
+message SingleRunRequest {
+  string exploit_id = 1;
 }
 
 message Command {
@@ -101,6 +101,6 @@ service ExploitManager {
   rpc BroadcastCommand(Command) returns (Empty) {}
   rpc BroadcastRequests(Empty) returns (stream Command) {}
 
-  rpc SingleRun(ExploitRequest) returns (Empty) {}
-  rpc SingleRunRequests(Empty) returns (stream ExploitRequest) {}
+  rpc SingleRun(SingleRunRequest) returns (Empty) {}
+  rpc SingleRunRequests(Empty) returns (stream SingleRunRequest) {}
 }

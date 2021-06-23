@@ -39,12 +39,15 @@ func testServer() (*ExploitManagerServer, func()) {
 func TestExploitManagerServer_UpdateExploit(t *testing.T) {
 	es, clean := testServer()
 	defer clean()
+	cfg := &neopb.ExploitConfiguration{
+		Entrypoint: "bin",
+		IsArchive:  false,
+	}
 	r := &neopb.UpdateExploitRequest{
-		ExploitId: "1",
-		File:      &neopb.FileInfo{Uuid: "1"},
-		Config: &neopb.ExploitConfiguration{
-			Entrypoint: "bin",
-			IsArchive:  false,
+		State: &neopb.ExploitState{
+			ExploitId: "1",
+			File:      &neopb.FileInfo{Uuid: "1"},
+			Config:    cfg,
 		},
 	}
 	resp, err := es.UpdateExploit(context.Background(), r)
@@ -54,7 +57,8 @@ func TestExploitManagerServer_UpdateExploit(t *testing.T) {
 	want := &neopb.ExploitState{
 		ExploitId: "1",
 		Version:   1,
-		File:      r.GetFile(),
+		File:      r.GetState().GetFile(),
+		Config:    cfg,
 	}
 	if diff := cmp.Diff(want, resp.GetState(), protocmp.Transform()); diff != "" {
 		t.Errorf("UpdateExploit() mismatch (-want +got):\n%s", diff)
@@ -64,33 +68,33 @@ func TestExploitManagerServer_UpdateExploit(t *testing.T) {
 func TestExploitManagerServer_Exploit(t *testing.T) {
 	es, clean := testServer()
 	defer clean()
-	r := &neopb.UpdateExploitRequest{
+	cfg := &neopb.ExploitConfiguration{
+		Entrypoint: "bin",
+		IsArchive:  false,
+	}
+	state := &neopb.ExploitState{
 		ExploitId: "1",
 		File:      &neopb.FileInfo{Uuid: "1"},
-		Config: &neopb.ExploitConfiguration{
-			Entrypoint: "bin",
-			IsArchive:  false,
-		},
+		Config:    cfg,
 	}
+	req := &neopb.UpdateExploitRequest{State: state}
 	ctx := context.Background()
-	_, err := es.UpdateExploit(ctx, r)
+	_, err := es.UpdateExploit(ctx, req)
 	if err != nil {
 		t.Fatalf("UpdateExploit() failed with unexpected error = %v", err)
 	}
-	resp, err := es.Exploit(ctx, &neopb.ExploitRequest{ExploitId: r.ExploitId})
+	resp, err := es.Exploit(ctx, &neopb.ExploitRequest{ExploitId: state.ExploitId})
 	if err != nil {
 		t.Fatalf("Exploit() failed with unexpected error = %v", err)
 	}
 	wantState := &neopb.ExploitState{
 		ExploitId: "1",
 		Version:   1,
-		File:      r.GetFile(),
+		File:      state.GetFile(),
+		Config:    cfg,
 	}
 	if diff := cmp.Diff(wantState, resp.GetState(), protocmp.Transform()); diff != "" {
 		t.Errorf("Exploit() state mismatch (-want +got):\n%s", diff)
-	}
-	if diff := cmp.Diff(r.GetConfig(), resp.GetConfig(), protocmp.Transform()); diff != "" {
-		t.Errorf("Exploit() config mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -100,14 +104,16 @@ func TestExploitManagerServer_Ping(t *testing.T) {
 	es.buckets = hostbucket.New(map[string]string{"id1": "ip1", "id2": "ip2"})
 	es.config.FarmURL = "test"
 	ctx := context.Background()
-	r := &neopb.UpdateExploitRequest{
+	cfg := &neopb.ExploitConfiguration{
+		Entrypoint: "bin",
+		IsArchive:  false,
+	}
+	state := &neopb.ExploitState{
 		ExploitId: "1",
 		File:      &neopb.FileInfo{Uuid: "1"},
-		Config: &neopb.ExploitConfiguration{
-			Entrypoint: "bin",
-			IsArchive:  false,
-		},
+		Config:    cfg,
 	}
+	r := &neopb.UpdateExploitRequest{State: state}
 	updateResp, err := es.UpdateExploit(ctx, r)
 	if err != nil {
 		t.Fatalf("UpdateExploit(): unexpected error = %v", err)
