@@ -57,8 +57,8 @@ func Test_endlessQueue_Start(t *testing.T) {
 	if out.Team != task.teamID {
 		t.Errorf("endlessQueue.Start(): got unexpected result team: got = %v, want = %v", out.Team, task.teamID)
 	}
-	if string(out.Out) != task.teamIP+"\n" {
-		t.Errorf("endlessQueue.Start(): got unexpected result: got = %v, want = %v", out.Out, task.teamIP+"\n")
+	if string(out.Out) != task.teamIP {
+		t.Errorf("endlessQueue.Start(): got unexpected result: got = %v, want = %v", out.Out, task.teamIP)
 	}
 }
 

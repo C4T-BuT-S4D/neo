@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -113,17 +114,17 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 		logrus.Info("Waiting for endless read to finish")
 		<-readDone
 	}()
-	dataCb := func(data []byte) {
-		eq.out <- &Output{
-			Name: job.name,
-			Out:  data,
-			Team: job.teamID,
-		}
-	}
 	go func() {
 		defer close(readDone)
-		err := safeReadOutput(r, dataCb)
-		if err != nil && ctx.Err() == nil {
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			eq.out <- &Output{
+				Name: job.name,
+				Out:  scanner.Bytes(),
+				Team: job.teamID,
+			}
+		}
+		if err := scanner.Err(); err != nil && ctx.Err() == nil {
 			logrus.Errorf("Unexpected error reading endless script output: %v", err)
 		}
 	}()
@@ -136,7 +137,7 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 	case <-ctx.Done():
 		<-errC
 		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("contextdone: %w", err)
+			return fmt.Errorf("context done: %w", err)
 		}
 		return nil
 	case err := <-errC:
