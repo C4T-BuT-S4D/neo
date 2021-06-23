@@ -165,8 +165,7 @@ func (ac *addCLI) validateEntry(f string) (errors []string) {
 		errors = append(errors, err.Error())
 		return
 	}
-	ext := path.Ext(f)
-	if !isExtBinary(ext) {
+	if !isBinary(data) {
 		if string(data[:2]) != "#!" {
 			desc := fmt.Sprintf(
 				"Please use shebang (e.g. %s) as the first line of your script",

@@ -1,14 +1,7 @@
 package cli
 
-var binaryExtensions = []string{
-	"", ".o", ".out", ".bin",
-}
+import "bytes"
 
-func isExtBinary(ext string) bool {
-	for _, e := range binaryExtensions {
-		if ext == e {
-			return true
-		}
-	}
-	return false
+func isBinary(data []byte) bool {
+	return bytes.Equal(data[:4], []byte("\x7fELF"))
 }

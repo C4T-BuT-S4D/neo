@@ -16,7 +16,6 @@ linters:
     - noctx
     - prealloc
     - predeclared
-    - revive
     - thelper
     - tparallel
     - unconvert
