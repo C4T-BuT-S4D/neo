@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -132,16 +131,7 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, 
 		defer close(results)
 		for {
 			cmd, err := stream.Recv()
-			if errors.Is(err, io.EOF) {
-				logrus.Errorf("Broadcast stream closed")
-				return
-			}
-			if errors.Is(stream.Context().Err(), context.Canceled) {
-				logrus.Debugf("Broadcast context cancelled")
-				return
-			}
-			if err != nil {
-				logrus.Errorf("Error reading from broadcasts stream: %v", err)
+			if !checkStreamError("broadcast", err, stream.Context().Err()) {
 				return
 			}
 			select {
@@ -167,16 +157,7 @@ func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.ExploitRe
 		defer close(results)
 		for {
 			er, err := stream.Recv()
-			if errors.Is(err, io.EOF) {
-				logrus.Errorf("Single runs stream closed by server")
-				return
-			}
-			if errors.Is(stream.Context().Err(), context.Canceled) {
-				logrus.Debugf("Single runs context cancelled")
-				return
-			}
-			if err != nil {
-				logrus.Errorf("Error reading from single runs stream: %v", err)
+			if !checkStreamError("single runs", err, stream.Context().Err()) {
 				return
 			}
 			select {
