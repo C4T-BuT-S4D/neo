@@ -17,6 +17,17 @@ test:
 .PHONY: validate
 validate: lint test
 
+.PHONY: proto
+proto:
+	cd lib/proto && \
+		protoc \
+			--go_out=../genproto/neo \
+			--go_opt=paths=source_relative \
+			--go-grpc_out=../genproto/neo \
+			--go-grpc_opt=paths=source_relative \
+			neo.proto
+
+
 .PHONY: test-cov
 test-cov:
 	go test -race -coverprofile=coverage.txt -covermode=atomic ./...
