@@ -69,13 +69,14 @@ func (cs *CachedStorage) UpdateExploitVersion(newState *neopb.ExploitState) (*ne
 		newState.Version = 1
 	}
 
+	key := []byte(fmt.Sprintf("%s:%d", newState.ExploitId, newState.Version))
+	stateBytes, err := proto.Marshal(newState)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling state: %w", err)
+	}
+
 	if err := cs.bdb.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(stateBucketKey))
-		key := []byte(fmt.Sprintf("%s:%d", newState.ExploitId, newState.Version))
-		stateBytes, err := proto.Marshal(newState)
-		if err != nil {
-			return fmt.Errorf("marshalling state: %w", err)
-		}
 		if err := b.Put(key, stateBytes); err != nil {
 			return fmt.Errorf("setting state in db: %w", err)
 		}
