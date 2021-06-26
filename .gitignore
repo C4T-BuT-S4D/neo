@@ -9,6 +9,8 @@
 .DS_Store
 /neo_client*
 /neo_server
+/server
+/client
 db.db
 /dist
 /client
