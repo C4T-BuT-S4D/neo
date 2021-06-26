@@ -89,16 +89,16 @@ setup-release: cleanup-release-all
 	cp README.md neo_client_docker/
 
 	@echo "[*] Preparing client binary release"
-	mkdir -p neo_client
-	cp configs/client/config.yml neo_client/config.yml
-	mkdir -p neo_client/exploits
-	touch neo_client/exploits/.keep
+	mkdir -p client
+	cp configs/client/config.yml client/config.yml
+	mkdir -p client/exploits
+	touch client/exploits/.keep
 
 	@echo "[*] Preparing server binary release"
-	mkdir -p neo_server/data
-	touch neo_server/data/.keep
-	cp configs/server/config.yml neo_server/config.yml
-	cp README.md neo_server/
+	mkdir -p server/data
+	touch server/data/.keep
+	cp configs/server/config.yml server/config.yml
+	cp README.md server/
 
 .PHONY: release-dry-run
 release-dry-run:

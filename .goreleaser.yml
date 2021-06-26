@@ -6,7 +6,7 @@ before:
 builds:
   - id: "neo_client"
     main: "./cmd/client"
-    binary: "./neo_client/neo"
+    binary: "./neo"
     env:
       - CGO_ENABLED=0
     goos:
@@ -35,7 +35,7 @@ builds:
 
   - id: "neo_server"
     main: "./cmd/server"
-    binary: "./neo_server/neo_server"
+    binary: "./neo_server"
     env:
       - CGO_ENABLED=0
     goos:
@@ -51,6 +51,7 @@ archives:
       - "neo_client"
       - "neo_server"
     name_template: "{{ .ProjectName }}_full_{{ .Version }}_{{ .Os }}"
+    wrap_in_directory: "{{ .ProjectName }}_full_{{ .Version }}_{{ .Os }}"
     replacements:
       darwin: macOS
       386: i386
@@ -60,14 +61,15 @@ archives:
         format: tar.gz
     files:
       - README.md
-      - neo_server/config.yml
-      - neo_client/config.yml
+      - server/config.yml
+      - client/config.yml
 
   - id: server
     format: zip
     builds:
       - "neo_server"
     name_template: "{{ .ProjectName }}_server_{{ .Version }}_{{ .Os }}"
+    wrap_in_directory: "{{ .ProjectName }}_server_{{ .Version }}_{{ .Os }}"
     replacements:
       darwin: macOS
       386: i386
@@ -76,7 +78,7 @@ archives:
       - goos: linux
         format: tar.gz
     files:
-      - neo_server/*
+      - server/*
 
 release:
   prerelease: auto
