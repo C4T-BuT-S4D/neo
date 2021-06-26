@@ -5,7 +5,10 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
-COPY . .
+COPY cmd cmd
+COPY internal internal
+COPY lib lib
+COPY pkg pkg
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o client cmd/client/main.go
 
 FROM python:3.9
