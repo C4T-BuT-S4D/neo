@@ -47,9 +47,9 @@ To start the server:
    the [Releases](https://github.com/pomo-mondreganto/neo/releases)
    page for your platform (64-bit amd linux and macOS are supported).
 
-2. Edit the configuration in `config.yml` file. Edit the `grpc_auth_key` (as it's the password required to connect to
-   the server), `farm.url` and `farm.password`. You can also add some environment variables for all exploits in
-   the `env` section
+2. Edit the configuration in `server_config.yml` file. Edit the `grpc_auth_key` (as it's the password required to
+   connect to the server), `farm.url` and `farm.password`. You can also add some environment variables for all exploits
+   in the `env` section
 
 3. Start the server by simply running `./neo_server`
 
@@ -89,7 +89,7 @@ Available Commands:
   single      Run an exploit once on all teams immediately
 
 Flags:
-  -c, --config string   config file (default "config.yml")
+  -c, --config string   config file (default "client_config.yml")
   -h, --help            help for client
       --host string     server host (default "127.0.0.1")
   -v, --verbose         enable debug logging (default true)
@@ -116,7 +116,7 @@ Flags:
   -t, --timeout duration    timeout for a single run (default 15s)
 
 Global Flags:
-  -c, --config string   config file (default "config.yml")
+  -c, --config string   config file (default "client_config.yml")
       --host string     server host (default "127.0.0.1")
   -v, --verbose         enable debug logging (default true)
 ```
