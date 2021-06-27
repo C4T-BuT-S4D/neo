@@ -45,13 +45,12 @@ builds:
       - amd64
 
 archives:
-  - id: full_binaries
+  - id: "client"
     format: zip
     builds:
       - "neo_client"
-      - "neo_server"
-    name_template: "{{ .ProjectName }}_full_{{ .Version }}_{{ .Os }}"
-    wrap_in_directory: "{{ .ProjectName }}_full_{{ .Version }}_{{ .Os }}"
+    name_template: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}"
+    wrap_in_directory: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}"
     replacements:
       darwin: macOS
       386: i386
@@ -61,10 +60,10 @@ archives:
         format: tar.gz
     files:
       - README.md
-      - server/config.yml
-      - client/config.yml
+      - client_config.yml
+      - exploits/.keep
 
-  - id: server
+  - id: "server"
     format: zip
     builds:
       - "neo_server"
@@ -78,7 +77,9 @@ archives:
       - goos: linux
         format: tar.gz
     files:
-      - server/*
+      - README.md
+      - data/.keep
+      - server_config.yml
 
 release:
   prerelease: auto

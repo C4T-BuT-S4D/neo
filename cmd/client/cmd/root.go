@@ -27,7 +27,7 @@ func Execute(ctx context.Context) {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringP("config", "c", "config.yml", "config file")
+	rootCmd.PersistentFlags().StringP("config", "c", "client_config.yml", "config file")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", true, "enable debug logging")
 	rootCmd.PersistentFlags().String("host", "127.0.0.1", "server host")
 

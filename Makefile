@@ -70,17 +70,18 @@ release-image: prepare-image push-image
 
 .PHONY: cleanup-release-all
 cleanup-release-all:
-	rm -rf dist neo_client neo_client_docker neo_server
+	rm -rf dist neo_client_docker data exploits server_config.yml client_config.yml
 
+# To run before & after
 .PHONY: cleanup-release
 cleanup-release:
-	rm -rf neo_client neo_client_docker neo_server
+	rm -rf neo_client_docker data exploits server_config.yml client_config.yml
 
 .PHONY: setup-release
 setup-release: cleanup-release-all
 	@echo "[*] Preparing client image release"
 	mkdir -p neo_client_docker
-	cp configs/client/config.yml neo_client_docker/config.yml
+	cp configs/client/config.yml neo_client_docker/client_config.yml
 	mkdir -p neo_client_docker/exploits
 	touch neo_client_docker/exploits/.keep
 	cp client_env/requirements.txt neo_client_docker/
@@ -89,16 +90,14 @@ setup-release: cleanup-release-all
 	cp README.md neo_client_docker/
 
 	@echo "[*] Preparing client binary release"
-	mkdir -p client
-	cp configs/client/config.yml client/config.yml
-	mkdir -p client/exploits
-	touch client/exploits/.keep
+	cp configs/client/config.yml client_config.yml
+	mkdir exploits
+	touch exploits/.keep
 
 	@echo "[*] Preparing server binary release"
-	mkdir -p server/data
-	touch server/data/.keep
-	cp configs/server/config.yml server/config.yml
-	cp README.md server/
+	cp configs/server/config.yml server_config.yml
+	mkdir -p data
+	touch data/.keep
 
 .PHONY: release-dry-run
 release-dry-run:
