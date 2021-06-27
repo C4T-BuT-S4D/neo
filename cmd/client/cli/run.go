@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const JobsPerCPU = 10
+const JobsPerCPU = 5
 
 type runCLI struct {
 	*baseCLI
