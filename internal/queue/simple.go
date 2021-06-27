@@ -2,7 +2,9 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os/exec"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -68,10 +70,14 @@ func (eq *simpleQueue) worker(ctx context.Context) {
 			return
 		case job := <-eq.c:
 			res, err := eq.runExploit(ctx, job)
-			if err != nil {
-				logrus.Errorf("Failed to run %v: %v. Output: %s", job, err, res)
-			} else {
+
+			var exitErr *exec.ExitError
+			if err == nil {
 				logrus.Infof("Successfully run: %v", job)
+			} else if errors.Is(err, context.Canceled) || errors.As(err, &exitErr) {
+				logrus.Warningf("Task %v finished unsuccessfully: %v. Output: %s", job, err, res)
+			} else {
+				logrus.Errorf("Failed to run %v: %v. Output: %s", job, err, res)
 			}
 			eq.out <- &Output{
 				Name: job.name,
