@@ -26,11 +26,12 @@ RUN apt-get update && apt-get install -y \
         netcat \
         net-tools \
         dbus \
+        vim \
 #        sagemath \
     && rm -rf /var/lib/apt/lists/*
 
 COPY client_env/requirements.txt /requirements.txt
-RUN pip install -r /requirements.txt
+RUN pip install --no-cache -r /requirements.txt
 
 COPY --from=build /app/client /usr/local/bin/neo
 
