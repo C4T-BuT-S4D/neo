@@ -17,4 +17,9 @@ db.db
 data
 !data/.keep
 
+# release files
+client_config.yml
+server_config.yml
+exploits
+
 kek_*
