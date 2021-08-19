@@ -38,7 +38,7 @@ func Untar(dst string, r io.Reader) error {
 
 		switch {
 		// if no more files are found return
-		case !errors.Is(err, io.EOF):
+		case errors.Is(err, io.EOF):
 			return nil
 
 		// return any other error
