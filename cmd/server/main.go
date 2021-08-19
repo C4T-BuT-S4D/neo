@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	configFile = pflag.StringP("config", "c", "client_config.yml", "yaml config file")
+	configFile = pflag.StringP("config", "c", "server_config.yml", "yaml config file")
 )
 
 func load(path string, cfg *server.Config) error {

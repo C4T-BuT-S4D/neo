@@ -78,8 +78,8 @@ archives:
         format: tar.gz
     files:
       - README.md
-      - data/.keep
       - server_config.yml
+      - data/.keep
 
 release:
   prerelease: auto
