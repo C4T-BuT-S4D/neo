@@ -19,7 +19,6 @@ import (
 
 type dryRunCLI struct {
 	*baseCLI
-	run       *exploit.Runner
 	jobs      int
 	exploitID string
 	teamID    string
@@ -129,5 +128,4 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 			return nil
 		}
 	}
-
 }
