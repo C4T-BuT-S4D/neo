@@ -28,6 +28,11 @@ linters-settings:
     check-exported: false
   unused:
     check-exported: false
+  wrapcheck:
+    ignoreSigs:
+      - (context.Context).Err()
+      - fmt.Errorf(
+      - errors.New(
 
 issues:
   exclude-use-default: false

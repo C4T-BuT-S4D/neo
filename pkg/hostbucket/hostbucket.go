@@ -44,7 +44,12 @@ func (hb *HostBucket) UpdateTeams(teams map[string]string) {
 func (hb *HostBucket) Buckets() map[string]*neopb.TeamBucket {
 	hb.m.RLock()
 	defer hb.m.RUnlock()
-	return hb.buck
+
+	clone := make(map[string]*neopb.TeamBucket, len(hb.buck))
+	for k, v := range hb.buck {
+		clone[k] = v
+	}
+	return clone
 }
 
 func (hb *HostBucket) Exists(id string) (exists bool) {
