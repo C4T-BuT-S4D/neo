@@ -18,7 +18,7 @@ type runCLI struct {
 	run *exploit.Runner
 }
 
-func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
+func parseJobsFlag(cmd *cobra.Command) int {
 	jobs, err := cmd.Flags().GetInt("jobs")
 	if err != nil {
 		logrus.Fatalf("Could not get jobs number: %v", err)
@@ -29,7 +29,10 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 	if jobs <= 0 {
 		logrus.Fatal("run: job count should be positive")
 	}
+	return jobs
+}
 
+func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 	cli := &runCLI{
 		baseCLI: &baseCLI{c: cfg},
 	}
@@ -37,10 +40,12 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 	if err != nil {
 		logrus.Fatalf("run: failed to create client: %v", err)
 	}
+
+	jobs := parseJobsFlag(cmd)
+
 	neocli.Weight = jobs
 
-	runner := exploit.NewRunner(jobs, cfg.ExploitDir, neocli)
-	cli.run = runner
+	cli.run = exploit.NewRunner(jobs, cfg.ExploitDir, neocli)
 	return cli
 }
 
