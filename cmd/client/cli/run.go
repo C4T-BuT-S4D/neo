@@ -6,6 +6,7 @@ import (
 
 	"neo/internal/client"
 	"neo/internal/exploit"
+	"neo/pkg/tasklogger"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -15,7 +16,8 @@ const JobsPerCPU = 5
 
 type runCLI struct {
 	*baseCLI
-	run *exploit.Runner
+	run    *exploit.Runner
+	sender *tasklogger.Sender
 }
 
 func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
@@ -38,12 +40,12 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 		logrus.Fatalf("run: failed to create client: %v", err)
 	}
 	neocli.Weight = jobs
-
-	runner := exploit.NewRunner(jobs, cfg.ExploitDir, neocli)
-	cli.run = runner
+	cli.sender = tasklogger.NewSender(neocli)
+	cli.run = exploit.NewRunner(jobs, cfg.ExploitDir, neocli, cli.sender)
 	return cli
 }
 
 func (rc *runCLI) Run(ctx context.Context) error {
+	go rc.sender.Start(ctx)
 	return rc.run.Run(ctx) // nolint:wrapcheck
 }

@@ -26,6 +26,8 @@ type ExploitManagerClient interface {
 	BroadcastRequests(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ExploitManager_BroadcastRequestsClient, error)
 	SingleRun(ctx context.Context, in *SingleRunRequest, opts ...grpc.CallOption) (*Empty, error)
 	SingleRunRequests(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ExploitManager_SingleRunRequestsClient, error)
+	AddLogLines(ctx context.Context, in *AddLogLinesRequest, opts ...grpc.CallOption) (*Empty, error)
+	SearchLogLines(ctx context.Context, in *SearchLogLinesRequest, opts ...grpc.CallOption) (*SearchLogLinesResponse, error)
 }
 
 type exploitManagerClient struct {
@@ -211,6 +213,24 @@ func (x *exploitManagerSingleRunRequestsClient) Recv() (*SingleRunRequest, error
 	return m, nil
 }
 
+func (c *exploitManagerClient) AddLogLines(ctx context.Context, in *AddLogLinesRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/neo.ExploitManager/AddLogLines", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *exploitManagerClient) SearchLogLines(ctx context.Context, in *SearchLogLinesRequest, opts ...grpc.CallOption) (*SearchLogLinesResponse, error) {
+	out := new(SearchLogLinesResponse)
+	err := c.cc.Invoke(ctx, "/neo.ExploitManager/SearchLogLines", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExploitManagerServer is the server API for ExploitManager service.
 // All implementations must embed UnimplementedExploitManagerServer
 // for forward compatibility
@@ -224,6 +244,8 @@ type ExploitManagerServer interface {
 	BroadcastRequests(*Empty, ExploitManager_BroadcastRequestsServer) error
 	SingleRun(context.Context, *SingleRunRequest) (*Empty, error)
 	SingleRunRequests(*Empty, ExploitManager_SingleRunRequestsServer) error
+	AddLogLines(context.Context, *AddLogLinesRequest) (*Empty, error)
+	SearchLogLines(context.Context, *SearchLogLinesRequest) (*SearchLogLinesResponse, error)
 	mustEmbedUnimplementedExploitManagerServer()
 }
 
@@ -257,6 +279,12 @@ func (UnimplementedExploitManagerServer) SingleRun(context.Context, *SingleRunRe
 }
 func (UnimplementedExploitManagerServer) SingleRunRequests(*Empty, ExploitManager_SingleRunRequestsServer) error {
 	return status.Errorf(codes.Unimplemented, "method SingleRunRequests not implemented")
+}
+func (UnimplementedExploitManagerServer) AddLogLines(context.Context, *AddLogLinesRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddLogLines not implemented")
+}
+func (UnimplementedExploitManagerServer) SearchLogLines(context.Context, *SearchLogLinesRequest) (*SearchLogLinesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchLogLines not implemented")
 }
 func (UnimplementedExploitManagerServer) mustEmbedUnimplementedExploitManagerServer() {}
 
@@ -450,6 +478,42 @@ func (x *exploitManagerSingleRunRequestsServer) Send(m *SingleRunRequest) error 
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ExploitManager_AddLogLines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddLogLinesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExploitManagerServer).AddLogLines(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/neo.ExploitManager/AddLogLines",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExploitManagerServer).AddLogLines(ctx, req.(*AddLogLinesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ExploitManager_SearchLogLines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchLogLinesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExploitManagerServer).SearchLogLines(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/neo.ExploitManager/SearchLogLines",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExploitManagerServer).SearchLogLines(ctx, req.(*SearchLogLinesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _ExploitManager_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "neo.ExploitManager",
 	HandlerType: (*ExploitManagerServer)(nil),
@@ -473,6 +537,14 @@ var _ExploitManager_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SingleRun",
 			Handler:    _ExploitManager_SingleRun_Handler,
+		},
+		{
+			MethodName: "AddLogLines",
+			Handler:    _ExploitManager_AddLogLines_Handler,
+		},
+		{
+			MethodName: "SearchLogLines",
+			Handler:    _ExploitManager_SearchLogLines_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

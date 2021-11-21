@@ -68,13 +68,14 @@ func (o osFs) Open(f string) (fileInterface, error) {
 	return fi, nil
 }
 
-func New(cfg *Config, storage *CachedStorage) *ExploitManagerServer {
+func New(cfg *Config, storage *CachedStorage, logStore *LogStorage) *ExploitManagerServer {
 	ems := &ExploitManagerServer{
-		storage: storage,
-		fs:      osFs{cfg.BaseDir},
-		buckets: hostbucket.New(cfg.FarmConfig.Teams),
-		visits:  newVisitsMap(),
-		ps:      pubsub.NewPubSub(),
+		storage:    storage,
+		fs:         osFs{cfg.BaseDir},
+		buckets:    hostbucket.New(cfg.FarmConfig.Teams),
+		visits:     newVisitsMap(),
+		ps:         pubsub.NewPubSub(),
+		logStorage: logStore,
 	}
 	ems.UpdateConfig(cfg)
 	return ems
@@ -82,12 +83,13 @@ func New(cfg *Config, storage *CachedStorage) *ExploitManagerServer {
 
 type ExploitManagerServer struct {
 	neopb.UnimplementedExploitManagerServer
-	storage  *CachedStorage
-	config   *config.Config
-	cfgMutex sync.RWMutex
-	buckets  *hostbucket.HostBucket
-	visits   *visitsMap
-	fs       filesystem
+	storage    *CachedStorage
+	logStorage *LogStorage
+	config     *config.Config
+	cfgMutex   sync.RWMutex
+	buckets    *hostbucket.HostBucket
+	visits     *visitsMap
+	fs         filesystem
 
 	ps pubsub.PubSub
 }
@@ -238,6 +240,39 @@ func (em *ExploitManagerServer) SingleRunRequests(_ *neopb.Empty, stream neopb.E
 
 	sub.Run(stream.Context())
 	return nil
+}
+
+func (em *ExploitManagerServer) AddLogLines(ctx context.Context, lines *neopb.AddLogLinesRequest) (*neopb.Empty, error) {
+	decoded := make([]LogLine, 0, len(lines.Lines))
+	for _, line := range lines.Lines {
+		decoded = append(decoded, *NewLogLineFromProto(line))
+	}
+	if err := em.logStorage.Add(ctx, decoded); err != nil {
+		return nil, logErrorf(codes.Internal, "adding log lines: %v", err)
+	}
+	return &neopb.Empty{}, nil
+}
+
+func (em *ExploitManagerServer) SearchLogLines(ctx context.Context, req *neopb.SearchLogLinesRequest) (*neopb.SearchLogLinesResponse, error) {
+	opts := GetOptions{
+		Exploit: req.Exploit,
+		Version: req.Version,
+	}
+	lines, err := em.logStorage.Get(ctx, opts)
+	if err != nil {
+		return nil, logErrorf(codes.Internal, "searching log lines: %v", err)
+	}
+	resp := neopb.SearchLogLinesResponse{
+		Lines: make([]*neopb.LogLine, 0, len(lines)),
+	}
+	for _, line := range lines {
+		enc, err := line.ToProto()
+		if err != nil {
+			return nil, logErrorf(codes.Internal, "formatting log line: %v", err)
+		}
+		resp.Lines = append(resp.Lines, enc)
+	}
+	return &resp, nil
 }
 
 func (em *ExploitManagerServer) checkClients() {

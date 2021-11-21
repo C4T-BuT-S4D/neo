@@ -85,11 +85,17 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Failed to create bolt storage: %v", err)
 	}
+
+	logStore, err := server.NewLogStorage(ctx, cfg.RedisURL)
+	if err != nil {
+		logrus.Fatalf("Failed to create log storage: %v", err)
+	}
+
 	if cfg.PingEvery <= 0 {
 		logrus.Fatalf("ping_every should be positive")
 	}
 	logrus.Infof("Config: %+v", cfg)
-	srv := server.New(cfg, st)
+	srv := server.New(cfg, st, logStore)
 	lis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
 		logrus.Fatalf("failed to listen: %v", err)

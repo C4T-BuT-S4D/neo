@@ -19,6 +19,7 @@ func ReadConfig(data []byte, cfg *Config) error {
 type Config struct {
 	Port        string            `yaml:"port"`
 	DBPath      string            `yaml:"db_path"`
+	RedisURL    string            `yaml:"redis_url"`
 	BaseDir     string            `yaml:"base_dir"`
 	PingEvery   time.Duration     `yaml:"ping_every"`
 	SubmitEvery time.Duration     `yaml:"submit_every"`

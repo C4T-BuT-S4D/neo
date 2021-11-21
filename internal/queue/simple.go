@@ -73,11 +73,11 @@ func (eq *simpleQueue) worker(ctx context.Context) {
 
 			var exitErr *exec.ExitError
 			if err == nil {
-				logrus.Infof("Successfully run: %v", job)
+				job.logger.Infof("Successfully run")
 			} else if errors.Is(err, context.Canceled) || errors.As(err, &exitErr) {
-				logrus.Warningf("Task %v finished unsuccessfully: %v. Output: %s", job, err, res)
+				job.logger.Warningf("Task finished unsuccessfully: %v. Output: %s", err, res)
 			} else {
-				logrus.Errorf("Failed to run %v: %v. Output: %s", job, err, res)
+				job.logger.Errorf("Failed to run: %v. Output: %s", err, res)
 			}
 			eq.out <- &Output{
 				Name: job.name,

@@ -171,3 +171,23 @@ func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.SingleRun
 
 	return results, nil
 }
+
+func (nc *Client) AddLogLines(ctx context.Context, lines ...*neopb.LogLine) error {
+	req := neopb.AddLogLinesRequest{Lines: lines}
+	if _, err := nc.c.AddLogLines(ctx, &req); err != nil {
+		return fmt.Errorf("sending a batch of %d logs: %w", len(lines), err)
+	}
+	return nil
+}
+
+func (nc *Client) SearchLogLines(ctx context.Context, exploit string, version int64) ([]*neopb.LogLine, error) {
+	req := neopb.SearchLogLinesRequest{
+		Exploit: exploit,
+		Version: version,
+	}
+	resp, err := nc.c.SearchLogLines(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("querying server: %w", err)
+	}
+	return resp.Lines, nil
+}
