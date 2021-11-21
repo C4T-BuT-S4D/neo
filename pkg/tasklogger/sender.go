@@ -16,26 +16,39 @@ const (
 	sendInterval = time.Second
 )
 
-func NewSender(client *client.Client) *Sender {
-	return &Sender{
+type Sender interface {
+	Add(lines ...*neopb.LogLine)
+}
+
+func NewDummySender() *DummySender {
+	return &DummySender{}
+}
+
+type DummySender struct{}
+
+func (s *DummySender) Add(...*neopb.LogLine) {
+}
+
+func NewRemoteSender(client *client.Client) *RemoteSender {
+	return &RemoteSender{
 		client: client,
 		queue:  make([]*neopb.LogLine, 0, 1000),
 	}
 }
 
-type Sender struct {
+type RemoteSender struct {
 	client *client.Client
 	queue  []*neopb.LogLine
 	mu     sync.Mutex
 }
 
-func (s *Sender) Add(lines ...*neopb.LogLine) {
+func (s *RemoteSender) Add(lines ...*neopb.LogLine) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.queue = append(s.queue, lines...)
 }
 
-func (s *Sender) Start(ctx context.Context) {
+func (s *RemoteSender) Start(ctx context.Context) {
 	ticker := time.NewTicker(sendInterval)
 	defer ticker.Stop()
 
@@ -51,7 +64,7 @@ func (s *Sender) Start(ctx context.Context) {
 	}
 }
 
-func (s *Sender) send(ctx context.Context) error {
+func (s *RemoteSender) send(ctx context.Context) error {
 	s.mu.Lock()
 	batch := make([]*neopb.LogLine, len(s.queue))
 	copy(batch, s.queue)
