@@ -92,7 +92,7 @@ func (eq *simpleQueue) runExploit(ctx context.Context, et Task) ([]byte, error) 
 	cmdCtx, cancel := context.WithTimeout(ctx, et.timeout)
 	defer cancel()
 
-	logrus.Infof("Going to run: %s %s", et.executable, et.teamIP)
+	et.logger.Infof("Going to run: %s %s", et.executable, et.teamIP)
 	cmd := et.Command(cmdCtx)
 
 	var out []byte
