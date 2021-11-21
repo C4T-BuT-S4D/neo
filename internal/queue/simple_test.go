@@ -30,6 +30,7 @@ func TestSimpleQueue_Add(t *testing.T) {
 		{q: makeQueue(1), t: &Task{executable: "1"}, wantErr: nil},
 		{q: makeQueue(0), t: &Task{executable: "1"}, wantErr: ErrQueueFull},
 	} {
+		tc.t.logger = testutils.DummyTaskLogger(tc.t.name, tc.t.teamIP)
 		err := tc.q.Add(*tc.t)
 		if !errors.Is(err, tc.wantErr) {
 			t.Errorf("simpleQueue.Add(): got error = %v, want = %v", err, tc.wantErr)
@@ -100,6 +101,7 @@ func TestSimpleQueue_runExploit(t *testing.T) {
 			ctx:      context.Background(),
 		},
 	} {
+		tc.t.logger = testutils.DummyTaskLogger(tc.t.name, tc.t.teamIP)
 		data, err := tc.q.runExploit(tc.ctx, tc.t)
 		cmpErr := func(e1, e2 error) bool {
 			if errors.Is(e1, e2) {
