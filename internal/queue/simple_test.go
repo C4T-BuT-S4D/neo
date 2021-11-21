@@ -119,7 +119,15 @@ func TestSimpleQueue_runExploit(t *testing.T) {
 
 func TestSimpleQueue_Start(t *testing.T) {
 	q := NewSimpleQueue(10)
-	task := Task{name: "kek", executable: "echo", dir: "", teamID: "id", teamIP: "ip", timeout: time.Second * 2}
+	task := Task{
+		name:       "kek",
+		executable: "echo",
+		dir:        "",
+		teamID:     "id",
+		teamIP:     "ip",
+		timeout:    time.Second * 2,
+		logger:     testutils.DummyTaskLogger("echo", "ip"),
+	}
 	if err := q.Add(task); err != nil {
 		t.Errorf("simpleQueue.Add(): got unexpected error = %v", err)
 	}

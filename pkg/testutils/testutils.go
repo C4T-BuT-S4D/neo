@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"neo/pkg/tasklogger"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -64,4 +66,8 @@ func NewCheckedTestServer(t *testing.T, checker HTTPRequestChecker) *httptest.Se
 		w.WriteHeader(http.StatusOK)
 	}))
 	return s
+}
+
+func DummyTaskLogger(name, team string) *tasklogger.TaskLogger {
+	return tasklogger.New(name, 1, team, tasklogger.NewDummySender())
 }

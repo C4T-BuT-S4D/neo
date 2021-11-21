@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"neo/pkg/testutils"
 )
 
 func Test_endlessQueue_Add(t *testing.T) {
@@ -23,6 +25,7 @@ func Test_endlessQueue_Add(t *testing.T) {
 		{q: makeQueue(1), t: &Task{executable: "1"}, wantErr: nil},
 		{q: makeQueue(0), t: &Task{executable: "1"}, wantErr: ErrQueueFull},
 	} {
+		tc.t.logger = testutils.DummyTaskLogger("1", "127.0.0.1")
 		err := tc.q.Add(*tc.t)
 		if !errors.Is(err, tc.wantErr) {
 			t.Errorf("endlessQueue.Add(): got error = %v, want = %v", err, tc.wantErr)
@@ -39,7 +42,15 @@ func Test_endlessQueue_Add(t *testing.T) {
 
 func Test_endlessQueue_Start(t *testing.T) {
 	q := NewEndlessQueue(10)
-	task := Task{name: "kek", executable: "echo", dir: "", teamID: "id", teamIP: "ip", timeout: time.Second * 2}
+	task := Task{
+		name:       "kek",
+		executable: "echo",
+		dir:        "",
+		teamID:     "id",
+		teamIP:     "ip",
+		timeout:    time.Second * 2,
+		logger:     testutils.DummyTaskLogger("echo", "ip"),
+	}
 	if err := q.Add(task); err != nil {
 		t.Errorf("endlessQueue.Add(): got unexpected error = %v", err)
 	}
