@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -21,7 +20,7 @@ func testServer() (*ExploitManagerServer, func()) {
 	if err != nil {
 		panic(err)
 	}
-	dir, err := ioutil.TempDir("", "server_test")
+	dir, err := os.MkdirTemp("", "server_test")
 	if err != nil {
 		panic(err)
 	}

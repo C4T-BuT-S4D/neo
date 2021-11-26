@@ -74,6 +74,7 @@ func (eq *simpleQueue) worker(ctx context.Context) {
 			var exitErr *exec.ExitError
 			if err == nil {
 				job.logger.Infof("Successfully run")
+				job.logger.Debugf("Output: %s", res)
 			} else if errors.Is(err, context.Canceled) || errors.As(err, &exitErr) {
 				job.logger.Warningf("Task finished unsuccessfully: %v. Output: %s", err, res)
 			} else {

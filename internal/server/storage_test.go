@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -18,7 +17,7 @@ import (
 )
 
 func testDB() (*bolt.DB, func()) {
-	tmpFile, err := ioutil.TempFile("", "db")
+	tmpFile, err := os.CreateTemp("", "db")
 	if err != nil {
 		panic(err)
 	}

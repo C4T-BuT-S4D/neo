@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -24,12 +23,15 @@ var (
 )
 
 func load(path string, cfg *server.Config) error {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("reading file %s: %w", path, err)
 	}
 	if err := server.ReadConfig(data, cfg); err != nil {
 		return fmt.Errorf("reading config: %w", err)
+	}
+	if err := os.MkdirAll(cfg.BaseDir, os.ModePerm); err != nil {
+		return fmt.Errorf("creating base directory: %w", err)
 	}
 	return nil
 }

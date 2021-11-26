@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -31,6 +30,7 @@ type addCLI struct {
 	runEvery  time.Duration
 	timeout   time.Duration
 	endless   bool
+	disabled  bool
 }
 
 func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
@@ -54,6 +54,9 @@ func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	}
 	if c.endless, err = cmd.Flags().GetBool("endless"); err != nil {
 		logrus.Fatalf("Could not parse endless: %v", err)
+	}
+	if c.disabled, err = cmd.Flags().GetBool("disabled"); err != nil {
+		logrus.Fatalf("Could not parse disabled: %v", err)
 	}
 	return c
 }
@@ -110,7 +113,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 
 	var f *os.File
 	if ac.isArchive {
-		f, err = ioutil.TempFile("", "ARCHIVE")
+		f, err = os.CreateTemp("", "ARCHIVE")
 		if err != nil {
 			return fmt.Errorf("failed to create tmpfile: %w", err)
 		}
@@ -151,7 +154,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			Timeout:    ac.timeout.String(),
 		},
 		Endless:  ac.endless,
-		Disabled: false,
+		Disabled: ac.disabled,
 	}
 	newState, err := c.UpdateExploit(ctx, exState)
 	if err != nil {
@@ -162,7 +165,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 }
 
 func (ac *addCLI) validateEntry(f string) (errors []string) {
-	data, err := ioutil.ReadFile(f)
+	data, err := os.ReadFile(f)
 	if err != nil {
 		errors = append(errors, err.Error())
 		return

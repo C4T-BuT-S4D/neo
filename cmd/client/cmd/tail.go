@@ -12,6 +12,7 @@ import (
 var tailCmd = &cobra.Command{
 	Use:   "tail",
 	Short: "Tail exploit logs",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := client.MustUnmarshalConfig()
 		cli := cli.NewTail(cmd, args, cfg)
@@ -28,5 +29,5 @@ func init() {
 
 	tailCmd.PersistentFlags().String("id", "", "exploit name")
 	tailCmd.PersistentFlags().Int64("version", 0, "exploit version")
-	tailCmd.PersistentFlags().IntP("tail", "t", 0, "lines to show")
+	tailCmd.PersistentFlags().IntP("count", "n", -1, "lines to show (-1 for all lines)")
 }

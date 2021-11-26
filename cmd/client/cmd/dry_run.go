@@ -14,7 +14,7 @@ import (
 var dryRunCmd = &cobra.Command{
 	Use:   "dry-run",
 	Short: "Start Neo client",
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := client.MustUnmarshalConfig()
 		cli := cli.NewDryRun(cmd, args, cfg)

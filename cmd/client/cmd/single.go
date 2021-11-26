@@ -12,7 +12,7 @@ import (
 var singleRunCmd = &cobra.Command{
 	Use:   "single",
 	Short: "Run an exploit once on all teams immediately",
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := client.MustUnmarshalConfig()
 		cli := cli.NewSingleRun(cmd, args, cfg)
