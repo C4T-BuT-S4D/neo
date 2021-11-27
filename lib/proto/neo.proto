@@ -126,5 +126,5 @@ service ExploitManager {
   rpc SingleRunRequests(Empty) returns (stream SingleRunRequest) {}
 
   rpc AddLogLines(AddLogLinesRequest) returns (Empty) {}
-  rpc SearchLogLines(SearchLogLinesRequest) returns (SearchLogLinesResponse) {}
+  rpc SearchLogLines(SearchLogLinesRequest) returns (stream SearchLogLinesResponse) {}
 }

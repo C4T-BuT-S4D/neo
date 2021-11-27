@@ -30,6 +30,10 @@ const (
 	singleRunChannel = "single_run"
 )
 
+const (
+	logLinesBatchSize = 100
+)
+
 var (
 	ErrInvalidMessageType = errors.New("invalid message type")
 )
@@ -253,26 +257,37 @@ func (em *ExploitManagerServer) AddLogLines(ctx context.Context, lines *neopb.Ad
 	return &neopb.Empty{}, nil
 }
 
-func (em *ExploitManagerServer) SearchLogLines(ctx context.Context, req *neopb.SearchLogLinesRequest) (*neopb.SearchLogLinesResponse, error) {
+func (em *ExploitManagerServer) SearchLogLines(req *neopb.SearchLogLinesRequest, stream neopb.ExploitManager_SearchLogLinesServer) error {
 	opts := GetOptions{
 		Exploit: req.Exploit,
 		Version: req.Version,
 	}
-	lines, err := em.logStorage.Get(ctx, opts)
+	lines, err := em.logStorage.Get(stream.Context(), opts)
 	if err != nil {
-		return nil, logErrorf(codes.Internal, "searching log lines: %v", err)
+		return logErrorf(codes.Internal, "searching log lines: %v", err)
 	}
 	resp := neopb.SearchLogLinesResponse{
-		Lines: make([]*neopb.LogLine, 0, len(lines)),
+		Lines: make([]*neopb.LogLine, 0, logLinesBatchSize),
 	}
 	for _, line := range lines {
 		enc, err := line.ToProto()
 		if err != nil {
-			return nil, logErrorf(codes.Internal, "formatting log line: %v", err)
+			return logErrorf(codes.Internal, "formatting log line: %v", err)
 		}
 		resp.Lines = append(resp.Lines, enc)
+		if len(resp.Lines) >= logLinesBatchSize {
+			if err := stream.Send(&resp); err != nil {
+				return logErrorf(codes.Internal, "sending logs batch: %v", err)
+			}
+			resp.Lines = resp.Lines[:0]
+		}
 	}
-	return &resp, nil
+	if len(resp.Lines) > 0 {
+		if err := stream.Send(&resp); err != nil {
+			return logErrorf(codes.Internal, "sending logs batch: %v", err)
+		}
+	}
+	return nil
 }
 
 func (em *ExploitManagerServer) checkClients() {

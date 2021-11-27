@@ -14,7 +14,7 @@ import (
 var addCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add an exploit",
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := client.MustUnmarshalConfig()
 		cli := cli.NewAdd(cmd, args, cfg)
@@ -33,5 +33,6 @@ func init() {
 	addCmd.PersistentFlags().BoolP("dir", "d", false, "add exploit as a directory")
 	addCmd.PersistentFlags().DurationP("interval", "i", time.Second*15, "run interval")
 	addCmd.PersistentFlags().DurationP("timeout", "t", time.Second*15, "timeout for a single run")
-	addCmd.PersistentFlags().BoolP("endless", "e", false, "mark script as endless")
+	addCmd.PersistentFlags().BoolP("endless", "e", false, "mark exploit as endless")
+	addCmd.PersistentFlags().Bool("disabled", false, "mark exploit as disabled")
 }

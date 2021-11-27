@@ -17,21 +17,21 @@ type tailCLI struct {
 	*baseCLI
 	exploitID string
 	version   int64
-	tail      int
+	count     int
 }
 
-func NewTail(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
-	c := &tailCLI{baseCLI: &baseCLI{cfg}}
+func NewTail(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+	c := &tailCLI{
+		baseCLI:   &baseCLI{cfg},
+		exploitID: args[0],
+	}
 
 	var err error
-	if c.exploitID, err = cmd.Flags().GetString("id"); err != nil {
-		logrus.Fatalf("Could not get exploit id: %v", err)
-	}
 	if c.version, err = cmd.Flags().GetInt64("version"); err != nil {
 		logrus.Fatalf("Could not get exploit version: %v", err)
 	}
-	if c.tail, err = cmd.Flags().GetInt("tail"); err != nil {
-		logrus.Fatalf("Could not get tail: %v", err)
+	if c.count, err = cmd.Flags().GetInt("count"); err != nil {
+		logrus.Fatalf("Could not get count: %v", err)
 	}
 	return c
 }
@@ -60,13 +60,18 @@ func (tc *tailCLI) Run(ctx context.Context) error {
 	if !found {
 		return fmt.Errorf("could not locate exploit %v (v%v)", tc.exploitID, tc.version)
 	}
-	lines, err := c.SearchLogLines(ctx, tc.exploitID, tc.version)
+
+	stream, err := c.SearchLogLines(ctx, tc.exploitID, tc.version)
 	if err != nil {
-		return fmt.Errorf("searching logs: %w", err)
+		return fmt.Errorf("making search request: %w", err)
+	}
+	var lines []*neopb.LogLine
+	for batch := range stream {
+		lines = append(lines, batch...)
 	}
 	logrus.Debugf("Got %d log lines", len(lines))
-	if len(lines) > tc.tail {
-		lines = lines[len(lines)-tc.tail:]
+	if tc.count != -1 && len(lines) > tc.count {
+		lines = lines[len(lines)-tc.count:]
 	}
 
 	logrus.SetLevel(logrus.DebugLevel)
