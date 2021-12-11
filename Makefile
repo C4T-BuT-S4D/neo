@@ -100,8 +100,9 @@ setup-release: cleanup-release-all
 	cp configs/server/config.yml neo_server/configs/server/
 	cp Makefile neo_server/
 	cp Dockerfile neo_server/
-	cp go.mod neo_server
-	cp go.sum neo_server
+	cp docker-compose.yml neo_server/
+	cp go.mod neo_server/
+	cp go.sum neo_server/
 	cp README.md neo_server/
 	cp -r cmd neo_server/
 	cp -r internal neo_server/

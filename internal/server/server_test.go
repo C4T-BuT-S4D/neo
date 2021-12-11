@@ -24,9 +24,10 @@ func testServer() (*ExploitManagerServer, func()) {
 	if err != nil {
 		panic(err)
 	}
-	es := New(&Config{
-		BaseDir: dir,
-	}, st, nil)
+	es, err := New(&Config{BaseDir: dir}, st, nil)
+	if err != nil {
+		panic(err)
+	}
 	return es, func() {
 		cleanupDB()
 		if err := os.RemoveAll(dir); err != nil {

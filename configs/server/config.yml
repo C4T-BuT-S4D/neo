@@ -1,6 +1,6 @@
 port: "5005"
 db_path: "data/db.db"
-redis_url: 'redis://127.0.0.1:6379/6'
+redis_url: 'redis://redis:6379/6'
 base_dir: "data/exploits"
 ping_every: "5s"
 submit_every: "2s"

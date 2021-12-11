@@ -30,9 +30,6 @@ func load(path string, cfg *server.Config) error {
 	if err := server.ReadConfig(data, cfg); err != nil {
 		return fmt.Errorf("reading config: %w", err)
 	}
-	if err := os.MkdirAll(cfg.BaseDir, os.ModePerm); err != nil {
-		return fmt.Errorf("creating base directory: %w", err)
-	}
 	return nil
 }
 
@@ -97,7 +94,10 @@ func main() {
 		logrus.Fatalf("ping_every should be positive")
 	}
 	logrus.Infof("Config: %+v", cfg)
-	srv := server.New(cfg, st, logStore)
+	srv, err := server.New(cfg, st, logStore)
+	if err != nil {
+		logrus.Fatalf("Failed to create server: %v", err)
+	}
 	lis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
 		logrus.Fatalf("failed to listen: %v", err)
