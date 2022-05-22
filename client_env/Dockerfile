@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y \
         net-tools \
         dbus \
         vim \
-#        sagemath \
+        sagemath \
     && rm -rf /var/lib/apt/lists/*
 
 COPY client_env/requirements.txt /requirements.txt

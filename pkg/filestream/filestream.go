@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	chunkSize = 4 * 1024 * 1024 // 2MB
+	chunkSize = 2 * 1024 * 1024 // 2MB
 )
 
 type DownloadStream interface {
