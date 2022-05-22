@@ -47,6 +47,14 @@ message FileStream {
   bytes chunk = 1;
 }
 
+message LogLine {
+  string exploit = 1;
+  int64 version = 2;
+  string message = 3;
+  string level = 4;
+  string team = 5;
+}
+
 message PingRequest {
   enum PingType {
     CONFIG_REQUEST = 0;
@@ -89,6 +97,19 @@ message Command {
 
 message Empty {}
 
+message AddLogLinesRequest {
+  repeated LogLine lines = 1;
+}
+
+message SearchLogLinesRequest {
+  string exploit = 1;
+  int64 version = 2;
+}
+
+message SearchLogLinesResponse {
+  repeated LogLine lines = 1;
+}
+
 service ExploitManager {
   rpc Ping (PingRequest) returns (PingResponse) {}
 
@@ -103,4 +124,7 @@ service ExploitManager {
 
   rpc SingleRun(SingleRunRequest) returns (Empty) {}
   rpc SingleRunRequests(Empty) returns (stream SingleRunRequest) {}
+
+  rpc AddLogLines(AddLogLinesRequest) returns (Empty) {}
+  rpc SearchLogLines(SearchLogLinesRequest) returns (stream SearchLogLinesResponse) {}
 }

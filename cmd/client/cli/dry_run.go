@@ -10,6 +10,7 @@ import (
 	"neo/internal/config"
 	"neo/internal/exploit"
 	"neo/internal/queue"
+	"neo/pkg/tasklogger"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -63,7 +64,7 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 		}
 	}
 	if !exists {
-		return fmt.Errorf("exploit %s does not exist. Please, add it first.", rc.exploitID)
+		return fmt.Errorf("exploit %s does not exist, add it first", rc.exploitID)
 	}
 
 	storage := exploit.NewStorage(exploit.NewCache(), rc.baseCLI.c.ExploitDir, c)
@@ -80,9 +81,11 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 		}
 	}
 
+	sender := tasklogger.NewDummySender()
+
 	var tasks []queue.Task
 	if rc.teamIP == "" && rc.teamID == "" {
-		tasks = exploit.CreateExploitTasks(ex, allTeams, cfg.Environ)
+		tasks = exploit.CreateExploitTasks(ex, allTeams, cfg.Environ, sender)
 	} else {
 		oneTeamMap := make(map[string]string)
 		for k, v := range allTeams {
@@ -90,7 +93,7 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 				oneTeamMap[k] = v
 			}
 		}
-		tasks = exploit.CreateExploitTasks(ex, oneTeamMap, cfg.Environ)
+		tasks = exploit.CreateExploitTasks(ex, oneTeamMap, cfg.Environ, sender)
 	}
 
 	var q queue.Queue

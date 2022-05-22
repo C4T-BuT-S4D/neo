@@ -32,17 +32,11 @@ builds:
         - "mkdir dist/other"
         - "mv neo_{{ .Version }}.zip dist/other/"
         - "ls -lh dist/other/neo_{{ .Version }}.zip"
-
-  - id: "neo_server"
-    main: "./cmd/server"
-    binary: "./neo_server"
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - darwin
-      - linux
-    goarch:
-      - amd64
+        - "mv neo_server neo_server_{{ .Version }}"
+        - "zip -r neo_server_{{ .Version }}.zip neo_server_{{ .Version }}"
+        - "rm -rf neo_server_{{ .Version }}"
+        - "mv neo_server_{{ .Version }}.zip dist/other/"
+        - "ls -lh dist/other/neo_server_{{ .Version }}.zip"
 
 archives:
   - id: "client"
@@ -53,7 +47,6 @@ archives:
     wrap_in_directory: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}"
     replacements:
       darwin: macOS
-      386: i386
       amd64: x64
     format_overrides:
       - goos: linux
@@ -62,24 +55,6 @@ archives:
       - README.md
       - client_config.yml
       - exploits/.keep
-
-  - id: "server"
-    format: zip
-    builds:
-      - "neo_server"
-    name_template: "{{ .ProjectName }}_server_{{ .Version }}_{{ .Os }}"
-    wrap_in_directory: "{{ .ProjectName }}_server_{{ .Version }}_{{ .Os }}"
-    replacements:
-      darwin: macOS
-      386: i386
-      amd64: x64
-    format_overrides:
-      - goos: linux
-        format: tar.gz
-    files:
-      - README.md
-      - server_config.yml
-      - data/.keep
 
 release:
   prerelease: auto

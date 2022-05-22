@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -24,7 +23,7 @@ var (
 )
 
 func load(path string, cfg *server.Config) error {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("reading file %s: %w", path, err)
 	}
@@ -85,11 +84,20 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Failed to create bolt storage: %v", err)
 	}
+
+	logStore, err := server.NewLogStorage(ctx, cfg.RedisURL)
+	if err != nil {
+		logrus.Fatalf("Failed to create log storage: %v", err)
+	}
+
 	if cfg.PingEvery <= 0 {
 		logrus.Fatalf("ping_every should be positive")
 	}
 	logrus.Infof("Config: %+v", cfg)
-	srv := server.New(cfg, st)
+	srv, err := server.New(cfg, st, logStore)
+	if err != nil {
+		logrus.Fatalf("Failed to create server: %v", err)
+	}
 	lis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
 		logrus.Fatalf("failed to listen: %v", err)

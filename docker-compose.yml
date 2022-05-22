@@ -1,0 +1,15 @@
+version: '2.4'
+
+services:
+  server:
+    build: .
+    volumes:
+      - './configs/server/config.yml:/config.yml:ro'
+      - './volumes/data:/data'
+    ports:
+      - '5005:5005'
+    restart: unless-stopped
+
+  redis:
+    image: redis:6.2.6-alpine
+    restart: unless-stopped

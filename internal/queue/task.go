@@ -6,9 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"time"
+
+	"neo/pkg/tasklogger"
 )
 
-func NewTask(taskID, executable, dir, teamID, teamIP string, environ []string, timeout time.Duration) Task {
+func NewTask(taskID, executable, dir, teamID, teamIP string, environ []string, timeout time.Duration, logger *tasklogger.TaskLogger) Task {
 	return Task{
 		name:       taskID,
 		executable: executable,
@@ -17,6 +19,7 @@ func NewTask(taskID, executable, dir, teamID, teamIP string, environ []string, t
 		teamIP:     teamIP,
 		timeout:    timeout,
 		environ:    environ,
+		logger:     logger,
 	}
 }
 
@@ -28,6 +31,7 @@ type Task struct {
 	teamIP     string
 	environ    []string
 	timeout    time.Duration
+	logger     *tasklogger.TaskLogger
 }
 
 func (et Task) String() string {

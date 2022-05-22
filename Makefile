@@ -94,10 +94,20 @@ setup-release: cleanup-release-all
 	mkdir exploits
 	touch exploits/.keep
 
-	@echo "[*] Preparing server binary release"
-	cp configs/server/config.yml server_config.yml
-	mkdir -p data
-	touch data/.keep
+	@echo "[*] Preparing server release"
+	mkdir -p neo_server/configs/server
+	mkdir -p neo_server/data/exploits
+	cp configs/server/config.yml neo_server/configs/server/
+	cp Makefile neo_server/
+	cp Dockerfile neo_server/
+	cp docker-compose.yml neo_server/
+	cp go.mod neo_server/
+	cp go.sum neo_server/
+	cp README.md neo_server/
+	cp -r cmd neo_server/
+	cp -r internal neo_server/
+	cp -r lib neo_server/
+	cp -r pkg neo_server/
 
 .PHONY: release-dry-run
 release-dry-run:

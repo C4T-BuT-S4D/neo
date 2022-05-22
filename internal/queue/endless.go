@@ -79,9 +79,9 @@ func (eq *endlessQueue) worker(ctx context.Context) {
 					return
 				}
 				if err != nil {
-					logrus.Errorf("Unexpected error returned from endless exploit %v: %v", job, err)
+					job.logger.Errorf("Unexpected error returned from endless exploit: %v", err)
 				} else {
-					logrus.Errorf("Endless exploit %v terminated unexpectedly", job)
+					job.logger.Errorf("Endless exploit terminated unexpectedly")
 				}
 			}
 		}
@@ -92,7 +92,7 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 	cmdCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	logrus.Infof("Going to run endlessly: %s %s", job.executable, job.teamIP)
+	job.logger.Infof("Going to run endlessly: %s %s", job.executable, job.teamIP)
 	cmd := job.Command(cmdCtx)
 
 	r, w := io.Pipe()
@@ -100,7 +100,7 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 	go func() {
 		defer func(w *io.PipeWriter) {
 			if err := w.Close(); err != nil {
-				logrus.Errorf("Error closing pipe: %v", err)
+				job.logger.Errorf("Error closing pipe: %v", err)
 			}
 		}(w)
 
@@ -111,7 +111,7 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 
 	readDone := make(chan struct{})
 	defer func() {
-		logrus.Info("Waiting for endless read to finish")
+		job.logger.Infof("Waiting for endless read to finish")
 		<-readDone
 	}()
 	go func() {
@@ -125,7 +125,7 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 			}
 		}
 		if err := scanner.Err(); err != nil && ctx.Err() == nil {
-			logrus.Errorf("Unexpected error reading endless script output: %v", err)
+			job.logger.Errorf("Unexpected error reading endless script output: %v", err)
 		}
 	}()
 
@@ -141,7 +141,7 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 		}
 		return nil
 	case err := <-errC:
-		logrus.Errorf("Endless sploit %v terminated: %v", job, err)
+		job.logger.Errorf("Endless sploit %v terminated: %v", job, err)
 		if err != nil {
 			return fmt.Errorf("unexpected error in endless exploit %v: %w", job, err)
 		}

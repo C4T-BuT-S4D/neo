@@ -30,6 +30,10 @@ const (
 	singleRunChannel = "single_run"
 )
 
+const (
+	logLinesBatchSize = 100
+)
+
 var (
 	ErrInvalidMessageType = errors.New("invalid message type")
 )
@@ -52,6 +56,13 @@ type osFs struct {
 	baseDir string
 }
 
+func newOsFs(dir string) (*osFs, error) {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("creating dir %s: %w", dir, err)
+	}
+	return &osFs{baseDir: dir}, nil
+}
+
 func (o osFs) Create(f string) (fileInterface, error) {
 	fi, err := os.Create(path.Join(o.baseDir, f))
 	if err != nil {
@@ -68,26 +79,32 @@ func (o osFs) Open(f string) (fileInterface, error) {
 	return fi, nil
 }
 
-func New(cfg *Config, storage *CachedStorage) *ExploitManagerServer {
+func New(cfg *Config, storage *CachedStorage, logStore *LogStorage) (*ExploitManagerServer, error) {
+	fs, err := newOsFs(cfg.BaseDir)
+	if err != nil {
+		return nil, fmt.Errorf("creating filesystem: %w", err)
+	}
 	ems := &ExploitManagerServer{
-		storage: storage,
-		fs:      osFs{cfg.BaseDir},
-		buckets: hostbucket.New(cfg.FarmConfig.Teams),
-		visits:  newVisitsMap(),
-		ps:      pubsub.NewPubSub(),
+		storage:    storage,
+		fs:         fs,
+		buckets:    hostbucket.New(cfg.FarmConfig.Teams),
+		visits:     newVisitsMap(),
+		ps:         pubsub.NewPubSub(),
+		logStorage: logStore,
 	}
 	ems.UpdateConfig(cfg)
-	return ems
+	return ems, nil
 }
 
 type ExploitManagerServer struct {
 	neopb.UnimplementedExploitManagerServer
-	storage  *CachedStorage
-	config   *config.Config
-	cfgMutex sync.RWMutex
-	buckets  *hostbucket.HostBucket
-	visits   *visitsMap
-	fs       filesystem
+	storage    *CachedStorage
+	logStorage *LogStorage
+	config     *config.Config
+	cfgMutex   sync.RWMutex
+	buckets    *hostbucket.HostBucket
+	visits     *visitsMap
+	fs         filesystem
 
 	ps pubsub.PubSub
 }
@@ -237,6 +254,50 @@ func (em *ExploitManagerServer) SingleRunRequests(_ *neopb.Empty, stream neopb.E
 	defer em.ps.Unsubscribe(sub)
 
 	sub.Run(stream.Context())
+	return nil
+}
+
+func (em *ExploitManagerServer) AddLogLines(ctx context.Context, lines *neopb.AddLogLinesRequest) (*neopb.Empty, error) {
+	decoded := make([]LogLine, 0, len(lines.Lines))
+	for _, line := range lines.Lines {
+		decoded = append(decoded, *NewLogLineFromProto(line))
+	}
+	if err := em.logStorage.Add(ctx, decoded); err != nil {
+		return nil, logErrorf(codes.Internal, "adding log lines: %v", err)
+	}
+	return &neopb.Empty{}, nil
+}
+
+func (em *ExploitManagerServer) SearchLogLines(req *neopb.SearchLogLinesRequest, stream neopb.ExploitManager_SearchLogLinesServer) error {
+	opts := GetOptions{
+		Exploit: req.Exploit,
+		Version: req.Version,
+	}
+	lines, err := em.logStorage.Get(stream.Context(), opts)
+	if err != nil {
+		return logErrorf(codes.Internal, "searching log lines: %v", err)
+	}
+	resp := neopb.SearchLogLinesResponse{
+		Lines: make([]*neopb.LogLine, 0, logLinesBatchSize),
+	}
+	for _, line := range lines {
+		enc, err := line.ToProto()
+		if err != nil {
+			return logErrorf(codes.Internal, "formatting log line: %v", err)
+		}
+		resp.Lines = append(resp.Lines, enc)
+		if len(resp.Lines) >= logLinesBatchSize {
+			if err := stream.Send(&resp); err != nil {
+				return logErrorf(codes.Internal, "sending logs batch: %v", err)
+			}
+			resp.Lines = resp.Lines[:0]
+		}
+	}
+	if len(resp.Lines) > 0 {
+		if err := stream.Send(&resp); err != nil {
+			return logErrorf(codes.Internal, "sending logs batch: %v", err)
+		}
+	}
 	return nil
 }
 

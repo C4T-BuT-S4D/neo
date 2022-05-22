@@ -6,6 +6,7 @@ import (
 
 	"neo/internal/client"
 	"neo/internal/exploit"
+	"neo/pkg/tasklogger"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -15,7 +16,8 @@ const JobsPerCPU = 5
 
 type runCLI struct {
 	*baseCLI
-	run *exploit.Runner
+	run    *exploit.Runner
+	sender *tasklogger.RemoteSender
 }
 
 func parseJobsFlag(cmd *cobra.Command) int {
@@ -44,11 +46,12 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 	jobs := parseJobsFlag(cmd)
 
 	neocli.Weight = jobs
-
-	cli.run = exploit.NewRunner(jobs, cfg.ExploitDir, neocli)
+	cli.sender = tasklogger.NewRemoteSender(neocli)
+	cli.run = exploit.NewRunner(jobs, cfg.ExploitDir, neocli, cli.sender)
 	return cli
 }
 
 func (rc *runCLI) Run(ctx context.Context) error {
+	go rc.sender.Start(ctx)
 	return rc.run.Run(ctx) // nolint:wrapcheck
 }

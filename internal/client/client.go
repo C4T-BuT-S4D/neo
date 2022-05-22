@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -164,6 +165,47 @@ func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.SingleRun
 			case results <- er:
 			case <-ctx.Done():
 				logrus.Warningf("Single runs context cancelled")
+				return
+			}
+		}
+	}()
+
+	return results, nil
+}
+
+func (nc *Client) AddLogLines(ctx context.Context, lines ...*neopb.LogLine) error {
+	req := neopb.AddLogLinesRequest{Lines: lines}
+	if _, err := nc.c.AddLogLines(ctx, &req); err != nil {
+		return fmt.Errorf("sending a batch of %d logs: %w", len(lines), err)
+	}
+	return nil
+}
+
+func (nc *Client) SearchLogLines(ctx context.Context, exploit string, version int64) (<-chan []*neopb.LogLine, error) {
+	req := neopb.SearchLogLinesRequest{
+		Exploit: exploit,
+		Version: version,
+	}
+	stream, err := nc.c.SearchLogLines(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("querying server: %w", err)
+	}
+
+	results := make(chan []*neopb.LogLine)
+	go func() {
+		defer close(results)
+		for {
+			resp, err := stream.Recv()
+			if err != nil {
+				if !errors.Is(err, io.EOF) {
+					logrus.Errorf("Unexpected error reading log lines: %v", err)
+				}
+				return
+			}
+			select {
+			case results <- resp.Lines:
+			case <-ctx.Done():
+				logrus.Debugf("Search logs context cancelled")
 				return
 			}
 		}

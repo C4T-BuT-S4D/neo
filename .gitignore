@@ -22,4 +22,6 @@ client_config.yml
 server_config.yml
 exploits
 
-kek_*
+kek*
+
+volumes
