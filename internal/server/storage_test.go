@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/proto"
@@ -42,9 +43,7 @@ func TestCachedStorage_States(t *testing.T) {
 	db, cleanup := testDB()
 	defer cleanup()
 	cs, err := NewStorage(db)
-	if err != nil {
-		t.Fatalf("NewStorage() failed with unexpected error = %v", err)
-	}
+	require.NoError(t, err)
 	for i := 0; i < 5; i++ {
 		state := &neopb.ExploitState{
 			ExploitId: fmt.Sprintf("%d", i),
@@ -54,14 +53,10 @@ func TestCachedStorage_States(t *testing.T) {
 				IsArchive:  false,
 			},
 		}
-		if _, err := cs.UpdateExploitVersion(state); err != nil {
-			t.Errorf("UpdateExploitVersion(): got unexpected error = %v", err)
-		}
+		_, err := cs.UpdateExploitVersion(state)
+		require.NoError(t, err)
 	}
-	states := cs.States()
-	if len(states) != 5 {
-		t.Errorf("States(): wrong number of states returned, want: %d, got %d", 5, len(states))
-	}
+	require.Len(t, cs.States(), 5)
 }
 
 func TestCachedStorage_UpdateStates(t *testing.T) {
