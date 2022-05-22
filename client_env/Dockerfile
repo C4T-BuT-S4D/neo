@@ -11,7 +11,7 @@ COPY lib lib
 COPY pkg pkg
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o client cmd/client/main.go
 
-FROM python:3.9
+FROM python:3.10
 
 ENV PYTHONUNBUFFERED 1
 ENV PWNLIB_NOTERM 1
