@@ -1,6 +1,8 @@
 package archive
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
@@ -9,9 +11,6 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-
-	"archive/tar"
-	"compress/gzip"
 )
 
 func Untar(dst string, r io.Reader) error {
@@ -117,11 +116,6 @@ func Tar(src string, w io.Writer) error {
 			return err
 		}
 
-		// return on non-regular files (thanks to [kumo](https://medium.com/@komuw/just-like-you-did-fbdd7df829d3) for this suggested update)
-		if !fi.Mode().IsRegular() {
-			return nil
-		}
-
 		// create a new dir/file header
 		header, err := tar.FileInfoHeader(fi, fi.Name())
 		if err != nil {
@@ -134,6 +128,10 @@ func Tar(src string, w io.Writer) error {
 		// write the header
 		if err := tw.WriteHeader(header); err != nil {
 			return fmt.Errorf("writing tar heeader: %w", err)
+		}
+
+		if fi.IsDir() {
+			return nil
 		}
 
 		// open files for taring
