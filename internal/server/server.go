@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"neo/pkg/gstream"
 	"neo/pkg/pubsub"
 
 	"neo/internal/config"
@@ -32,6 +33,11 @@ const (
 
 const (
 	logLinesBatchSize = 100
+)
+
+const (
+	// 4MB, grpc frame size.
+	maxMsgSize = 4 * 1024 * 1024
 )
 
 var (
@@ -277,26 +283,37 @@ func (em *ExploitManagerServer) SearchLogLines(req *neopb.SearchLogLinesRequest,
 	if err != nil {
 		return logErrorf(codes.Internal, "searching log lines: %v", err)
 	}
-	resp := neopb.SearchLogLinesResponse{
-		Lines: make([]*neopb.LogLine, 0, logLinesBatchSize),
-	}
-	for _, line := range lines {
-		enc, err := line.ToProto()
-		if err != nil {
-			return logErrorf(codes.Internal, "formatting log line: %v", err)
-		}
-		resp.Lines = append(resp.Lines, enc)
-		if len(resp.Lines) >= logLinesBatchSize {
-			if err := stream.Send(&resp); err != nil {
-				return logErrorf(codes.Internal, "sending logs batch: %v", err)
+
+	cache := gstream.NewDynamicSizeCache[*LogLine, neopb.SearchLogLinesResponse](
+		stream,
+		maxMsgSize,
+		func(lines []*LogLine) (*neopb.SearchLogLinesResponse, error) {
+			resp := &neopb.SearchLogLinesResponse{
+				Lines: make([]*neopb.LogLine, 0, len(lines)),
 			}
-			resp.Lines = resp.Lines[:0]
+			for _, line := range lines {
+				protoLine, err := line.ToProto()
+				if err != nil {
+					return nil, fmt.Errorf("converting line to proto: %w", err)
+				}
+				resp.Lines = append(resp.Lines, protoLine)
+			}
+			return resp, nil
+		},
+	)
+
+	for i, line := range lines {
+		if err := cache.Queue(line); err != nil {
+			return logErrorf(codes.Internal, "queueing log line: %v", err)
+		}
+		if (i-1)%logLinesBatchSize == 0 {
+			if err := cache.Flush(); err != nil {
+				return logErrorf(codes.Internal, "flushing batch: %v", err)
+			}
 		}
 	}
-	if len(resp.Lines) > 0 {
-		if err := stream.Send(&resp); err != nil {
-			return logErrorf(codes.Internal, "sending logs batch: %v", err)
-		}
+	if err := cache.Flush(); err != nil {
+		return logErrorf(codes.Internal, "flushing last batch: %v", err)
 	}
 	return nil
 }

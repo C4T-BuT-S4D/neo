@@ -1,4 +1,4 @@
-package stream
+package gstream
 
 import (
 	"context"
@@ -10,7 +10,7 @@ type Sizable interface {
 	EstimateSize() int
 }
 
-type BatcherFunc[S, D any] func(t []S) D
+type BatcherFunc[S, D any] func(t []S) (D, error)
 
 func NewDynamicSizeCache[T Sizable, M any](s WStream[M], maxSize int, bf BatcherFunc[T, *M]) *DynamicSizeCache[T, M] {
 	return &DynamicSizeCache[T, M]{
@@ -57,7 +57,14 @@ func (d *DynamicSizeCache[T, M]) Context() context.Context {
 
 // flushUnsafe expects the lock to be held.
 func (d *DynamicSizeCache[T, M]) flushUnsafe() error {
-	m := d.batcher(d.queue)
+	if len(d.queue) == 0 {
+		return nil
+	}
+
+	m, err := d.batcher(d.queue)
+	if err != nil {
+		return fmt.Errorf("error converting batch: %w", err)
+	}
 	if err := d.stream.Send(m); err != nil {
 		return fmt.Errorf("sending batch to stream: %w", err)
 	}

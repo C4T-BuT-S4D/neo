@@ -1,4 +1,4 @@
-package stream
+package gstream
 
 import (
 	"context"
@@ -12,8 +12,8 @@ func TestDynamicSizeCache(t *testing.T) {
 	cache := NewDynamicSizeCache[*mockSizable, []*mockSizable](
 		s,
 		10,
-		func(a []*mockSizable) *[]*mockSizable {
-			return &a
+		func(a []*mockSizable) (*[]*mockSizable, error) {
+			return &a, nil
 		},
 	)
 	gen := func(a int) *mockSizable {

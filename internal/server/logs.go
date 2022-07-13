@@ -53,19 +53,19 @@ func (s *LogStorage) Add(ctx context.Context, lines []LogLine) error {
 	return nil
 }
 
-func (s *LogStorage) Get(ctx context.Context, opts GetOptions) ([]LogLine, error) {
+func (s *LogStorage) Get(ctx context.Context, opts GetOptions) ([]*LogLine, error) {
 	key := getRedisStream(opts.Exploit, strconv.FormatInt(opts.Version, 10))
 	res, err := s.rdb.XRange(ctx, key, "-", "+").Result()
 	if err != nil {
 		return nil, fmt.Errorf("querying stream %s: %w", key, err)
 	}
-	lines := make([]LogLine, 0, len(res))
+	lines := make([]*LogLine, 0, len(res))
 	for _, msg := range res {
 		line, err := NewLogLineFromValues(msg.Values)
 		if err != nil {
 			return nil, fmt.Errorf("decoding line from %+v: %w", msg.Values, err)
 		}
-		lines = append(lines, *line)
+		lines = append(lines, line)
 	}
 	return lines, nil
 }
