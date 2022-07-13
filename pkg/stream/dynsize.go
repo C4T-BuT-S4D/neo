@@ -62,6 +62,6 @@ func (d *DynamicSizeCache[T, M]) flushUnsafe() error {
 		return fmt.Errorf("sending batch to stream: %w", err)
 	}
 	d.curSize = 0
-	d.queue = d.queue[:0]
+	d.queue = nil
 	return nil
 }
