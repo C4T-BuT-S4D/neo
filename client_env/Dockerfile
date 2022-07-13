@@ -15,7 +15,8 @@ FROM python:3.10 as image-full
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update \
+    && apt-get install -y \
         gcc \
         libmpc-dev \
         libmpfr-dev \
@@ -37,35 +38,12 @@ RUN chmod +x /entrypoint.sh
 WORKDIR /work
 ENTRYPOINT ["/entrypoint.sh"]
 
-FROM python:3.10 as image-full-sage
+FROM image-full as image-full-sage
 
-ENV PYTHONUNBUFFERED 1
-ENV PWNLIB_NOTERM 1
-
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-RUN apt-get update && apt-get install -y \
-        gcc \
-        libmpc-dev \
-        libmpfr-dev \
-        dnsutils \
-        netcat \
-        net-tools \
-        dbus \
-        vim \
+RUN apt-get update && \
+    apt-get install -y \
         sagemath \
     && rm -rf /var/lib/apt/lists/*
-
-COPY client_env/requirements.txt /requirements.txt
-RUN pip install --no-cache -r /requirements.txt
-
-COPY --from=build /app/client /usr/local/bin/neo
-
-COPY client_env/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-WORKDIR /work
-ENTRYPOINT ["/entrypoint.sh"]
 
 FROM alpine:3.16 as image-light
 

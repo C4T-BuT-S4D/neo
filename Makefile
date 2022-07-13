@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 
 IMAGE := ghcr.io/pomo-mondreganto/neo_env:latest
+TARGET := image-full
 CONTAINER_NAME := neo_env
 
 NEED_COMMANDS := curl wget dig nc file nslookup ifconfig python3 pip3 vim
@@ -34,7 +35,7 @@ test-cov:
 
 .PHONY: build-image
 build-image:
-	docker build -t "${IMAGE}" -f client_env/Dockerfile .
+	docker build -t "${IMAGE}" --target "${TARGET}" -f client_env/Dockerfile .
 
 .PHONY: test-image
 test-image:
