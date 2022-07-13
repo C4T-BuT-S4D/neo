@@ -47,6 +47,16 @@ func (l *LogLine) DumpValues() (map[string]interface{}, error) {
 	return res, nil
 }
 
+func (l *LogLine) EstimateSize() int {
+	const (
+		estNum     = 4
+		estDenom   = 3
+		structSize = 8 * 5
+	)
+	sizeEst := structSize + len(l.Exploit) + len(l.Version) + len(l.Message) + len(l.Level) + len(l.Team)
+	return sizeEst * estNum / estDenom
+}
+
 func (l *LogLine) ToProto() (*neopb.LogLine, error) {
 	version, err := strconv.ParseInt(l.Version, 10, 64)
 	if err != nil {

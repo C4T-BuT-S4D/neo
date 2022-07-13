@@ -7,6 +7,7 @@ import (
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/encoding/gzip"
 
 	"neo/internal/client"
 	"neo/pkg/grpcauth"
@@ -30,6 +31,9 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 		opts = append(opts, grpc.WithUnaryInterceptor(interceptor.Unary()))
 		opts = append(opts, grpc.WithStreamInterceptor(interceptor.Stream()))
 	}
+	opts = append(opts, grpc.WithDefaultCallOptions(
+		grpc.UseCompressor(gzip.Name),
+	))
 	conn, err := grpc.Dial(cmd.c.Host, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing grpc: %w", err)

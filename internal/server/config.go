@@ -5,32 +5,24 @@ import (
 	"fmt"
 	"io"
 	"time"
-
-	"gopkg.in/yaml.v3"
 )
 
-func ReadConfig(data []byte, cfg *Config) error {
-	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return fmt.Errorf("unmarshalling yaml: %w", err)
-	}
-	return nil
-}
-
 type Config struct {
-	Port        string            `yaml:"port"`
-	DBPath      string            `yaml:"db_path"`
-	RedisURL    string            `yaml:"redis_url"`
-	BaseDir     string            `yaml:"base_dir"`
-	PingEvery   time.Duration     `yaml:"ping_every"`
-	SubmitEvery time.Duration     `yaml:"submit_every"`
-	FarmConfig  FarmConfig        `yaml:"farm"`
-	GrpcAuthKey string            `yaml:"grpc_auth_key"`
-	Environ     map[string]string `yaml:"env"`
+	Debug       bool              `mapstructure:"debug"`
+	Port        string            `mapstructure:"port"`
+	DBPath      string            `mapstructure:"db_path"`
+	RedisURL    string            `mapstructure:"redis_url"`
+	BaseDir     string            `mapstructure:"base_dir"`
+	PingEvery   time.Duration     `mapstructure:"ping_every"`
+	SubmitEvery time.Duration     `mapstructure:"submit_every"`
+	FarmConfig  FarmConfig        `mapstructure:"farm"`
+	GrpcAuthKey string            `mapstructure:"grpc_auth_key"`
+	Environ     map[string]string `mapstructure:"env"`
 }
 
 type FarmConfig struct {
-	URL        string            `yaml:"url"`
-	Password   string            `yaml:"password"`
+	URL        string            `mapstructure:"url"`
+	Password   string            `mapstructure:"password"`
 	FlagRegexp string            `json:"FLAG_FORMAT"`
 	Teams      map[string]string `json:"TEAMS"`
 }
