@@ -34,27 +34,29 @@ type Task struct {
 	logger     *tasklogger.TaskLogger
 }
 
-func (et Task) String() string {
+func (t Task) String() string {
 	return fmt.Sprintf(
 		"Exploit(path=%s, target=%s (%s), timeout=%v, environ=%+v)",
-		et.executable,
-		et.teamID,
-		et.teamIP,
-		et.timeout,
-		et.environ,
+		t.executable,
+		t.teamID,
+		t.teamIP,
+		t.timeout,
+		t.environ,
 	)
 }
 
-func (et Task) Command(ctx context.Context) *exec.Cmd {
-	cmd := exec.CommandContext(ctx, et.executable, et.teamIP)
-	if et.dir != "" {
-		cmd.Dir = et.dir
+func (t Task) Command(ctx context.Context) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, t.executable, t.teamIP)
+	if t.dir != "" {
+		cmd.Dir = t.dir
 	}
 
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, et.environ...)
+	cmd.Env = append(cmd.Env, t.environ...)
 
 	// disable buffering in python scripts
 	cmd.Env = append(cmd.Env, "PYTHONUNBUFFERED=1")
+	// Disable terminal for pwntools.
+	cmd.Env = append(cmd.Env, "PWNLIB_NOTERM=1")
 	return cmd
 }

@@ -45,9 +45,9 @@ func (eq *simpleQueue) Results() <-chan *Output {
 	return eq.out
 }
 
-func (eq *simpleQueue) Add(et Task) error {
+func (eq *simpleQueue) Add(task Task) error {
 	select {
-	case eq.c <- et:
+	case eq.c <- task:
 		return nil
 	default:
 		return ErrQueueFull
@@ -68,33 +68,33 @@ func (eq *simpleQueue) worker(ctx context.Context) {
 			return
 		case <-eq.done:
 			return
-		case job := <-eq.c:
-			res, err := eq.runExploit(ctx, job)
+		case task := <-eq.c:
+			res, err := eq.runExploit(ctx, task)
 
 			var exitErr *exec.ExitError
 			if err == nil {
-				job.logger.Infof("Successfully run")
-				job.logger.Debugf("Output: %s", res)
+				task.logger.Infof("Successfully run")
+				task.logger.Debugf("Output: %s", res)
 			} else if errors.Is(err, context.Canceled) || errors.As(err, &exitErr) {
-				job.logger.Warningf("Task finished unsuccessfully: %v. Output: %s", err, res)
+				task.logger.Warningf("Task finished unsuccessfully: %v. Output: %s", err, res)
 			} else {
-				job.logger.Errorf("Failed to run: %v. Output: %s", err, res)
+				task.logger.Errorf("Failed to run: %v. Output: %s", err, res)
 			}
 			eq.out <- &Output{
-				Name: job.name,
+				Name: task.name,
 				Out:  res,
-				Team: job.teamID,
+				Team: task.teamID,
 			}
 		}
 	}
 }
 
-func (eq *simpleQueue) runExploit(ctx context.Context, et Task) ([]byte, error) {
-	cmdCtx, cancel := context.WithTimeout(ctx, et.timeout)
+func (eq *simpleQueue) runExploit(ctx context.Context, task Task) ([]byte, error) {
+	cmdCtx, cancel := context.WithTimeout(ctx, task.timeout)
 	defer cancel()
 
-	et.logger.Infof("Going to run: %s %s", et.executable, et.teamIP)
-	cmd := et.Command(cmdCtx)
+	task.logger.Infof("Going to run: %s %s", task.executable, task.teamIP)
+	cmd := task.Command(cmdCtx)
 
 	var out []byte
 	errC := make(chan error, 1)

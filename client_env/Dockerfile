@@ -13,9 +13,6 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o client cmd/client/main.go
 
 FROM python:3.10 as image-full
 
-ENV PYTHONUNBUFFERED 1
-ENV PWNLIB_NOTERM 1
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update && apt-get install -y \

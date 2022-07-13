@@ -24,31 +24,31 @@ type TaskLogger struct {
 	sender  Sender
 }
 
-func (l TaskLogger) Debugf(format string, args ...interface{}) {
+func (l *TaskLogger) Debugf(format string, args ...interface{}) {
 	l.getLogger().Debugf(format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "debug"))
 }
 
-func (l TaskLogger) Infof(format string, args ...interface{}) {
+func (l *TaskLogger) Infof(format string, args ...interface{}) {
 	l.getLogger().Infof(format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "info"))
 }
 
-func (l TaskLogger) Warningf(format string, args ...interface{}) {
+func (l *TaskLogger) Warningf(format string, args ...interface{}) {
 	l.getLogger().Warningf(format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "warning"))
 }
 
-func (l TaskLogger) Errorf(format string, args ...interface{}) {
+func (l *TaskLogger) Errorf(format string, args ...interface{}) {
 	l.getLogger().Errorf(format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "error"))
 }
 
-func (l TaskLogger) newLine(msg, level string) *neopb.LogLine {
+func (l *TaskLogger) newLine(msg, level string) *neopb.LogLine {
 	return &neopb.LogLine{
 		Exploit: l.exploit,
 		Version: l.version,
@@ -58,7 +58,7 @@ func (l TaskLogger) newLine(msg, level string) *neopb.LogLine {
 	}
 }
 
-func (l TaskLogger) getLogger() *logrus.Entry {
+func (l *TaskLogger) getLogger() *logrus.Entry {
 	return logrus.WithFields(logrus.Fields{
 		"exploit": l.exploit,
 		"version": l.version,

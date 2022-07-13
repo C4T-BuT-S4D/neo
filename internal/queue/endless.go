@@ -44,9 +44,9 @@ func (eq *endlessQueue) Results() <-chan *Output {
 	return eq.out
 }
 
-func (eq *endlessQueue) Add(et Task) error {
+func (eq *endlessQueue) Add(task Task) error {
 	select {
-	case eq.c <- et:
+	case eq.c <- task:
 		return nil
 	default:
 		return ErrQueueFull
@@ -67,9 +67,9 @@ func (eq *endlessQueue) worker(ctx context.Context) {
 			return
 		case <-eq.done:
 			return
-		case job := <-eq.c:
+		case task := <-eq.c:
 			for {
-				err := eq.runExploit(ctx, job)
+				err := eq.runExploit(ctx, task)
 				// eq.done is closed
 				if errors.Is(err, context.Canceled) {
 					return
@@ -79,28 +79,28 @@ func (eq *endlessQueue) worker(ctx context.Context) {
 					return
 				}
 				if err != nil {
-					job.logger.Errorf("Unexpected error returned from endless exploit: %v", err)
+					task.logger.Errorf("Unexpected error returned from endless exploit: %v", err)
 				} else {
-					job.logger.Errorf("Endless exploit terminated unexpectedly")
+					task.logger.Errorf("Endless exploit terminated unexpectedly")
 				}
 			}
 		}
 	}
 }
 
-func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
+func (eq *endlessQueue) runExploit(ctx context.Context, task Task) error {
 	cmdCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	job.logger.Infof("Going to run endlessly: %s %s", job.executable, job.teamIP)
-	cmd := job.Command(cmdCtx)
+	task.logger.Infof("Going to run endlessly: %s %s", task.executable, task.teamIP)
+	cmd := task.Command(cmdCtx)
 
 	r, w := io.Pipe()
 	errC := make(chan error, 1)
 	go func() {
 		defer func(w *io.PipeWriter) {
 			if err := w.Close(); err != nil {
-				job.logger.Errorf("Error closing pipe: %v", err)
+				task.logger.Errorf("Error closing pipe: %v", err)
 			}
 		}(w)
 
@@ -111,7 +111,7 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 
 	readDone := make(chan struct{})
 	defer func() {
-		job.logger.Infof("Waiting for endless read to finish")
+		task.logger.Infof("Waiting for endless read to finish")
 		<-readDone
 	}()
 	go func() {
@@ -119,13 +119,13 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 		scanner := bufio.NewScanner(r)
 		for scanner.Scan() {
 			eq.out <- &Output{
-				Name: job.name,
+				Name: task.name,
 				Out:  scanner.Bytes(),
-				Team: job.teamID,
+				Team: task.teamID,
 			}
 		}
 		if err := scanner.Err(); err != nil && ctx.Err() == nil {
-			job.logger.Errorf("Unexpected error reading endless script output: %v", err)
+			task.logger.Errorf("Unexpected error reading endless script output: %v", err)
 		}
 	}()
 
@@ -141,9 +141,9 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 		}
 		return nil
 	case err := <-errC:
-		job.logger.Errorf("Endless sploit %v terminated: %v", job, err)
+		task.logger.Errorf("Endless sploit %v terminated: %v", task, err)
 		if err != nil {
-			return fmt.Errorf("unexpected error in endless exploit %v: %w", job, err)
+			return fmt.Errorf("unexpected error in endless exploit %v: %w", task, err)
 		}
 		return nil
 	}
