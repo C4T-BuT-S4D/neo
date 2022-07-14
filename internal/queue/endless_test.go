@@ -2,11 +2,13 @@ package queue
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
 	"neo/pkg/testutils"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_endlessQueue_Add(t *testing.T) {
@@ -27,16 +29,11 @@ func Test_endlessQueue_Add(t *testing.T) {
 	} {
 		tc.t.logger = testutils.DummyTaskLogger("1", "127.0.0.1")
 		err := tc.q.Add(*tc.t)
-		if !errors.Is(err, tc.wantErr) {
-			t.Errorf("endlessQueue.Add(): got error = %v, want = %v", err, tc.wantErr)
-			continue
-		}
+		require.ErrorIs(t, err, tc.wantErr)
 		if err != nil {
 			continue
 		}
-		if tk := <-tc.q.c; tk.executable != tc.t.executable {
-			t.Errorf("endlessQueue.Add(): got unexpected data = %v, want = %v", tk, tc.t)
-		}
+		require.Equal(t, tc.t.executable, (<-tc.q.c).executable)
 	}
 }
 
@@ -51,9 +48,7 @@ func Test_endlessQueue_Start(t *testing.T) {
 		timeout:    time.Second * 2,
 		logger:     testutils.DummyTaskLogger("echo", "ip"),
 	}
-	if err := q.Add(task); err != nil {
-		t.Errorf("endlessQueue.Add(): got unexpected error = %v", err)
-	}
+	require.NoError(t, q.Add(task))
 
 	var out *Output
 	ctx, cancel := context.WithCancel(context.Background())
@@ -62,13 +57,7 @@ func Test_endlessQueue_Start(t *testing.T) {
 	out = <-q.Results()
 	cancel()
 
-	if out.Name != task.name {
-		t.Errorf("endlessQueue.Start(): got unexpected result name: got = %v, want = %v", out.Name, task.name)
-	}
-	if out.Team != task.teamID {
-		t.Errorf("endlessQueue.Start(): got unexpected result team: got = %v, want = %v", out.Team, task.teamID)
-	}
-	if string(out.Out) != task.teamIP {
-		t.Errorf("endlessQueue.Start(): got unexpected result: got = %v, want = %v", out.Out, task.teamIP)
-	}
+	assert.Equal(t, task.name, out.Name)
+	assert.Equal(t, task.teamID, out.Team)
+	assert.Equal(t, task.teamIP, string(out.Out))
 }

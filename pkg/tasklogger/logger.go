@@ -8,6 +8,9 @@ import (
 	neopb "neo/lib/genproto/neo"
 )
 
+// 1 MB.
+const maxMessageLength = 1024 * 1024
+
 func New(exploit string, version int64, team string, sender Sender) *TaskLogger {
 	return &TaskLogger{
 		exploit: exploit,
@@ -52,7 +55,7 @@ func (l *TaskLogger) newLine(msg, level string) *neopb.LogLine {
 	return &neopb.LogLine{
 		Exploit: l.exploit,
 		Version: l.version,
-		Message: msg,
+		Message: sanitizeMessage(msg),
 		Level:   level,
 		Team:    l.team,
 	}
@@ -64,4 +67,11 @@ func (l *TaskLogger) getLogger() *logrus.Entry {
 		"version": l.version,
 		"team":    l.team,
 	})
+}
+
+func sanitizeMessage(msg string) string {
+	if len(msg) > maxMessageLength {
+		msg = msg[:maxMessageLength]
+	}
+	return msg
 }

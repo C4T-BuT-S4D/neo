@@ -8,15 +8,18 @@ Client + server for exploit distribution during Attack & Defence CTF competition
 
 ## Why
 
-Usually during large CTFs, where the regular laptop can't run the exploits on all participants, teams start some cloud
-servers to run these exploits on, but the administration and access management can be a pain and wastes time. **Neo**
-can solve this problem by doing 2 things:
+Usually during large CTFs, where the regular laptop can't run the exploits on all participants, teams rent cloud
+servers to run the exploits. However, uploading, managing and monitoring the exploits on a remote machine
+can be a pain and wastes time. **Neo** helps in two primary ways:
 
-1. Every player can start an instance of Neo client and attack a proportional part of the whole team pool automatically.
+1. Every player can start an instance of **Neo client** and attack a proportional part of the whole team pool
+   automatically.
 
-2. Exploit writers don't copy the newly-created exploits to the exploit server, or manage the distribution by hand, but
-   rather submit them to the **Neo server** using the same client, and the server does all the work, running the exploit
-   on available clients.
+2. Exploit writers don't upload the newly-created exploits to the exploit server, neither do they manage the
+   distribution
+   by hand, but rather submit them to the **Neo server** using the same client, and the server does all the work,
+   distributing the exploit
+   among the available clients.
 
 ## Usage
 
@@ -33,13 +36,14 @@ Neo uses the exploit farm to acquire the team list and submit the flags. The pro
 - `POST /api/post_flags` will receive an array of mappings with keys `flag`, `sploit` and `team`. `sploit` is the
   exploit name for statistics, and `team` is the team name.
 
-Farm password will be passed in `Authorization` and `X-Token` headers, so the protocol is compatible with **
-DestructiveFarm**.
+Farm password will be passed in `Authorization` and `X-Token` headers, so the protocol is compatible with
+**DestructiveFarm**.
 
 ### Server
 
-Server coordinates the clients and distributes teams to attack among them. It must have access to the farm, and all
-clients must have access to the server, so you might want to start it somewhere with the public IP address.
+Server coordinates the clients and distributes targets among them. It must have access to the farm, and all
+clients must have access both to the server and the farm, so you might want to start it somewhere with the public IP
+address.
 
 To start the server:
 

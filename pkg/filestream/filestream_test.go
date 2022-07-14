@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 
 	neopb "neo/lib/genproto/neo"
 )
@@ -32,7 +33,7 @@ type mockUploadStream struct {
 }
 
 func (ms *mockUploadStream) Send(s *neopb.FileStream) error {
-	ms.buf.Write(s.GetChunk())
+	ms.buf.Write(s.Chunk)
 	if ms.withError {
 		return errTestWrite
 	}
@@ -86,10 +87,7 @@ func TestLoad(t *testing.T) {
 			err:    errTestWrite,
 		},
 	} {
-		err := Load(tc.reader, tc.stream)
-		if !errors.Is(err, tc.err) {
-			t.Errorf("Load(): got unexpected error = %v", err)
-		}
+		require.ErrorIs(t, Load(tc.reader, tc.stream), tc.err)
 		if diff := cmp.Diff(tc.want, tc.stream.buf.String()); diff != "" {
 			t.Errorf("Load() result mismatch (-want +got):\n%s", diff)
 		}
@@ -122,13 +120,7 @@ func TestSave(t *testing.T) {
 			err:    errTestWrite,
 		},
 	} {
-		err := Save(tc.stream, tc.writer)
-		if tc.err == nil && err != nil {
-			t.Errorf("Save(): error was not expected = %v", err)
-		}
-		if tc.err != nil && !errors.Is(err, tc.err) {
-			t.Errorf("Save(): expected error %v, got = %v", tc.err, err)
-		}
+		require.ErrorIs(t, Save(tc.stream, tc.writer), tc.err)
 		if diff := cmp.Diff(tc.want, tc.writer.String()); diff != "" {
 			t.Errorf("Save() result mismatch (-want +got):\n%s", diff)
 		}

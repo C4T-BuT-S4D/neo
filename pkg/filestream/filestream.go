@@ -29,7 +29,7 @@ func Save(stream DownloadStream, out io.Writer) error {
 		if err != nil {
 			return fmt.Errorf("reading from stream: %w", err)
 		}
-		if _, err := out.Write(in.GetChunk()); err != nil {
+		if _, err := out.Write(in.Chunk); err != nil {
 			return fmt.Errorf("writing stream content chunk: %w", err)
 		}
 	}

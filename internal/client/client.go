@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"neo/pkg/filestream"
 
@@ -38,7 +39,7 @@ func (nc *Client) Ping(ctx context.Context, t neopb.PingRequest_PingType) (*neop
 	if err != nil {
 		return nil, fmt.Errorf("making ping request: %w", err)
 	}
-	return resp.GetState(), nil
+	return resp.State, nil
 }
 
 func (nc *Client) Exploit(ctx context.Context, id string) (*neopb.ExploitResponse, error) {
@@ -58,7 +59,7 @@ func (nc *Client) UpdateExploit(ctx context.Context, state *neopb.ExploitState) 
 	if err != nil {
 		return nil, fmt.Errorf("aking update exploit request: %w", err)
 	}
-	return resp.GetState(), nil
+	return resp.State, nil
 }
 
 func (nc *Client) DownloadFile(ctx context.Context, info *neopb.FileInfo, out io.Writer) error {
@@ -112,7 +113,7 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 		return fmt.Errorf("fetching current exploit config: %w", err)
 	}
 
-	req := &neopb.UpdateExploitRequest{State: resp.GetState()}
+	req := &neopb.UpdateExploitRequest{State: resp.State}
 	req.State.Disabled = disabled
 
 	if _, err := nc.c.UpdateExploit(ctx, req); err != nil {
@@ -122,7 +123,7 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 }
 
 func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, error) {
-	stream, err := nc.c.BroadcastRequests(ctx, &neopb.Empty{})
+	stream, err := nc.c.BroadcastRequests(ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("creating broadcast requests stream: %w", err)
 	}
@@ -148,7 +149,7 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, 
 }
 
 func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.SingleRunRequest, error) {
-	stream, err := nc.c.SingleRunRequests(ctx, &neopb.Empty{})
+	stream, err := nc.c.SingleRunRequests(ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("creating single run requests stream: %w", err)
 	}

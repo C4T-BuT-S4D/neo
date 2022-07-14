@@ -2,6 +2,8 @@ package rendezvous
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestRendezvous_Calculate(t *testing.T) {
@@ -28,14 +30,9 @@ func TestRendezvous_Calculate(t *testing.T) {
 
 			k := combineKey(tt.nodeID, tt.value)
 			rhash, ok := r.checkCache(k)
-			if !ok {
-				t.Error("Key is not cached after add")
-			} else {
-				needHash := weightHash(rhash, tt.nodeWeight)
-				if needHash != hash {
-					t.Errorf("Cached %f, but returned %f", needHash, hash)
-				}
-			}
+			require.True(t, ok)
+			needHash := weightHash(rhash, tt.nodeWeight)
+			require.Equal(t, needHash, hash)
 		})
 	}
 }

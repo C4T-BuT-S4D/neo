@@ -18,6 +18,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	neopb "neo/lib/genproto/neo"
 )
@@ -93,8 +94,8 @@ func (ac *addCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
 	exists := false
-	for _, v := range state.GetExploits() {
-		if v.GetExploitId() == ac.exploitID {
+	for _, v := range state.Exploits {
+		if v.ExploitId == ac.exploitID {
 			exists = true
 			break
 		}
@@ -150,8 +151,8 @@ func (ac *addCLI) Run(ctx context.Context) error {
 		Config: &neopb.ExploitConfiguration{
 			Entrypoint: file,
 			IsArchive:  ac.isArchive,
-			RunEvery:   ac.runEvery.String(),
-			Timeout:    ac.timeout.String(),
+			RunEvery:   durationpb.New(ac.runEvery),
+			Timeout:    durationpb.New(ac.timeout),
 		},
 		Endless:  ac.endless,
 		Disabled: ac.disabled,

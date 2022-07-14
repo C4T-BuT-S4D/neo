@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -22,13 +21,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	neopb "neo/lib/genproto/neo"
-)
-
-const (
-	broadcastChannel = "broadcast"
-	singleRunChannel = "single_run"
 )
 
 const (
@@ -38,14 +33,6 @@ const (
 const (
 	// 4MB, grpc frame size.
 	maxMsgSize = 4 * 1024 * 1024
-)
-
-var (
-	ErrInvalidMessageType = errors.New("invalid message type")
-)
-
-var (
-	noResponse = &neopb.Empty{}
 )
 
 type fileInterface interface {
@@ -91,12 +78,13 @@ func New(cfg *Config, storage *CachedStorage, logStore *LogStorage) (*ExploitMan
 		return nil, fmt.Errorf("creating filesystem: %w", err)
 	}
 	ems := &ExploitManagerServer{
-		storage:    storage,
-		fs:         fs,
-		buckets:    hostbucket.New(cfg.FarmConfig.Teams),
-		visits:     newVisitsMap(),
-		ps:         pubsub.NewPubSub(),
-		logStorage: logStore,
+		storage:         storage,
+		fs:              fs,
+		buckets:         hostbucket.New(cfg.FarmConfig.Teams),
+		visits:          newVisitsMap(),
+		singleRunPubSub: pubsub.NewPubSub[*neopb.SingleRunRequest](),
+		broadcastPubSub: pubsub.NewPubSub[*neopb.Command](),
+		logStorage:      logStore,
 	}
 	ems.UpdateConfig(cfg)
 	return ems, nil
@@ -112,18 +100,19 @@ type ExploitManagerServer struct {
 	visits     *visitsMap
 	fs         filesystem
 
-	ps pubsub.PubSub
+	singleRunPubSub *pubsub.PubSub[*neopb.SingleRunRequest]
+	broadcastPubSub *pubsub.PubSub[*neopb.Command]
 }
 
-func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
+func (s *ExploitManagerServer) UpdateConfig(cfg *Config) {
 	env := make([]string, 0, len(cfg.Environ))
 	for k, v := range cfg.Environ {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	em.cfgMutex.Lock()
-	defer em.cfgMutex.Unlock()
-	em.config = &config.Config{
+	s.cfgMutex.Lock()
+	defer s.cfgMutex.Unlock()
+	s.config = &config.Config{
 		PingEvery:    cfg.PingEvery,
 		SubmitEvery:  cfg.SubmitEvery,
 		FarmURL:      cfg.FarmConfig.URL,
@@ -131,33 +120,33 @@ func (em *ExploitManagerServer) UpdateConfig(cfg *Config) {
 		FlagRegexp:   regexp.MustCompile(cfg.FarmConfig.FlagRegexp),
 		Environ:      env,
 	}
-	em.buckets.UpdateTeams(cfg.FarmConfig.Teams)
+	s.buckets.UpdateTeams(cfg.FarmConfig.Teams)
 }
 
-func (em *ExploitManagerServer) Ping(_ context.Context, r *neopb.PingRequest) (*neopb.PingResponse, error) {
-	logrus.Infof("Got %s from: %s", neopb.PingRequest_PingType_name[int32(r.GetType())], r.GetClientId())
+func (s *ExploitManagerServer) Ping(_ context.Context, r *neopb.PingRequest) (*neopb.PingResponse, error) {
+	logrus.Infof("Got %s from: %s", neopb.PingRequest_PingType_name[int32(r.Type)], r.ClientId)
 
 	if r.Type == neopb.PingRequest_HEARTBEAT {
-		em.cfgMutex.RLock()
-		defer em.cfgMutex.RUnlock()
-		em.visits.Add(r.GetClientId())
-		em.buckets.AddNode(r.GetClientId(), int(r.GetWeight()))
+		s.cfgMutex.RLock()
+		defer s.cfgMutex.RUnlock()
+		s.visits.Add(r.ClientId)
+		s.buckets.AddNode(r.ClientId, int(r.Weight))
 	} else if r.Type == neopb.PingRequest_LEAVE {
-		em.visits.MarkInvalid(r.GetClientId())
+		s.visits.MarkInvalid(r.ClientId)
 	}
 
 	return &neopb.PingResponse{
 		State: &neopb.ServerState{
-			ClientTeamMap: em.buckets.Buckets(),
-			Exploits:      em.storage.States(),
-			Config:        config.ToProto(em.config),
+			ClientTeamMap: s.buckets.Buckets(),
+			Exploits:      s.storage.States(),
+			Config:        config.ToProto(s.config),
 		},
 	}, nil
 }
 
-func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFileServer) error {
-	info := &neopb.FileInfo{Uuid: uuid.New().String()}
-	of, err := em.fs.Create(info.GetUuid())
+func (s *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFileServer) error {
+	info := &neopb.FileInfo{Uuid: uuid.NewString()}
+	of, err := s.fs.Create(info.Uuid)
 	if err != nil {
 		return logErrorf(codes.Internal, "Failed to create file: %v", err)
 	}
@@ -181,10 +170,10 @@ func (em *ExploitManagerServer) UploadFile(stream neopb.ExploitManager_UploadFil
 	return nil
 }
 
-func (em *ExploitManagerServer) DownloadFile(fi *neopb.FileInfo, stream neopb.ExploitManager_DownloadFileServer) error {
-	f, err := em.fs.Open(fi.GetUuid())
+func (s *ExploitManagerServer) DownloadFile(fi *neopb.FileInfo, stream neopb.ExploitManager_DownloadFileServer) error {
+	f, err := s.fs.Open(fi.Uuid)
 	if err != nil {
-		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
+		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.Uuid, err)
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
@@ -192,13 +181,13 @@ func (em *ExploitManagerServer) DownloadFile(fi *neopb.FileInfo, stream neopb.Ex
 		}
 	}()
 	if err := filestream.Load(f, stream); err != nil {
-		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
+		return logErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.Uuid, err)
 	}
 	return nil
 }
 
-func (em *ExploitManagerServer) Exploit(_ context.Context, r *neopb.ExploitRequest) (*neopb.ExploitResponse, error) {
-	state, ok := em.storage.GetState(r.GetExploitId())
+func (s *ExploitManagerServer) Exploit(_ context.Context, r *neopb.ExploitRequest) (*neopb.ExploitResponse, error) {
+	state, ok := s.storage.GetState(r.ExploitId)
 	if !ok {
 		return nil, logErrorf(codes.NotFound, "Failed to find an exploit state = %v", state.ExploitId)
 	}
@@ -207,79 +196,59 @@ func (em *ExploitManagerServer) Exploit(_ context.Context, r *neopb.ExploitReque
 	}, nil
 }
 
-func (em *ExploitManagerServer) UpdateExploit(_ context.Context, r *neopb.UpdateExploitRequest) (*neopb.UpdateExploitResponse, error) {
-	newState, err := em.storage.UpdateExploitVersion(r.GetState())
+func (s *ExploitManagerServer) UpdateExploit(_ context.Context, r *neopb.UpdateExploitRequest) (*neopb.UpdateExploitResponse, error) {
+	newState, err := s.storage.UpdateExploitVersion(r.State)
 	if err != nil {
 		return nil, logErrorf(codes.Internal, "Failed to update exploit version: %v", err)
 	}
 	return &neopb.UpdateExploitResponse{State: newState}, nil
 }
 
-func (em *ExploitManagerServer) BroadcastCommand(_ context.Context, r *neopb.Command) (*neopb.Empty, error) {
+func (s *ExploitManagerServer) BroadcastCommand(_ context.Context, r *neopb.Command) (*emptypb.Empty, error) {
 	logrus.Infof("Received broadcast request to run %v", r)
-	em.ps.Publish(broadcastChannel, r)
-	return noResponse, nil
+	s.broadcastPubSub.Publish(r)
+	return &emptypb.Empty{}, nil
 }
 
-func (em *ExploitManagerServer) BroadcastRequests(_ *neopb.Empty, stream neopb.ExploitManager_BroadcastRequestsServer) error {
-	handler := func(msg interface{}) error {
-		cmd, ok := msg.(*neopb.Command)
-		if !ok {
-			return ErrInvalidMessageType
-		}
-		if err := stream.Send(cmd); err != nil {
-			return fmt.Errorf("sending command: %w", err)
-		}
-		return nil
-	}
-	sub := em.ps.Subscribe(broadcastChannel, handler)
-	defer em.ps.Unsubscribe(sub)
+func (s *ExploitManagerServer) BroadcastRequests(_ *emptypb.Empty, stream neopb.ExploitManager_BroadcastRequestsServer) error {
+	sub := s.broadcastPubSub.Subscribe(stream.Send)
+	defer s.broadcastPubSub.Unsubscribe(sub)
 
 	sub.Run(stream.Context())
 	return nil
 }
 
-func (em *ExploitManagerServer) SingleRun(_ context.Context, r *neopb.SingleRunRequest) (*neopb.Empty, error) {
+func (s *ExploitManagerServer) SingleRun(_ context.Context, r *neopb.SingleRunRequest) (*emptypb.Empty, error) {
 	logrus.Infof("Received single run request %v", r)
-	em.ps.Publish(singleRunChannel, r)
-	return noResponse, nil
+	s.singleRunPubSub.Publish(r)
+	return &emptypb.Empty{}, nil
 }
 
-func (em *ExploitManagerServer) SingleRunRequests(_ *neopb.Empty, stream neopb.ExploitManager_SingleRunRequestsServer) error {
-	handler := func(msg interface{}) error {
-		req, ok := msg.(*neopb.SingleRunRequest)
-		if !ok {
-			return ErrInvalidMessageType
-		}
-		if err := stream.Send(req); err != nil {
-			return fmt.Errorf("sending single run request: %w", err)
-		}
-		return nil
-	}
-	sub := em.ps.Subscribe(singleRunChannel, handler)
-	defer em.ps.Unsubscribe(sub)
+func (s *ExploitManagerServer) SingleRunRequests(_ *emptypb.Empty, stream neopb.ExploitManager_SingleRunRequestsServer) error {
+	sub := s.singleRunPubSub.Subscribe(stream.Send)
+	defer s.singleRunPubSub.Unsubscribe(sub)
 
 	sub.Run(stream.Context())
 	return nil
 }
 
-func (em *ExploitManagerServer) AddLogLines(ctx context.Context, lines *neopb.AddLogLinesRequest) (*neopb.Empty, error) {
+func (s *ExploitManagerServer) AddLogLines(ctx context.Context, lines *neopb.AddLogLinesRequest) (*emptypb.Empty, error) {
 	decoded := make([]LogLine, 0, len(lines.Lines))
 	for _, line := range lines.Lines {
 		decoded = append(decoded, *NewLogLineFromProto(line))
 	}
-	if err := em.logStorage.Add(ctx, decoded); err != nil {
+	if err := s.logStorage.Add(ctx, decoded); err != nil {
 		return nil, logErrorf(codes.Internal, "adding log lines: %v", err)
 	}
-	return &neopb.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (em *ExploitManagerServer) SearchLogLines(req *neopb.SearchLogLinesRequest, stream neopb.ExploitManager_SearchLogLinesServer) error {
+func (s *ExploitManagerServer) SearchLogLines(req *neopb.SearchLogLinesRequest, stream neopb.ExploitManager_SearchLogLinesServer) error {
 	opts := GetOptions{
 		Exploit: req.Exploit,
 		Version: req.Version,
 	}
-	lines, err := em.logStorage.Get(stream.Context(), opts)
+	lines, err := s.logStorage.Get(stream.Context(), opts)
 	if err != nil {
 		return logErrorf(codes.Internal, "searching log lines: %v", err)
 	}
@@ -318,21 +287,21 @@ func (em *ExploitManagerServer) SearchLogLines(req *neopb.SearchLogLinesRequest,
 	return nil
 }
 
-func (em *ExploitManagerServer) checkClients() {
-	deadClients := em.visits.Invalidate(time.Now(), em.config.PingEvery)
+func (s *ExploitManagerServer) checkClients() {
+	deadClients := s.visits.Invalidate(time.Now(), s.config.PingEvery)
 	logrus.Infof("Heartbeat: got dead clients: %v", deadClients)
 	for _, c := range deadClients {
-		em.buckets.DeleteNode(c)
+		s.buckets.DeleteNode(c)
 	}
 }
 
-func (em *ExploitManagerServer) HeartBeat(ctx context.Context) {
-	ticker := time.NewTicker(em.config.PingEvery)
+func (s *ExploitManagerServer) HeartBeat(ctx context.Context) {
+	ticker := time.NewTicker(s.config.PingEvery)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			em.checkClients()
+			s.checkClients()
 		case <-ctx.Done():
 			return
 		}

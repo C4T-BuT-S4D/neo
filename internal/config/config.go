@@ -6,6 +6,8 @@ import (
 	"time"
 
 	neopb "neo/lib/genproto/neo"
+
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 type Config struct {
@@ -22,8 +24,8 @@ func ToProto(c *Config) *neopb.Config {
 		FarmUrl:      c.FarmURL,
 		FarmPassword: c.FarmPassword,
 		FlagRegexp:   c.FlagRegexp.String(),
-		PingEvery:    c.PingEvery.String(),
-		SubmitEvery:  c.SubmitEvery.String(),
+		PingEvery:    durationpb.New(c.PingEvery),
+		SubmitEvery:  durationpb.New(c.SubmitEvery),
 		Environ:      c.Environ,
 	}
 }
@@ -33,17 +35,13 @@ func FromProto(config *neopb.Config) (*Config, error) {
 		cfg Config
 		err error
 	)
-	if cfg.FlagRegexp, err = regexp.Compile(config.GetFlagRegexp()); err != nil {
+	if cfg.FlagRegexp, err = regexp.Compile(config.FlagRegexp); err != nil {
 		return nil, fmt.Errorf("compiling regex: %w", err)
 	}
-	if cfg.PingEvery, err = time.ParseDuration(config.GetPingEvery()); err != nil {
-		return nil, fmt.Errorf("parsing ping interval: %w", err)
-	}
-	if cfg.SubmitEvery, err = time.ParseDuration(config.GetSubmitEvery()); err != nil {
-		return nil, fmt.Errorf("parsing submit interval: %w", err)
-	}
-	cfg.FarmURL = config.GetFarmUrl()
-	cfg.FarmPassword = config.GetFarmPassword()
-	cfg.Environ = config.GetEnviron()
+	cfg.FarmURL = config.FarmUrl
+	cfg.FarmPassword = config.FarmPassword
+	cfg.PingEvery = config.PingEvery.AsDuration()
+	cfg.SubmitEvery = config.SubmitEvery.AsDuration()
+	cfg.Environ = config.Environ
 	return &cfg, nil
 }

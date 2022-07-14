@@ -51,14 +51,14 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
-	cfg, err := config.FromProto(state.GetConfig())
+	cfg, err := config.FromProto(state.Config)
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %w", err)
 	}
 
 	exists := false
-	for _, v := range state.GetExploits() {
-		if v.GetExploitId() == rc.exploitID {
+	for _, v := range state.Exploits {
+		if v.ExploitId == rc.exploitID {
 			exists = true
 			break
 		}
@@ -68,15 +68,15 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	}
 
 	storage := exploit.NewStorage(exploit.NewCache(), rc.baseCLI.c.ExploitDir, c)
-	storage.UpdateExploits(ctx, state.GetExploits())
+	storage.UpdateExploits(ctx, state.Exploits)
 	ex, ok := storage.Exploit(rc.exploitID)
 	if !ok {
 		return fmt.Errorf("failed to find exploit '%s' in storage", rc.exploitID)
 	}
 
 	allTeams := make(map[string]string)
-	for _, tbuck := range state.GetClientTeamMap() {
-		for k, v := range tbuck.GetTeams() {
+	for _, tbuck := range state.ClientTeamMap {
+		for k, v := range tbuck.Teams {
 			allTeams[k] = v
 		}
 	}

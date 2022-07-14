@@ -34,8 +34,8 @@ func (sc *singleRunCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
 	exists := false
-	for _, v := range state.GetExploits() {
-		if v.GetExploitId() == sc.exploitID {
+	for _, v := range state.Exploits {
+		if v.ExploitId == sc.exploitID {
 			exists = true
 			break
 		}

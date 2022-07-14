@@ -63,9 +63,7 @@ func TestCachedStorage_UpdateStates(t *testing.T) {
 	db, cleanup := testDB()
 	defer cleanup()
 	cs, err := NewStorage(db)
-	if err != nil {
-		t.Fatalf("NewStorage() failed with unexpected error = %v", err)
-	}
+	require.NoError(t, err)
 	state := &neopb.ExploitState{
 		ExploitId: "1",
 		File:      &neopb.FileInfo{Uuid: "1"},
@@ -74,12 +72,9 @@ func TestCachedStorage_UpdateStates(t *testing.T) {
 			IsArchive:  false,
 		},
 	}
-	if _, err := cs.UpdateExploitVersion(state); err != nil {
-		t.Fatalf("UpdateExploitVersion(): got unexpected error = %v", err)
-	}
-	if state.Version != 1 {
-		t.Errorf("UpdateExploitVersion(): wrong version returned: want: 1, got: %d", state.Version)
-	}
+	_, err = cs.UpdateExploitVersion(state)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, state.Version)
 	s, _ := cs.GetState(state.ExploitId)
 	if diff := cmp.Diff(state, s, protocmp.Transform()); diff != "" {
 		t.Errorf("UpdateExploitVersion(): unexpected state diff: (-want +got):\n%s", diff)
@@ -92,28 +87,22 @@ func TestCachedStorage_UpdateStates(t *testing.T) {
 			IsArchive:  true,
 		},
 	}
-	if _, err := cs.UpdateExploitVersion(state); err != nil {
-		t.Fatalf("UpdateExploitVersion(): got unexpected error = %v", err)
-	}
-	if state.Version != 2 {
-		t.Errorf("UpdateExploitVersion(): wrong version returned: want: 2, got: %d", state.Version)
-	}
+	_, err = cs.UpdateExploitVersion(state)
+	require.NoError(t, err)
+	require.EqualValues(t, 2, state.Version)
 	s, _ = cs.GetState(state.ExploitId)
 	if diff := cmp.Diff(state, s, protocmp.Transform()); diff != "" {
 		t.Errorf("UpdateExploitVersion(): unexpected state diff: (-want +got):\n%s", diff)
 	}
-	if len(cs.States()) != 1 {
-		t.Errorf("States(): want: %d, got: %d", 1, len(cs.States()))
-	}
+	require.Len(t, cs.States(), 1)
 }
 
 func TestCachedStorage_UpdateExploitVersionDB(t *testing.T) {
 	db, cleanup := testDB()
 	defer cleanup()
 	cs, err := NewStorage(db)
-	if err != nil {
-		t.Fatalf("NewStorage() failed with unexpected error = %v", err)
-	}
+	require.NoError(t, err)
+
 	state := &neopb.ExploitState{
 		ExploitId: "1",
 		File:      &neopb.FileInfo{Uuid: "1"},
@@ -122,15 +111,10 @@ func TestCachedStorage_UpdateExploitVersionDB(t *testing.T) {
 			IsArchive:  false,
 		},
 	}
-	if _, err := cs.UpdateExploitVersion(state); err != nil {
-		t.Fatalf("UpdateExploitVersion(): got unexpected error = %v", err)
-	}
-	if err := cs.readDB(); err != nil {
-		t.Fatalf("readDB(): got unexpected error: %v", err)
-	}
-	if len(cs.States()) != 1 {
-		t.Errorf("States(): want: %d, got: %d", 1, len(cs.States()))
-	}
+	_, err = cs.UpdateExploitVersion(state)
+	require.NoError(t, err)
+	require.NoError(t, cs.readDB())
+	require.Len(t, cs.States(), 1)
 }
 
 // TestCachedStorage_readDB test the implementation of the readDB function.
@@ -146,26 +130,18 @@ func TestCachedStorage_readDB(t *testing.T) {
 		},
 	}
 	cs, err := NewStorage(db)
-	if err != nil {
-		t.Fatalf("NewStorage() failed with unexpected error = %v", err)
-	}
-	if err := cs.bdb.Update(func(tx *bolt.Tx) error {
+	require.NoError(t, err)
+	require.NoError(t, cs.bdb.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(stateBucketKey))
 		stateBytes, err := proto.Marshal(state)
-		if err != nil {
-			t.Fatalf("proto.Marshall(): failed with error: %v", err)
-		}
+		require.NoError(t, err)
 		stateKey := []byte(fmt.Sprintf("%s:%d", state.ExploitId, state.Version))
 		if err := b.Put(stateKey, stateBytes); err != nil {
 			return fmt.Errorf("setting state in db: %w", err)
 		}
 		return nil
-	}); err != nil {
-		t.Fatalf("db.Update() failed with error = %v", err)
-	}
-	if err := cs.readDB(); err != nil {
-		t.Fatalf("readDB() failed with unexpected error = %v", err)
-	}
+	}))
+	require.NoError(t, cs.readDB())
 	if diff := cmp.Diff(state, cs.stateCache["1"], protocmp.Transform()); diff != "" {
 		t.Errorf("readDB(): unexpected diff for exploit with id = 1")
 	}

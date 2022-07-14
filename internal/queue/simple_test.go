@@ -2,9 +2,7 @@ package queue
 
 import (
 	"context"
-	"errors"
 	"os/exec"
-	"reflect"
 	"testing"
 	"time"
 
@@ -12,6 +10,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSimpleQueue_Add(t *testing.T) {
@@ -32,16 +32,11 @@ func TestSimpleQueue_Add(t *testing.T) {
 	} {
 		tc.t.logger = testutils.DummyTaskLogger(tc.t.name, tc.t.teamIP)
 		err := tc.q.Add(*tc.t)
-		if !errors.Is(err, tc.wantErr) {
-			t.Errorf("simpleQueue.Add(): got error = %v, want = %v", err, tc.wantErr)
-			continue
-		}
+		require.ErrorIs(t, err, tc.wantErr)
 		if err != nil {
 			continue
 		}
-		if tk := <-tc.q.c; tk.executable != tc.t.executable {
-			t.Errorf("simpleQueue.Add(): got unexpected data = %v, want = %v", tk, tc.t)
-		}
+		require.Equal(t, tc.t.executable, (<-tc.q.c).executable)
 	}
 }
 
@@ -68,7 +63,7 @@ func TestSimpleQueue_runExploit(t *testing.T) {
 		{
 			q:        NewSimpleQueue(1).(*simpleQueue),
 			t:        Task{name: "bad executable", executable: "notfoundcli", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
-			wantErr:  &exec.Error{},
+			wantErr:  exec.ErrNotFound,
 			wantData: nil,
 			ctx:      context.Background(),
 		},
@@ -103,15 +98,13 @@ func TestSimpleQueue_runExploit(t *testing.T) {
 	} {
 		tc.t.logger = testutils.DummyTaskLogger(tc.t.name, tc.t.teamIP)
 		data, err := tc.q.runExploit(tc.ctx, tc.t)
-		cmpErr := func(e1, e2 error) bool {
-			if errors.Is(e1, e2) {
-				return true
-			}
-			return reflect.TypeOf(e1) == reflect.TypeOf(e2)
-		}
-		if !cmpErr(err, tc.wantErr) {
-			t.Errorf("simpleQueue.runExploit() [%s]: got unexpected err = %v, want = %v", tc.t.name, err, tc.wantErr)
-		}
+		// cmpErr := func(e1, e2 error) bool {
+		// 	if errors.Is(e1, e2) {
+		// 		return true
+		// 	}
+		// 	return reflect.TypeOf(e1) == reflect.TypeOf(e2)
+		// }
+		require.ErrorIs(t, err, tc.wantErr)
 
 		if diff := cmp.Diff(data, tc.wantData, cmpopts.EquateEmpty()); diff != "" {
 			t.Errorf("simpleQueue.runExploit() returned data mismatch (-want +got):\n%s", diff)
@@ -130,9 +123,7 @@ func TestSimpleQueue_Start(t *testing.T) {
 		timeout:    time.Second * 2,
 		logger:     testutils.DummyTaskLogger("echo", "ip"),
 	}
-	if err := q.Add(task); err != nil {
-		t.Errorf("simpleQueue.Add(): got unexpected error = %v", err)
-	}
+	require.NoError(t, q.Add(task))
 
 	var out *Output
 	ctx, cancel := context.WithCancel(context.Background())
@@ -141,13 +132,7 @@ func TestSimpleQueue_Start(t *testing.T) {
 	out = <-q.Results()
 	cancel()
 
-	if out.Name != task.name {
-		t.Errorf("simpleQueue.Start(): got unexpected result name: got = %v, want = %v", out.Name, task.name)
-	}
-	if out.Team != task.teamID {
-		t.Errorf("simpleQueue.Start(): got unexpected result team: got = %v, want = %v", out.Team, task.teamID)
-	}
-	if string(out.Out) != task.teamIP+"\n" {
-		t.Errorf("simpleQueue.Start(): got unexpected result: got = %v, want = %v", out.Out, task.teamIP+"\n")
-	}
+	assert.Equal(t, task.name, out.Name)
+	assert.Equal(t, task.teamID, out.Team)
+	assert.Equal(t, task.teamIP+"\n", string(out.Out))
 }

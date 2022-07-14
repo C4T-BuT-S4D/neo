@@ -36,8 +36,8 @@ func (sc *setDisabledCli) Run(ctx context.Context) error {
 	}
 
 	var spl *neopb.ExploitState
-	for _, v := range state.GetExploits() {
-		if v.GetExploitId() == sc.exploitID {
+	for _, v := range state.Exploits {
+		if v.ExploitId == sc.exploitID {
 			spl = v
 			break
 		}
@@ -46,7 +46,7 @@ func (sc *setDisabledCli) Run(ctx context.Context) error {
 	if spl == nil {
 		return fmt.Errorf("exploit %s does not exist", sc.exploitID)
 	}
-	if err := c.SetExploitDisabled(ctx, spl.GetExploitId(), sc.disabled); err != nil {
+	if err := c.SetExploitDisabled(ctx, spl.ExploitId, sc.disabled); err != nil {
 		return fmt.Errorf("set disabled failed: %w", err)
 	}
 

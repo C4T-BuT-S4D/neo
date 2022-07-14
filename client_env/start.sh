@@ -31,6 +31,7 @@ else
     --security-opt apparmor=unconfined \
     --cap-add=NET_ADMIN \
     --privileged \
+    --network host \
     --name "${CONTAINER_NAME}" \
     --hostname "${CONTAINER_NAME}" \
     "${IMAGE}" \

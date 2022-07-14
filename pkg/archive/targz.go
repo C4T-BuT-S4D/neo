@@ -52,18 +52,16 @@ func Untar(dst string, r io.Reader) error {
 		// the target location where the dir/file should be created
 		target := filepath.Join(dst, header.Name)
 
-		// the following switch could also be done using fi.Mode(), not sure if there
+		// the following switch could also be done using fi.Mode(), not sure if there's
 		// a benefit of using one vs. the other.
 		// fi := header.FileInfo()
 
 		// check the file type
 		switch header.Typeflag {
-		// if its a dir and it doesn't exist create it
+		// if it's a dir, and it doesn't exist create it
 		case tar.TypeDir:
-			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, 0755); err != nil {
-					return fmt.Errorf("creating directory %s: %w", target, err)
-				}
+			if err := os.MkdirAll(target, 0755); err != nil {
+				return fmt.Errorf("creating directory %s: %w", target, err)
 			}
 
 		// if it's a file create it
@@ -75,10 +73,11 @@ func Untar(dst string, r io.Reader) error {
 
 			// copy over contents
 			if _, err := io.Copy(f, tr); err != nil {
+				_ = f.Close()
 				return fmt.Errorf("copying file content: %w", err)
 			}
 
-			// manually close here after each file operation; defering would cause each file close
+			// manually close here after each file operation; deferring would cause each file close
 			// to wait until all operations have completed.
 			if err := f.Close(); err != nil {
 				return fmt.Errorf("closing file %s: %w", target, err)
@@ -142,12 +141,13 @@ func Tar(src string, w io.Writer) error {
 
 		// copy file data into tar writer
 		if _, err := io.Copy(tw, f); err != nil {
+			_ = f.Close()
 			return fmt.Errorf("copying file content: %w", err)
 		}
 
 		// manually close here after each file operation; defering would cause each file close
 		// to wait until all operations have completed.
-		if err = f.Close(); err != nil {
+		if err := f.Close(); err != nil {
 			return fmt.Errorf("closing file: %w", err)
 		}
 
