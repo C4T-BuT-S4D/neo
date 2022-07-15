@@ -14,8 +14,8 @@
 db.db
 /dist
 /client_env/.version
-data
-!data/.keep
+/data
+!/data/.keep
 
 # release files
 client_config.yml
