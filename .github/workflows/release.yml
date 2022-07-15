@@ -50,6 +50,11 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - id: repo_name
+        uses: ASzc/change-string-case-action@v2
+        with:
+          string: ${{ github.repository_owner }}
+
       - name: Build and push full client image
         id: docker_build_full
         uses: docker/build-push-action@v3
@@ -61,8 +66,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/${{ github.repository_owner }}/neo_env:latest
-            ghcr.io/${{ github.repository_owner }}/neo_env:${{ steps.get_version.outputs.VERSION }}
+            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env:latest
+            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env:${{ steps.get_version.outputs.VERSION }}
 
       - name: Build and push light client image
         id: docker_build_light
@@ -75,8 +80,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/${{ github.repository_owner }}/neo_env_light:latest
-            ghcr.io/${{ github.repository_owner }}/neo_env_light:${{ steps.get_version.outputs.VERSION }}
+            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_light:latest
+            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_light:${{ steps.get_version.outputs.VERSION }}
 
       - name: Build and push sage client image
         id: docker_build_sage
@@ -89,6 +94,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/${{ github.repository_owner }}/neo_env_sage:latest
-            ghcr.io/${{ github.repository_owner }}/neo_env_sage:${{ steps.get_version.outputs.VERSION }}
+            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_sage:latest
+            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_sage:${{ steps.get_version.outputs.VERSION }}
 
