@@ -47,7 +47,7 @@ RUN apt-get update && \
 
 FROM alpine:3.16 as image-light
 
-RUN apk add bash
+RUN apk add bash dbus
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
