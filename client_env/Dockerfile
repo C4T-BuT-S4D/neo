@@ -47,6 +47,10 @@ RUN apt-get update && \
 
 FROM alpine:3.16 as image-light
 
+RUN apk add bash
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 COPY --from=build /app/client /usr/local/bin/neo
 
 COPY client_env/entrypoint.sh /entrypoint.sh
