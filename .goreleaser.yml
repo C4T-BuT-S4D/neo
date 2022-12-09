@@ -44,8 +44,8 @@ archives:
     format: zip
     builds:
       - "neo_client"
-    name_template: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}"
-    wrap_in_directory: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}"
+    name_template: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    wrap_in_directory: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     replacements:
       darwin: macOS
       amd64: x64
