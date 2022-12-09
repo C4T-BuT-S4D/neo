@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/denisbrodbeck/machineid v1.0.1
-	github.com/fsnotify/fsnotify v1.4.9
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.2.0
@@ -22,7 +22,7 @@ require (
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
 require (
