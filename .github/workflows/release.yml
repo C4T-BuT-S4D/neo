@@ -65,6 +65,7 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: 'linux/amd64,linux/arm64'
           tags: |
             ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env:latest
             ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env:${{ steps.get_version.outputs.VERSION }}
@@ -79,6 +80,7 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: 'linux/amd64,linux/arm64'
           tags: |
             ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_light:latest
             ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_light:${{ steps.get_version.outputs.VERSION }}
@@ -93,6 +95,7 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: 'linux/amd64,linux/arm64'
           tags: |
             ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_sage:latest
             ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_sage:${{ steps.get_version.outputs.VERSION }}
