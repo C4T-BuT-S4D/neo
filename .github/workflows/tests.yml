@@ -35,13 +35,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Expose GitHub Runtime
+        uses: crazy-max/ghaction-github-runtime@v2
+
       - name: Build && test client image
         run: |
           docker buildx create --use --driver=docker-container
           docker buildx build --load \
             -t ghcr.io/c4t-but-s4d/neo_env:latest \
             --cache-to type=gha,mode=max \
-            --cache-from type=gha\
+            --cache-from type=gha \
             --target image-full \
             -f client_env/Dockerfile \
             .
