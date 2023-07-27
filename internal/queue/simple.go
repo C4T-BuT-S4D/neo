@@ -84,12 +84,13 @@ func (q *simpleQueue) worker(ctx context.Context) {
 			res, err := q.runExploit(ctx, task)
 
 			var exitErr *exec.ExitError
-			if err == nil {
+			switch {
+			case err == nil:
 				task.logger.Infof("Successfully run")
 				task.logger.Debugf("Output: %s", res)
-			} else if errors.Is(err, context.Canceled) || errors.As(err, &exitErr) {
+			case errors.Is(err, context.Canceled) || errors.As(err, &exitErr):
 				task.logger.Warningf("Task finished unsuccessfully: %v. Output: %s", err, res)
-			} else {
+			default:
 				task.logger.Errorf("Failed to run: %v. Output: %s", err, res)
 			}
 			q.out <- &Output{

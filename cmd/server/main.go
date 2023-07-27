@@ -26,40 +26,43 @@ import (
 func main() {
 	logger.Init()
 	if err := setupConfig(); err != nil {
-		logrus.Fatalf("error setting up config: %v", err)
+		logrus.Fatalf("Error setting up config: %v", err)
 	}
 	setConfigDefaults()
 	cfg, err := readConfig()
+	if err != nil {
+		logrus.Fatalf("Error reading config: %v", err)
+	}
 
 	setLogLevel(cfg)
 
 	ctx := context.Background()
 	fc := server.NewFarmClient(cfg.FarmConfig)
 	if err := fc.FillConfig(ctx, &cfg.FarmConfig); err != nil {
-		logrus.Fatalf("failed to fetch config from farm: %v", err)
+		logrus.Fatalf("Failed to fetch config from farm: %v", err)
 	}
 
 	st, err := server.NewBoltStorage(cfg.DBPath)
 	if err != nil {
-		logrus.Fatalf("failed to create bolt storage: %v", err)
+		logrus.Fatalf("Failed to create bolt storage: %v", err)
 	}
 
 	logStore, err := server.NewLogStorage(ctx, cfg.RedisURL)
 	if err != nil {
-		logrus.Fatalf("failed to create log storage: %v", err)
+		logrus.Fatalf("Failed to create log storage: %v", err)
 	}
 
 	if cfg.PingEvery <= 0 {
 		logrus.Fatalf("ping_every should be positive")
 	}
-	logrus.Infof("config: %+v", cfg)
+	logrus.Infof("Config: %+v", cfg)
 	srv, err := server.New(cfg, st, logStore)
 	if err != nil {
 		logrus.Fatalf("Failed to create server: %v", err)
 	}
 	lis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
-		logrus.Fatalf("failed to listen: %v", err)
+		logrus.Fatalf("Failed to listen: %v", err)
 	}
 
 	var opts []grpc.ServerOption
@@ -84,7 +87,7 @@ func main() {
 	}()
 	logrus.Infof("Starting server on port %s", cfg.Port)
 	if err := s.Serve(lis); err != nil {
-		logrus.Fatalf("failed to serve: %v", err)
+		logrus.Fatalf("Failed to serve: %v", err)
 	}
 }
 

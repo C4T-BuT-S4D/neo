@@ -8,18 +8,29 @@ linters:
     - bodyclose
     - dogsled
     - durationcheck
+    - errname
     - errorlint
     - exhaustive
+    - exportloopref
+    - gocritic
+    - gofmt
     - goimports
-    - ifshort
+    - gomoddirectives
+    - gosimple
+    - govet
+    - ineffassign
+    - importas
     - misspell
     - noctx
     - prealloc
     - predeclared
+    - revive
+    - staticcheck
     - thelper
     - tparallel
     - unconvert
     - unparam
+    - unused
     - whitespace
     - wrapcheck
 
@@ -41,3 +52,9 @@ issues:
     - source: "status\\.Errorf"
       linters:
         - wrapcheck
+    - linters:
+        - revive
+      text: "package-comments:"
+    - linters:
+        - revive
+      text: "exported:"
