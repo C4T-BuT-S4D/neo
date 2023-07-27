@@ -15,14 +15,13 @@ var once = sync.Once{}
 
 func Init() {
 	once.Do(func() {
-		logrus.SetFormatter(&logrus.TextFormatter{
-			ForceColors:            true,
+		logrus.SetFormatter(&CustomFormatter{
 			FullTimestamp:          true,
 			TimestampFormat:        "2006-01-02T15:04:05.000Z07:00",
-			DisableLevelTruncation: true,
+			DisableLevelTruncation: false,
 			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 				filename := filepath.Base(f.File)
-				return "", fmt.Sprintf(" %s:%d", filename, f.Line)
+				return "", fmt.Sprintf("%s:%d", filename, f.Line)
 			},
 		})
 		logrus.SetReportCaller(true)

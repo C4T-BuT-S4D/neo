@@ -2,14 +2,24 @@ package queue
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
+	"neo/internal/logger"
 	"neo/pkg/testutils"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 )
+
+func TestMain(m *testing.M) {
+	logger.Init()
+	logrus.SetLevel(logrus.DebugLevel)
+	goleak.VerifyTestMain(m)
+}
 
 func Test_endlessQueue_Add(t *testing.T) {
 	makeQueue := func(s int) *endlessQueue {
@@ -50,17 +60,26 @@ func Test_endlessQueue_Start(t *testing.T) {
 	}
 	require.NoError(t, q.Add(task))
 
-	var out *Output
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go q.Start(ctx)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		q.Start(ctx)
+	}()
+
 	select {
 	case <-time.After(time.Second * 3):
 		t.Fatal("timeout")
-	case out = <-q.Results():
+	case out := <-q.Results():
 		assert.Equal(t, task.name, out.Name)
 		assert.Equal(t, task.teamID, out.Team)
 		assert.Equal(t, task.teamIP, string(out.Out))
+		break
 	}
+
+	cancel()
+	wg.Wait()
 }

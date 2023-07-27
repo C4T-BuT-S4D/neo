@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"neo/pkg/neosync"
+
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 )
@@ -124,7 +126,7 @@ func TestPubSub_slowpoke(t *testing.T) {
 	})
 	go slowSub.Run(slowCtx)
 
-	fastWg := sync.WaitGroup{}
+	fastWg := neosync.NewWG()
 	fastWg.Add(samples)
 
 	fastSub := p.Subscribe(func(msg string) error {
@@ -140,16 +142,10 @@ func TestPubSub_slowpoke(t *testing.T) {
 		p.Publish("pew-pew")
 	}
 
-	done := make(chan struct{})
-	go func() {
-		fastWg.Wait()
-		close(done)
-	}()
-
 	select {
 	case <-time.After(1 * time.Second):
 		t.Fatal("publish blocks on slowpoke?")
-	case <-done:
+	case <-fastWg.Await():
 		// ok
 	}
 }
