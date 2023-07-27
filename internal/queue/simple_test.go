@@ -98,12 +98,6 @@ func TestSimpleQueue_runExploit(t *testing.T) {
 	} {
 		tc.t.logger = testutils.DummyTaskLogger(tc.t.name, tc.t.teamIP)
 		data, err := tc.q.runExploit(tc.ctx, tc.t)
-		// cmpErr := func(e1, e2 error) bool {
-		// 	if errors.Is(e1, e2) {
-		// 		return true
-		// 	}
-		// 	return reflect.TypeOf(e1) == reflect.TypeOf(e2)
-		// }
 		require.ErrorIs(t, err, tc.wantErr)
 
 		if diff := cmp.Diff(data, tc.wantData, cmpopts.EquateEmpty()); diff != "" {

@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
-	"os"
 	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"neo/internal/server"
@@ -22,33 +23,35 @@ import (
 )
 
 func main() {
-	setupConfig()
+	if err := setupConfig(); err != nil {
+		logrus.Fatalf("error setting up config: %v", err)
+	}
 	initLogger()
 	setConfigDefaults()
-	cfg := readConfig()
+	cfg, err := readConfig()
 
 	setLogLevel(cfg)
 
 	ctx := context.Background()
 	fc := server.NewFarmClient(cfg.FarmConfig)
 	if err := fc.FillConfig(ctx, &cfg.FarmConfig); err != nil {
-		logrus.Fatalf("Failed to fetch config from farm: %v", err)
+		logrus.Fatalf("failed to fetch config from farm: %v", err)
 	}
 
 	st, err := server.NewBoltStorage(cfg.DBPath)
 	if err != nil {
-		logrus.Fatalf("Failed to create bolt storage: %v", err)
+		logrus.Fatalf("failed to create bolt storage: %v", err)
 	}
 
 	logStore, err := server.NewLogStorage(ctx, cfg.RedisURL)
 	if err != nil {
-		logrus.Fatalf("Failed to create log storage: %v", err)
+		logrus.Fatalf("failed to create log storage: %v", err)
 	}
 
 	if cfg.PingEvery <= 0 {
 		logrus.Fatalf("ping_every should be positive")
 	}
-	logrus.Infof("Config: %+v", cfg)
+	logrus.Infof("config: %+v", cfg)
 	srv, err := server.New(cfg, st, logStore)
 	if err != nil {
 		logrus.Fatalf("Failed to create server: %v", err)
@@ -57,6 +60,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("failed to listen: %v", err)
 	}
+
 	var opts []grpc.ServerOption
 	if cfg.GrpcAuthKey != "" {
 		authInterceptor := grpcauth.NewServerInterceptor(cfg.GrpcAuthKey)
@@ -68,16 +72,13 @@ func main() {
 	neopb.RegisterExploitManagerServer(s, srv)
 	reflection.Register(s)
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
 
 	go srv.HeartBeat(ctx)
 	go func() {
-		<-c
+		<-ctx.Done()
 		logrus.Info("Received shutdown signal, stopping server")
-		cancel()
 		s.GracefulStop()
 	}()
 	logrus.Infof("Starting server on port %s", cfg.Port)
@@ -86,17 +87,18 @@ func main() {
 	}
 }
 
-func setupConfig() {
+func setupConfig() error {
 	pflag.BoolP("debug", "v", false, "Enable verbose logging")
 	pflag.StringP("config", "c", "server_config.yml", "Path to config file")
 	pflag.Parse()
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		logrus.Fatalf("Error binding flags: %v", err)
+		return fmt.Errorf("binding flags: %w", err)
 	}
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.SetEnvPrefix("NEO")
 	viper.AutomaticEnv()
+	return nil
 }
 
 func setConfigDefaults() {
@@ -105,18 +107,18 @@ func setConfigDefaults() {
 	viper.SetDefault("submit_every", time.Second*2)
 }
 
-func readConfig() *server.Config {
+func readConfig() (*server.Config, error) {
 	viper.SetConfigFile(viper.GetString("config"))
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
-		logrus.Fatal("Error reading config from yaml: ", err)
+		return nil, fmt.Errorf("reading yaml config: %w", err)
 	}
 	cfg := new(server.Config)
 	if err := viper.Unmarshal(cfg); err != nil {
-		logrus.Fatal("Error parsing config: ", err)
+		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 	logrus.Infof("Parsed config: %+v", cfg)
-	return cfg
+	return cfg, nil
 }
 
 func initLogger() {

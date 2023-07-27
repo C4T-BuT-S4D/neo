@@ -89,12 +89,13 @@ func TestCachedStorage_UpdateStates(t *testing.T) {
 	}
 	_, err = cs.UpdateExploitVersion(state)
 	require.NoError(t, err)
+	require.Len(t, cs.States(), 1)
 	require.EqualValues(t, 2, state.Version)
+
 	s, _ = cs.GetState(state.ExploitId)
 	if diff := cmp.Diff(state, s, protocmp.Transform()); diff != "" {
 		t.Errorf("UpdateExploitVersion(): unexpected state diff: (-want +got):\n%s", diff)
 	}
-	require.Len(t, cs.States(), 1)
 }
 
 func TestCachedStorage_UpdateExploitVersionDB(t *testing.T) {
