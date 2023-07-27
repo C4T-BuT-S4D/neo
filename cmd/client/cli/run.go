@@ -20,8 +20,8 @@ type runCLI struct {
 	sender *tasklogger.RemoteSender
 }
 
-func parseJobsFlag(cmd *cobra.Command) int {
-	jobs, err := cmd.Flags().GetInt("jobs")
+func parseJobsFlag(cmd *cobra.Command, name string) int {
+	jobs, err := cmd.Flags().GetInt(name)
 	if err != nil {
 		logrus.Fatalf("Could not get jobs number: %v", err)
 	}
@@ -43,11 +43,12 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 		logrus.Fatalf("run: failed to create client: %v", err)
 	}
 
-	jobs := parseJobsFlag(cmd)
+	jobs := parseJobsFlag(cmd, "jobs")
+	endlessJobs := parseJobsFlag(cmd, "endless-jobs")
 
 	neocli.Weight = jobs
 	cli.sender = tasklogger.NewRemoteSender(neocli)
-	cli.run = exploit.NewRunner(jobs, cfg.ExploitDir, neocli, cli.sender)
+	cli.run = exploit.NewRunner(jobs, endlessJobs, cfg.ExploitDir, neocli, cli.sender)
 	return cli
 }
 

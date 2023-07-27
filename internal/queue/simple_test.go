@@ -17,7 +17,7 @@ import (
 func TestSimpleQueue_Add(t *testing.T) {
 	makeQueue := func(s int) *simpleQueue {
 		q := NewSimpleQueue(1).(*simpleQueue)
-		q.c = make(chan Task, s)
+		q.c = make(chan *Task, s)
 		return q
 	}
 	for _, tc := range []struct {
@@ -31,7 +31,7 @@ func TestSimpleQueue_Add(t *testing.T) {
 		{q: makeQueue(0), t: &Task{executable: "1"}, wantErr: ErrQueueFull},
 	} {
 		tc.t.logger = testutils.DummyTaskLogger(tc.t.name, tc.t.teamIP)
-		err := tc.q.Add(*tc.t)
+		err := tc.q.Add(tc.t)
 		require.ErrorIs(t, err, tc.wantErr)
 		if err != nil {
 			continue
@@ -41,57 +41,45 @@ func TestSimpleQueue_Add(t *testing.T) {
 }
 
 func TestSimpleQueue_runExploit(t *testing.T) {
-	closedQueue := func() *simpleQueue {
-		q := NewSimpleQueue(1).(*simpleQueue)
-		q.Stop()
-		return q
-	}
 	for _, tc := range []struct {
 		q        *simpleQueue
-		t        Task
+		t        *Task
 		ctx      context.Context
 		wantErr  error
 		wantData []byte
 	}{
 		{
 			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        Task{name: "echo", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
+			t:        &Task{name: "echo", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
 			wantErr:  nil,
 			wantData: []byte("ip\n"),
 			ctx:      context.Background(),
 		},
 		{
 			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        Task{name: "bad executable", executable: "notfoundcli", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
+			t:        &Task{name: "bad executable", executable: "notfoundcli", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
 			wantErr:  exec.ErrNotFound,
 			wantData: nil,
 			ctx:      context.Background(),
 		},
 		{
 			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        Task{name: "cancelled ctx", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
+			t:        &Task{name: "cancelled ctx", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
 			wantErr:  context.Canceled,
 			wantData: nil,
 			ctx:      testutils.CanceledContext(),
 		},
 		{
 			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        Task{name: "timed out ctx", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
+			t:        &Task{name: "timed out ctx", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
 			wantErr:  context.DeadlineExceeded,
 			wantData: nil,
 			ctx:      testutils.TimedOutContext(),
 		},
 		{
 			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        Task{name: "zero timeout", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 0},
+			t:        &Task{name: "zero timeout", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 0},
 			wantErr:  context.DeadlineExceeded,
-			wantData: nil,
-			ctx:      context.Background(),
-		},
-		{
-			q:        closedQueue(),
-			t:        Task{name: "closed queue", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
-			wantErr:  context.Canceled,
 			wantData: nil,
 			ctx:      context.Background(),
 		},
@@ -108,7 +96,7 @@ func TestSimpleQueue_runExploit(t *testing.T) {
 
 func TestSimpleQueue_Start(t *testing.T) {
 	q := NewSimpleQueue(10)
-	task := Task{
+	task := &Task{
 		name:       "kek",
 		executable: "echo",
 		dir:        "",
@@ -119,11 +107,11 @@ func TestSimpleQueue_Start(t *testing.T) {
 	}
 	require.NoError(t, q.Add(task))
 
-	var out *Output
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	q.Start(ctx)
-	defer q.Stop()
-	out = <-q.Results()
+	out := <-q.Results()
 	cancel()
 
 	assert.Equal(t, task.name, out.Name)

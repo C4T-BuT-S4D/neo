@@ -48,7 +48,7 @@ func TestVisitsMap_Invalidate(t *testing.T) {
 		},
 	} {
 		d, _ := time.ParseDuration(tc.dur)
-		invalid := tc.vm.Invalidate(tc.now, d)
+		_, invalid := tc.vm.Invalidate(tc.now, d)
 		if diff := cmp.Diff(tc.want, invalid, cmpopts.SortSlices(testutils.LessString), cmpopts.EquateEmpty()); diff != "" {
 			t.Errorf("Invalidate() ids mismatch (-want +got):\n%s", diff)
 		}
@@ -94,7 +94,7 @@ func Test_visitsMap_MarkForDeletion(t *testing.T) {
 		for _, cid := range tc.mark {
 			tc.vm.MarkInvalid(cid)
 		}
-		invalid := tc.vm.Invalidate(tc.now, d)
+		_, invalid := tc.vm.Invalidate(tc.now, d)
 		if diff := cmp.Diff(tc.want, invalid, cmpopts.SortSlices(testutils.LessString), cmpopts.EquateEmpty()); diff != "" {
 			t.Errorf("MarkInvalid() ids mismatch (-want +got):\n%s", diff)
 		}

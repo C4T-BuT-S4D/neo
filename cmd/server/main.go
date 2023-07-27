@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"neo/internal/logger"
 	"neo/internal/server"
 	"neo/pkg/grpcauth"
 
@@ -23,10 +24,10 @@ import (
 )
 
 func main() {
+	logger.Init()
 	if err := setupConfig(); err != nil {
 		logrus.Fatalf("error setting up config: %v", err)
 	}
-	initLogger()
 	setConfigDefaults()
 	cfg, err := readConfig()
 
@@ -119,15 +120,6 @@ func readConfig() (*server.Config, error) {
 	}
 	logrus.Infof("Parsed config: %+v", cfg)
 	return cfg, nil
-}
-
-func initLogger() {
-	mainFormatter := &logrus.TextFormatter{}
-	mainFormatter.FullTimestamp = true
-	mainFormatter.ForceColors = true
-	mainFormatter.PadLevelText = true
-	mainFormatter.TimestampFormat = "2006-01-02 15:04:05"
-	logrus.SetFormatter(mainFormatter)
 }
 
 func setLogLevel(cfg *server.Config) {

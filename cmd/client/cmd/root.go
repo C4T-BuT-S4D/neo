@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"neo/internal/logger"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -44,6 +46,8 @@ func mustBindPersistent(c *cobra.Command, flag string) {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	logger.Init()
+
 	viper.SetConfigFile(viper.GetString("config"))
 	viper.SetConfigType("yaml")
 

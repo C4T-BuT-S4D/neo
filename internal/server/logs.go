@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	linesPerSploitLimit = 1000
+	linesPerSploitLimit = 100000
 )
 
 func NewLogStorage(ctx context.Context, redisURL string) (*LogStorage, error) {

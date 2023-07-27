@@ -245,9 +245,9 @@ func (s *ExploitManagerServer) SearchLogLines(req *neopb.SearchLogLinesRequest, 
 }
 
 func (s *ExploitManagerServer) checkClients() {
-	deadClients := s.visits.Invalidate(time.Now(), s.config.PingEvery)
-	logrus.Infof("Heartbeat: got dead clients: %v", deadClients)
-	for _, c := range deadClients {
+	alive, dead := s.visits.Invalidate(time.Now(), s.config.PingEvery)
+	logrus.Infof("Heartbeat: got dead clients: %v, alive clients: %v", dead, alive)
+	for _, c := range dead {
 		s.buckets.DeleteNode(c)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
 
 	bolt "go.etcd.io/bbolt"
@@ -46,11 +47,7 @@ type CachedStorage struct {
 func (cs *CachedStorage) States() []*neopb.ExploitState {
 	cs.m.RLock()
 	defer cs.m.RUnlock()
-	res := make([]*neopb.ExploitState, 0, len(cs.stateCache))
-	for _, v := range cs.stateCache {
-		res = append(res, v)
-	}
-	return res
+	return maps.Values(cs.stateCache)
 }
 
 func (cs *CachedStorage) GetState(exploitID string) (*neopb.ExploitState, bool) {
