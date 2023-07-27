@@ -33,7 +33,7 @@ jobs:
         run: |
           docker buildx create --use --driver=docker-container
           docker buildx build --push \
-            -t ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env:latest \
+            -t ghcr.io/c4t-but-s4d/neo_env:latest \
             --cache-to type=gha,mode=max \
             --cache-from type=gha\
             --target image-full \
