@@ -4,7 +4,7 @@ if [[ -z "${NEO_VERSION}" && -f "${NEO_BASE_DIR}/.version" ]]; then
   NEO_VERSION=$(xargs <"${NEO_BASE_DIR}/.version")
 fi
 
-if [[ -z "${VERSION}" ]]; then
+if [[ -z "${NEO_VERSION}" ]]; then
   NEO_VERSION=latest
 fi
 

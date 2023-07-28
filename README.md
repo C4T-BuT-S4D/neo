@@ -51,7 +51,8 @@ To start the server:
    the [Releases](https://github.com/pomo-mondreganto/neo/releases)
    page for your platform (64-bit amd linux and macOS are supported).
 
-2. Edit the configuration in `server_config.yml` file. Edit the `grpc_auth_key` (as it's the password required to
+2. Edit the configuration in `configs/server/config.yml` file. Edit the `grpc_auth_key` (as it's the password required
+   to
    connect to the server), `farm.url` and `farm.password`. You can also add some environment variables for all exploits
    in the `env` section
 
@@ -63,7 +64,7 @@ Client has a full-featured CLI and the single binary performs all operations req
 distributed as a docker image with a lot of useful python packages preinstalled, see the full list in `requirements.txt`
 file (located at [client_env/requirements.txt](./client_env/requirements.txt) in the repository).
 
-Download the latest client release (named `neo_{version}.zip`) from the
+Download the latest client release (named `neo_client_env_{version}.zip`) from the
 [Releases](https://github.com/pomo-mondreganto/neo/releases) page. The `start.sh` file starts the docker container with
 the environment if one has not already been run and passes all arguments inside. For example, to get a shell inside the
 container, one can run
@@ -130,6 +131,9 @@ its newer version.
 
 Neo client only has access to the directory where the `start.sh` file is located, so to add a new exploit, you'll need
 to put it somewhere next to `start.sh` (`exploits` directory might be a good place).
+
+There are also `start_light.sh` and `start_sage.sh` scripts, which start the shallow alpine image
+(useful for exploit management without running) and the largest image with Sage installed respectively.
 
 ## Development notice
 
