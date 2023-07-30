@@ -15,6 +15,13 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
             -o client \
             cmd/client/main.go
 
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+        go build \
+            -ldflags="-s -w" \
+            -o reaper \
+            cmd/reaper/main.go
+
 FROM python:3.10 as image-full
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -37,6 +44,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         pip install -r /requirements.txt
 
 COPY --from=build /app/client /usr/local/bin/neo
+COPY --from=build /app/reaper /usr/local/bin/reaper
 
 COPY client_env/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -59,6 +67,7 @@ RUN apk add bash dbus
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 COPY --from=build /app/client /usr/local/bin/neo
+COPY --from=build /app/reaper /usr/local/bin/reaper
 
 COPY client_env/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -24,4 +25,11 @@ func Init() {
 		})
 		logrus.SetReportCaller(true)
 	})
+	if ll := os.Getenv("NEO_LOG_LEVEL"); ll != "" {
+		level, err := logrus.ParseLevel(ll)
+		if err != nil {
+			logrus.Fatalf("Failed to parse log level %v: %v", ll, err)
+		}
+		logrus.SetLevel(level)
+	}
 }
