@@ -4,8 +4,8 @@ services:
   server:
     build: .
     volumes:
-      - './configs/server/config.yml:/config.yml:ro'
-      - './volumes/data:/data'
+      - "./configs/server/config.yml:/config.yml:ro"
+      - "./volumes/data:/data"
     ports:
       - '5005:5005'
     restart: unless-stopped
@@ -22,6 +22,8 @@ services:
     restart: unless-stopped
     cpus: 2
     mem_limit: 4gb
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     dns:
       - 1.1.1.1
       - 8.8.8.8
