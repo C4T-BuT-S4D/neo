@@ -54,11 +54,13 @@ func Test_endlessQueue_Start(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	q.Start(ctx)
-	out = <-q.Results()
-	cancel()
-
-	assert.Equal(t, task.name, out.Name)
-	assert.Equal(t, task.teamID, out.Team)
-	assert.Equal(t, task.teamIP, string(out.Out))
+	go q.Start(ctx)
+	select {
+	case <-time.After(time.Second * 3):
+		t.Fatal("timeout")
+	case out = <-q.Results():
+		assert.Equal(t, task.name, out.Name)
+		assert.Equal(t, task.teamID, out.Team)
+		assert.Equal(t, task.teamIP, string(out.Out))
+	}
 }
