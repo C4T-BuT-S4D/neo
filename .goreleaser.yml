@@ -1,43 +1,17 @@
-before:
-  hooks:
-    - go mod tidy
-    - go mod download
-
 builds:
   - id: "neo_client"
     main: "./cmd/client"
     binary: "./neo"
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - "-s -w"
     goos:
       - darwin
       - linux
     goarch:
       - amd64
       - arm64
-
-  - id: "dummy"
-    main: "./cmd/client"
-    binary: "neo"
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
-    hooks:
-      post:
-        - "mv neo_client_docker neo_{{ .Version }}"
-        - "zip -r neo_{{ .Version }}.zip neo_{{ .Version }}"
-        - "rm -rf neo_{{ .Version }}"
-        - "mkdir dist/other"
-        - "mv neo_{{ .Version }}.zip dist/other/"
-        - "ls -lh dist/other/neo_{{ .Version }}.zip"
-        - "mv neo_server neo_server_{{ .Version }}"
-        - "zip -r neo_server_{{ .Version }}.zip neo_server_{{ .Version }}"
-        - "rm -rf neo_server_{{ .Version }}"
-        - "mv neo_server_{{ .Version }}.zip dist/other/"
-        - "ls -lh dist/other/neo_server_{{ .Version }}.zip"
 
 archives:
   - id: "client"
@@ -46,15 +20,49 @@ archives:
       - "neo_client"
     name_template: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     wrap_in_directory: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    replacements:
-      darwin: macOS
-      amd64: x64
     format_overrides:
       - goos: linux
         format: tar.gz
     files:
       - README.md
-      - client_config.yml
+      - exploits/.keep
+      - src: configs/client/config.yml
+        dst: client_config.yml
+
+  - id: "server"
+    format: zip
+    meta: true
+    name_template: "{{ .ProjectName }}_server_{{ .Version }}"
+    wrap_in_directory: "{{ .ProjectName }}_server_{{ .Version }}"
+    files:
+      - configs/server/config.yml
+      - Makefile
+      - Dockerfile
+      - docker-compose.yml
+      - go.*
+      - README.md
+      - cmd
+      - internal
+      - pkg
+      - lib
+
+  - id: "client_env"
+    format: zip
+    meta: true
+    name_template: "{{ .ProjectName }}_client_env_{{ .Version }}"
+    wrap_in_directory: "{{ .ProjectName }}_client_env_{{ .Version }}"
+    files:
+      - README.md
+      - src: client_env/.version
+        dst: .version
+      - src: client_env/start*.sh
+        dst: .
+      - src: client_env/vars.sh
+        dst: .
+      - src: client_env/requirements.txt
+        dst: requirements.txt
+      - src: configs/client/config.yml
+        dst: client_config.yml
       - exploits/.keep
 
 release:
