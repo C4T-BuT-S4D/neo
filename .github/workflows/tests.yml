@@ -29,10 +29,10 @@ jobs:
         uses: actions/checkout@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Build client image
+      - name: Build && test client image
         run: |
           docker buildx create --use --driver=docker-container
-          docker buildx build --push \
+          docker buildx build \
             -t ghcr.io/c4t-but-s4d/neo_env:latest \
             --cache-to type=gha,mode=max \
             --cache-from type=gha\

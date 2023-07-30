@@ -13,7 +13,7 @@ lint:
 
 .PHONY: test
 test:
-	go test -race ./...
+	go test -race -timeout 1m ./...
 
 .PHONY: validate
 validate: lint test
@@ -31,7 +31,7 @@ proto:
 
 .PHONY: test-cov
 test-cov:
-	go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+	go test -race -timeout 1m -coverprofile=coverage.txt -covermode=atomic ./...
 
 .PHONY: build-image
 build-image:
