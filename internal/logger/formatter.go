@@ -54,9 +54,6 @@ type CustomFormatter struct {
 	// PadLevelText is a superset of the DisableLevelTruncation option
 	PadLevelText bool
 
-	// Whether the logger's out is to a terminal
-	isTerminal bool
-
 	// CallerPrettyfier can be set by the user to modify the content
 	// of the function and file keys in the data when ReportCaller is
 	// activated. If any of the returned value is the empty string the
@@ -169,13 +166,16 @@ func (f *CustomFormatter) printColored(b *bytes.Buffer, entry *logrus.Entry, key
 			}
 		}
 
-		if fileVal == "" {
-			caller = " " + funcVal
-		} else if funcVal == "" {
-			caller = " " + fileVal
-		} else {
-			caller = " " + fileVal + " " + funcVal
+		b := strings.Builder{}
+		if fileVal != "" {
+			b.WriteByte(' ')
+			b.WriteString(fileVal)
 		}
+		if funcVal != "" {
+			b.WriteByte(' ')
+			b.WriteString(funcVal)
+		}
+		caller = b.String()
 	}
 
 	switch {
@@ -201,15 +201,6 @@ func (f *CustomFormatter) needsQuoting(text string) bool {
 		}
 	}
 	return false
-}
-
-func (f *CustomFormatter) appendKeyValue(b *bytes.Buffer, key string, value interface{}) {
-	if b.Len() > 0 {
-		b.WriteByte(' ')
-	}
-	b.WriteString(key)
-	b.WriteByte('=')
-	f.appendValue(b, value)
 }
 
 func (f *CustomFormatter) appendValue(b *bytes.Buffer, value interface{}) {

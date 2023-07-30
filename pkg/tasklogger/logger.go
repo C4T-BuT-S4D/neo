@@ -32,25 +32,25 @@ type TaskLogger struct {
 }
 
 func (l *TaskLogger) Debugf(format string, args ...interface{}) {
-	l.logProxy(logrus.DebugLevel, 2, format, args...)
+	l.logProxy(logrus.DebugLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "debug"))
 }
 
 func (l *TaskLogger) Infof(format string, args ...interface{}) {
-	l.logProxy(logrus.InfoLevel, 2, format, args...)
+	l.logProxy(logrus.InfoLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "info"))
 }
 
 func (l *TaskLogger) Warningf(format string, args ...interface{}) {
-	l.logProxy(logrus.WarnLevel, 2, format, args...)
+	l.logProxy(logrus.WarnLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "warning"))
 }
 
 func (l *TaskLogger) Errorf(format string, args ...interface{}) {
-	l.logProxy(logrus.ErrorLevel, 2, format, args...)
+	l.logProxy(logrus.ErrorLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "error"))
 }
@@ -73,7 +73,7 @@ func (l *TaskLogger) getLogger() *logrus.Entry {
 	})
 }
 
-func (l *TaskLogger) logProxy(level logrus.Level, skip int, format string, args ...interface{}) {
+func (l *TaskLogger) logProxy(level logrus.Level, format string, args ...interface{}) {
 	if logrus.IsLevelEnabled(level) {
 		l.
 			getLogger().
