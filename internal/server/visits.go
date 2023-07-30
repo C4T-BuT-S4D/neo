@@ -48,3 +48,9 @@ func (vm *visitsMap) Invalidate(now time.Time, pingEvery time.Duration) (alive, 
 	}
 	return alive, dead
 }
+
+func (vm *visitsMap) Size() int {
+	vm.m.Lock()
+	defer vm.m.Unlock()
+	return len(vm.visits)
+}

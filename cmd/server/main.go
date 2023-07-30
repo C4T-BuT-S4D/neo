@@ -90,6 +90,7 @@ func main() {
 	defer cancel()
 
 	go srv.HeartBeat(ctx)
+	go srv.UpdateMetrics(ctx)
 	go func() {
 		<-ctx.Done()
 		logrus.Info("Received shutdown signal, stopping server")

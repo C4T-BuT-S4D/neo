@@ -18,4 +18,3 @@ scrape_configs:
     metrics_path: '/celery/metrics'
     static_configs:
       - targets: ['host.docker.internal:5137']
-

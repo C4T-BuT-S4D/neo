@@ -42,6 +42,7 @@ func New(cfg *Config, storage *CachedStorage, logStore *LogStorage) (*ExploitMan
 		singleRunPubSub: pubsub.NewPubSub[*neopb.SingleRunRequest](),
 		broadcastPubSub: pubsub.NewPubSub[*neopb.Command](),
 		logStorage:      logStore,
+		metrics:         NewMetrics(),
 	}
 	ems.UpdateConfig(cfg)
 	return ems, nil
@@ -56,6 +57,7 @@ type ExploitManagerServer struct {
 	buckets    *hostbucket.HostBucket
 	visits     *visitsMap
 	fs         filesystem
+	metrics    *Metrics
 
 	singleRunPubSub *pubsub.PubSub[*neopb.SingleRunRequest]
 	broadcastPubSub *pubsub.PubSub[*neopb.Command]
@@ -244,14 +246,6 @@ func (s *ExploitManagerServer) SearchLogLines(req *neopb.SearchLogLinesRequest, 
 	return nil
 }
 
-func (s *ExploitManagerServer) checkClients() {
-	alive, dead := s.visits.Invalidate(time.Now(), s.config.PingEvery)
-	logrus.Infof("Heartbeat: got dead clients: %v, alive clients: %v", dead, alive)
-	for _, c := range dead {
-		s.buckets.DeleteNode(c)
-	}
-}
-
 func (s *ExploitManagerServer) HeartBeat(ctx context.Context) {
 	ticker := time.NewTicker(s.config.PingEvery)
 	defer ticker.Stop()
@@ -263,6 +257,31 @@ func (s *ExploitManagerServer) HeartBeat(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (s *ExploitManagerServer) UpdateMetrics(ctx context.Context) {
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			s.updateMetrics()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (s *ExploitManagerServer) checkClients() {
+	alive, dead := s.visits.Invalidate(time.Now(), s.config.PingEvery)
+	logrus.Infof("Heartbeat: got dead clients: %v, alive clients: %v", dead, alive)
+	for _, c := range dead {
+		s.buckets.DeleteNode(c)
+	}
+}
+
+func (s *ExploitManagerServer) updateMetrics() {
+	s.metrics.AliveClients.Set(float64(s.visits.Size()))
 }
 
 func logErrorf(code codes.Code, fmt string, values ...interface{}) error {
