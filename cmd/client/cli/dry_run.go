@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sync"
 
 	"neo/internal/client"
 	"neo/internal/config"
@@ -35,7 +36,7 @@ func NewDryRun(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	cli := &dryRunCLI{
 		baseCLI:   &baseCLI{c: cfg},
 		exploitID: args[0],
-		jobs:      parseJobsFlag(cmd),
+		jobs:      parseJobsFlag(cmd, "jobs"),
 	}
 	cli.teamID, _ = cmd.Flags().GetString("team_id")
 	cli.teamIP, _ = cmd.Flags().GetString("team_ip")
@@ -83,7 +84,7 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 
 	sender := tasklogger.NewDummySender()
 
-	var tasks []queue.Task
+	var tasks []*queue.Task
 	if rc.teamIP == "" && rc.teamID == "" {
 		tasks = exploit.CreateExploitTasks(ex, allTeams, cfg.Environ, sender)
 	} else {
@@ -102,33 +103,40 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	} else {
 		q = queue.NewSimpleQueue(rc.jobs)
 	}
+
+	runCtx, runCancel := context.WithCancel(ctx)
+	defer runCancel()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		q.Start(runCtx)
+		logrus.Info("Queue finished")
+	}()
+
 	for _, t := range tasks {
 		if err := q.Add(t); err != nil {
 			logrus.Errorf("Failed to add task (%+v) to queue: %v", t, err)
 		}
 	}
-	go q.Start(ctx)
-	go func() {
-		<-ctx.Done()
-		q.Stop()
-	}()
 
 	tasksDone := 0
+loop:
 	for {
 		select {
 		case res, ok := <-q.Results():
-			if !ok {
-				logrus.Infof("Finished")
-				return nil
+			if !ok || tasksDone+1 == len(tasks) && !ex.Endless {
+				logrus.Info("Finished running sploits, waiting for queue to finish")
+				runCancel()
+				break loop
 			}
 			tasksDone++
 			logrus.Infof("Team = %v, Out = %v", res.Team, string(res.Out))
-			if tasksDone == len(tasks) && !ex.Endless {
-				q.Stop()
-			}
 		case <-ctx.Done():
-			logrus.Infof("Got interrupt")
+			logrus.Info("Got interrupt")
 			return nil
 		}
 	}
+	return nil
 }

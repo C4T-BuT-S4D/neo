@@ -10,8 +10,8 @@ import (
 	"neo/pkg/tasklogger"
 )
 
-func NewTask(taskID, executable, dir, teamID, teamIP string, environ []string, timeout time.Duration, logger *tasklogger.TaskLogger) Task {
-	return Task{
+func NewTask(taskID, executable, dir, teamID, teamIP string, environ []string, timeout time.Duration, logger *tasklogger.TaskLogger) *Task {
+	return &Task{
 		name:       taskID,
 		executable: executable,
 		dir:        dir,
@@ -34,7 +34,7 @@ type Task struct {
 	logger     *tasklogger.TaskLogger
 }
 
-func (t Task) String() string {
+func (t *Task) String() string {
 	return fmt.Sprintf(
 		"Exploit(path=%s, target=%s (%s), timeout=%v, environ=%+v)",
 		t.executable,
@@ -45,7 +45,7 @@ func (t Task) String() string {
 	)
 }
 
-func (t Task) Command(ctx context.Context) *exec.Cmd {
+func (t *Task) Command(ctx context.Context) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, t.executable, t.teamIP)
 	if t.dir != "" {
 		cmd.Dir = t.dir

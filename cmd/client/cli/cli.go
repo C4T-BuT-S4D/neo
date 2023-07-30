@@ -10,6 +10,8 @@ import (
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
 
 	"google.golang.org/grpc"
@@ -27,7 +29,7 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 	var opts []grpc.DialOption
 	opts = append(
 		opts,
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
 			grpc.UseCompressor(gzip.Name),
 		),
@@ -48,6 +50,9 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 }
 
 func (cmd *baseCLI) ClientID() string {
+	if id := viper.GetString("client_id"); id != "" {
+		return id
+	}
 	id, err := machineid.ID()
 	if err != nil {
 		logrus.Fatalf("Failed to get unique client name: %v", err)

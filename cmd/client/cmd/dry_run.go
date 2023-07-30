@@ -30,5 +30,5 @@ func init() {
 	rootCmd.AddCommand(dryRunCmd)
 	dryRunCmd.Flags().StringP("team_ip", "p", "", "ip of team to run")
 	dryRunCmd.Flags().StringP("team_id", "d", "", "id of team to run")
-	dryRunCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "exploit jobs multiplier")
+	dryRunCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "number of workers to run")
 }

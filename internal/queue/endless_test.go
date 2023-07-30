@@ -14,7 +14,7 @@ import (
 func Test_endlessQueue_Add(t *testing.T) {
 	makeQueue := func(s int) *endlessQueue {
 		q := NewEndlessQueue(1).(*endlessQueue)
-		q.c = make(chan Task, s)
+		q.c = make(chan *Task, s)
 		return q
 	}
 	for _, tc := range []struct {
@@ -28,7 +28,7 @@ func Test_endlessQueue_Add(t *testing.T) {
 		{q: makeQueue(0), t: &Task{executable: "1"}, wantErr: ErrQueueFull},
 	} {
 		tc.t.logger = testutils.DummyTaskLogger("1", "127.0.0.1")
-		err := tc.q.Add(*tc.t)
+		err := tc.q.Add(tc.t)
 		require.ErrorIs(t, err, tc.wantErr)
 		if err != nil {
 			continue
@@ -39,7 +39,7 @@ func Test_endlessQueue_Add(t *testing.T) {
 
 func Test_endlessQueue_Start(t *testing.T) {
 	q := NewEndlessQueue(10)
-	task := Task{
+	task := &Task{
 		name:       "kek",
 		executable: "echo",
 		dir:        "",
@@ -52,8 +52,9 @@ func Test_endlessQueue_Start(t *testing.T) {
 
 	var out *Output
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	q.Start(ctx)
-	defer q.Stop()
 	out = <-q.Results()
 	cancel()
 

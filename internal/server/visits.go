@@ -34,14 +34,17 @@ func (vm *visitsMap) MarkInvalid(cid string) {
 	vm.visits[cid] = time.Unix(0, 0)
 }
 
-func (vm *visitsMap) Invalidate(now time.Time, pingEvery time.Duration) (res []string) {
+func (vm *visitsMap) Invalidate(now time.Time, pingEvery time.Duration) (alive, dead []string) {
 	vm.m.Lock()
 	defer vm.m.Unlock()
+
 	for k, v := range vm.visits {
 		if v.Add(pingEvery * beatThreshold).Before(now) {
 			delete(vm.visits, k)
-			res = append(res, k)
+			dead = append(dead, k)
+		} else {
+			alive = append(alive, k)
 		}
 	}
-	return res
+	return alive, dead
 }

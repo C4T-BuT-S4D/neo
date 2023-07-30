@@ -7,69 +7,81 @@ import (
 	"os/exec"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
-const maxBufferSize = 10000
+const (
+	jobBufferSize    = 1000
+	resultBufferSize = 1000
+)
 
 // Compile-time type checks
-var _ Queue = (*simpleQueue)(nil)
-var _ Factory = NewSimpleQueue
+var (
+	_ Queue   = (*simpleQueue)(nil)
+	_ Factory = NewSimpleQueue
+)
 
 type simpleQueue struct {
 	out     chan *Output
-	c       chan Task
+	c       chan *Task
 	maxJobs int
-	wg      sync.WaitGroup
-	done    chan struct{}
+	logger  *logrus.Entry
 }
 
 func NewSimpleQueue(maxJobs int) Queue {
 	return &simpleQueue{
-		out:     make(chan *Output, maxBufferSize),
-		c:       make(chan Task, maxBufferSize),
-		done:    make(chan struct{}),
+		out:     make(chan *Output, resultBufferSize),
+		c:       make(chan *Task, jobBufferSize),
 		maxJobs: maxJobs,
+		logger: logrus.WithFields(logrus.Fields{
+			"component": "simple_queue",
+			"id":        uuid.NewString()[:4],
+		}),
 	}
 }
 
-func (eq *simpleQueue) Start(ctx context.Context) {
-	logrus.Infof("Starting a queue with %d jobs", eq.maxJobs)
-	eq.wg.Add(eq.maxJobs)
-	for i := 0; i < eq.maxJobs; i++ {
-		go eq.worker(ctx)
+// Start is synchronous.
+// Cancel the start's context to stop the queue.
+func (q *simpleQueue) Start(ctx context.Context) {
+	q.logger.WithField("jobs", q.maxJobs).Info("Starting")
+	defer q.logger.Info("Stopped")
+
+	wg := sync.WaitGroup{}
+	wg.Add(q.maxJobs)
+	for i := 0; i < q.maxJobs; i++ {
+		go func() {
+			defer wg.Done()
+			q.worker(ctx)
+		}()
 	}
+	wg.Wait()
 }
 
-func (eq *simpleQueue) Results() <-chan *Output {
-	return eq.out
+func (q *simpleQueue) Results() <-chan *Output {
+	return q.out
 }
 
-func (eq *simpleQueue) Add(task Task) error {
+func (q *simpleQueue) Add(task *Task) error {
 	select {
-	case eq.c <- task:
+	case q.c <- task:
 		return nil
 	default:
 		return ErrQueueFull
 	}
 }
 
-func (eq *simpleQueue) Stop() {
-	close(eq.done)
-	eq.wg.Wait()
-	close(eq.out)
+func (q *simpleQueue) String() string {
+	return "SimpleQueue"
 }
 
-func (eq *simpleQueue) worker(ctx context.Context) {
-	defer eq.wg.Done()
+func (q *simpleQueue) worker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-eq.done:
-			return
-		case task := <-eq.c:
-			res, err := eq.runExploit(ctx, task)
+		case task := <-q.c:
+			res, err := q.runExploit(ctx, task)
 
 			var exitErr *exec.ExitError
 			if err == nil {
@@ -80,7 +92,7 @@ func (eq *simpleQueue) worker(ctx context.Context) {
 			} else {
 				task.logger.Errorf("Failed to run: %v. Output: %s", err, res)
 			}
-			eq.out <- &Output{
+			q.out <- &Output{
 				Name: task.name,
 				Out:  res,
 				Team: task.teamID,
@@ -89,29 +101,17 @@ func (eq *simpleQueue) worker(ctx context.Context) {
 	}
 }
 
-func (eq *simpleQueue) runExploit(ctx context.Context, task Task) ([]byte, error) {
+func (q *simpleQueue) runExploit(ctx context.Context, task *Task) ([]byte, error) {
 	cmdCtx, cancel := context.WithTimeout(ctx, task.timeout)
 	defer cancel()
 
 	task.logger.Infof("Going to run: %s %s", task.executable, task.teamIP)
 	cmd := task.Command(cmdCtx)
 
-	var out []byte
-	errC := make(chan error, 1)
-	go func() {
-		var err error
-		out, err = cmd.CombinedOutput()
-		errC <- err
-	}()
-	select {
-	case <-eq.done:
-		cancel()
-		<-errC
-		return out, context.Canceled
-	case <-ctx.Done():
-		<-errC
-		return out, fmt.Errorf("context terminated: %w", ctx.Err())
-	case err := <-errC:
-		return out, err
+	// Will be terminated on context cancellation.
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		err = fmt.Errorf("error running command: %w", err)
 	}
+	return out, err
 }

@@ -1,14 +1,19 @@
-FROM golang:1.19-alpine as build
+FROM golang:1.20-alpine as build
+
+ENV CGO_ENABLED=0
 
 WORKDIR /app
 COPY go.* ./
-RUN go mod download
-
 COPY cmd cmd
 COPY internal internal
 COPY lib lib
 COPY pkg pkg
-RUN CGO_ENABLED=0 go build -o neo_server cmd/server/main.go
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+        go build \
+            -ldflags="-w -s" \
+            -o neo_server \
+            cmd/server/main.go
 
 FROM alpine
 

@@ -49,8 +49,8 @@ func (l *LogLine) DumpValues() (map[string]interface{}, error) {
 
 func (l *LogLine) EstimateSize() int {
 	const (
-		estNum     = 4
-		estDenom   = 3
+		estNum     = 5
+		estDenom   = 4
 		structSize = 8 * 5
 	)
 	sizeEst := structSize + len(l.Exploit) + len(l.Version) + len(l.Message) + len(l.Level) + len(l.Team)

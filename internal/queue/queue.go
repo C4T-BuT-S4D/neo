@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 var (
@@ -13,7 +14,8 @@ type Factory func(maxJobs int) Queue
 
 type Queue interface {
 	Start(context.Context)
-	Add(Task) error
-	Stop()
+	Add(*Task) error
 	Results() <-chan *Output
+
+	fmt.Stringer
 }
