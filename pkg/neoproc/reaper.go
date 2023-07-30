@@ -2,6 +2,7 @@ package neoproc
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -44,10 +45,10 @@ func StartReaper(ctx context.Context) {
 				var wstatus syscall.WaitStatus
 
 				pid, err := syscall.Wait4(-1, &wstatus, 0, nil)
-				for err == syscall.EINTR {
+				for errors.Is(err, syscall.EINTR) {
 					pid, err = syscall.Wait4(pid, &wstatus, 0, nil)
 				}
-				if err == syscall.ECHILD {
+				if errors.Is(err, syscall.ECHILD) {
 					break
 				}
 
