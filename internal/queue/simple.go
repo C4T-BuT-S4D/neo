@@ -45,7 +45,6 @@ func NewSimpleQueue(maxJobs int) Queue {
 // Cancel the start's context to stop the queue.
 func (q *simpleQueue) Start(ctx context.Context) {
 	q.logger.WithField("jobs", q.maxJobs).Info("Starting")
-	defer q.logger.Info("Stopped")
 
 	wg := sync.WaitGroup{}
 	wg.Add(q.maxJobs)
@@ -56,6 +55,8 @@ func (q *simpleQueue) Start(ctx context.Context) {
 		}()
 	}
 	wg.Wait()
+
+	q.logger.Info("Stopped")
 }
 
 func (q *simpleQueue) Results() <-chan *Output {

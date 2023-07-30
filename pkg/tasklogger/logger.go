@@ -2,6 +2,10 @@ package tasklogger
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
+
+	"neo/internal/logger"
 
 	"github.com/sirupsen/logrus"
 
@@ -28,25 +32,25 @@ type TaskLogger struct {
 }
 
 func (l *TaskLogger) Debugf(format string, args ...interface{}) {
-	l.getLogger().Debugf(format, args...)
+	l.logProxy(logrus.DebugLevel, 2, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "debug"))
 }
 
 func (l *TaskLogger) Infof(format string, args ...interface{}) {
-	l.getLogger().Infof(format, args...)
+	l.logProxy(logrus.InfoLevel, 2, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "info"))
 }
 
 func (l *TaskLogger) Warningf(format string, args ...interface{}) {
-	l.getLogger().Warningf(format, args...)
+	l.logProxy(logrus.WarnLevel, 2, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "warning"))
 }
 
 func (l *TaskLogger) Errorf(format string, args ...interface{}) {
-	l.getLogger().Errorf(format, args...)
+	l.logProxy(logrus.ErrorLevel, 2, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "error"))
 }
@@ -69,9 +73,32 @@ func (l *TaskLogger) getLogger() *logrus.Entry {
 	})
 }
 
+func (l *TaskLogger) logProxy(level logrus.Level, skip int, format string, args ...interface{}) {
+	if logrus.IsLevelEnabled(level) {
+		l.
+			getLogger().
+			WithField(logger.CustomKeyFile, fileInfo(3)).
+			Logf(level, format, args...)
+	}
+}
+
 func sanitizeMessage(msg string) string {
 	if len(msg) > maxMessageLength {
 		msg = msg[:maxMessageLength]
 	}
 	return msg
+}
+
+func fileInfo(skip int) string {
+	_, file, line, ok := runtime.Caller(skip)
+	if !ok {
+		file = "<???>"
+		line = 1
+	} else {
+		slash := strings.LastIndex(file, "/")
+		if slash >= 0 {
+			file = file[slash+1:]
+		}
+	}
+	return fmt.Sprintf("%s:%d", file, line)
 }

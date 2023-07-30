@@ -7,9 +7,16 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
+
+	"neo/pkg/neosync"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	endlessDebounce = 3 * time.Second
 )
 
 // Compile-time type checks
@@ -41,7 +48,6 @@ func NewEndlessQueue(maxJobs int) Queue {
 // Cancel the start's context to stop the queue.
 func (q *endlessQueue) Start(ctx context.Context) {
 	q.logger.WithField("jobs", q.maxJobs).Info("Starting")
-	defer q.logger.Info("Stopped")
 
 	wg := sync.WaitGroup{}
 	wg.Add(q.maxJobs)
@@ -52,6 +58,8 @@ func (q *endlessQueue) Start(ctx context.Context) {
 		}()
 	}
 	wg.Wait()
+
+	q.logger.Info("Stopped")
 }
 
 func (q *endlessQueue) Results() <-chan *Output {
@@ -78,14 +86,22 @@ func (q *endlessQueue) worker(ctx context.Context) {
 			return
 		case task := <-q.c:
 			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				err := q.runExploit(ctx, task)
 				switch {
 				case errors.Is(err, context.Canceled):
 					return
 				case err != nil:
 					task.logger.Errorf("Unexpected error returned from endless exploit: %v", err)
+					neosync.Sleep(ctx, endlessDebounce)
 				default:
 					task.logger.Errorf("Endless exploit terminated unexpectedly")
+					neosync.Sleep(ctx, endlessDebounce)
 				}
 			}
 		}
@@ -93,11 +109,8 @@ func (q *endlessQueue) worker(ctx context.Context) {
 }
 
 func (q *endlessQueue) runExploit(ctx context.Context, task *Task) error {
-	cmdCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	task.logger.Infof("Going to run endlessly: %s %s", task.executable, task.teamIP)
-	cmd := task.Command(cmdCtx)
+	cmd := task.Command(ctx)
 
 	// os.Pipe performs better than io.Pipe.
 	r, w, err := os.Pipe()
