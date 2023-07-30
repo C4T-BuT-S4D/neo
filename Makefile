@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-IMAGE := ghcr.io/pomo-mondreganto/neo_env:latest
+IMAGE := ghcr.io/c4t-but-s4d/neo_env:latest
 TARGET := image-full
 CONTAINER_NAME := neo_env
 
