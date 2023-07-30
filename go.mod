@@ -1,6 +1,6 @@
 module neo
 
-go 1.19
+go 1.20
 
 require (
 	github.com/denisbrodbeck/machineid v1.0.1

@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"neo/internal/client"
+	"neo/pkg/grpcauth"
+
 	"github.com/denisbrodbeck/machineid"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/encoding/gzip"
-
-	"neo/internal/client"
-	"neo/pkg/grpcauth"
 
 	"google.golang.org/grpc"
 )
@@ -25,15 +25,21 @@ type baseCLI struct {
 
 func (cmd *baseCLI) client() (*client.Client, error) {
 	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
+	opts = append(
+		opts,
+		grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(
+			grpc.UseCompressor(gzip.Name),
+		),
+	)
 	if cmd.c.GrpcAuthKey != "" {
 		interceptor := grpcauth.NewClientInterceptor(cmd.c.GrpcAuthKey)
-		opts = append(opts, grpc.WithUnaryInterceptor(interceptor.Unary()))
-		opts = append(opts, grpc.WithStreamInterceptor(interceptor.Stream()))
+		opts = append(
+			opts,
+			grpc.WithUnaryInterceptor(interceptor.Unary()),
+			grpc.WithStreamInterceptor(interceptor.Stream()),
+		)
 	}
-	opts = append(opts, grpc.WithDefaultCallOptions(
-		grpc.UseCompressor(gzip.Name),
-	))
 	conn, err := grpc.Dial(cmd.c.Host, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing grpc: %w", err)

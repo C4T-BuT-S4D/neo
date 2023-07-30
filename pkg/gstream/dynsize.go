@@ -37,7 +37,7 @@ func (d *DynamicSizeCache[T, M]) Queue(ts ...T) error {
 		d.curSize += t.EstimateSize()
 		d.queue = append(d.queue, t)
 		if d.curSize >= d.maxSize {
-			if err := d.flushUnsafe(); err != nil {
+			if err := d.flushUnlocked(); err != nil {
 				return fmt.Errorf("flushing batch: %w", err)
 			}
 		}
@@ -48,15 +48,15 @@ func (d *DynamicSizeCache[T, M]) Queue(ts ...T) error {
 func (d *DynamicSizeCache[T, M]) Flush() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.flushUnsafe()
+	return d.flushUnlocked()
 }
 
 func (d *DynamicSizeCache[T, M]) Context() context.Context {
 	return d.stream.Context()
 }
 
-// flushUnsafe expects the lock to be held.
-func (d *DynamicSizeCache[T, M]) flushUnsafe() error {
+// flushUnlocked expects the lock to be held.
+func (d *DynamicSizeCache[T, M]) flushUnlocked() error {
 	if len(d.queue) == 0 {
 		return nil
 	}
@@ -69,6 +69,6 @@ func (d *DynamicSizeCache[T, M]) flushUnsafe() error {
 		return fmt.Errorf("sending batch to stream: %w", err)
 	}
 	d.curSize = 0
-	d.queue = nil
+	d.queue = d.queue[:0]
 	return nil
 }

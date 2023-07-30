@@ -129,7 +129,7 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 			meanStdDev += stdDev
 		}
 		meanStdDev /= float64(tc.runs)
-		require.True(t, meanStdDev <= tc.maxMeanStdDev)
+		require.LessOrEqual(t, meanStdDev, tc.maxMeanStdDev)
 		t.Logf("Mean std dev: %f", meanStdDev)
 	}
 }
