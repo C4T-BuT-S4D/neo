@@ -48,7 +48,14 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 
 	neocli.Weight = jobs
 	cli.sender = tasklogger.NewRemoteSender(neocli)
-	cli.run = exploit.NewRunner(jobs, endlessJobs, cfg.ExploitDir, neocli, cli.sender)
+	cli.run = exploit.NewRunner(
+		cli.ClientID(),
+		jobs,
+		endlessJobs,
+		cfg,
+		neocli,
+		cli.sender,
+	)
 	return cli
 }
 

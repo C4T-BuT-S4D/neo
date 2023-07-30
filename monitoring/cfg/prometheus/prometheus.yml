@@ -18,3 +18,10 @@ scrape_configs:
     metrics_path: '/celery/metrics'
     static_configs:
       - targets: ['host.docker.internal:5137']
+
+  - job_name: 'pushgateway'
+    scrape_interval: 10s
+    scrape_timeout: 3s
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']

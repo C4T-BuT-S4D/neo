@@ -42,3 +42,10 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=false
     ports:
       - "3000:3000"
+
+  pushgateway:
+    image: prom/pushgateway:v1.6.0
+    container_name: pushgateway
+    restart: unless-stopped
+    ports:
+      - "9091:9091"

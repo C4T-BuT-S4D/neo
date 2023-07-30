@@ -15,7 +15,8 @@ func MustUnmarshalConfig() *Config {
 }
 
 type Config struct {
-	Host        string `yaml:"host" mapstructure:"host"`
-	ExploitDir  string `yaml:"exploit_dir" mapstructure:"exploit_dir"`
-	GrpcAuthKey string `yaml:"grpc_auth_key" mapstructure:"grpc_auth_key"`
+	Host        string `mapstructure:"host"`
+	MetricsHost string `mapstructure:"metrics_host"`
+	ExploitDir  string `mapstructure:"exploit_dir"`
+	GrpcAuthKey string `mapstructure:"grpc_auth_key"`
 }
