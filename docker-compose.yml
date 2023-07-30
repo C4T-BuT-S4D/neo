@@ -13,3 +13,30 @@ services:
   redis:
     image: redis:6.2.6-alpine
     restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.46.0
+    volumes:
+      - ./monitoring/cfg/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./volumes/prometheus:/prometheus
+    restart: unless-stopped
+    cpus: 2
+    mem_limit: 4gb
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+
+  grafana:
+    image: grafana/grafana-oss:10.0.3
+    volumes:
+      - ./volumes/grafana:/var/lib/grafana
+      - ./monitoring/cfg/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/cfg/grafana/dashboards:/dashboards
+    restart: unless-stopped
+    cpus: 2
+    mem_limit: 4gb
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=changeme
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    ports:
+      - "3000:3000"

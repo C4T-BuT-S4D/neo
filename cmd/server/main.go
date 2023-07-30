@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -13,6 +14,7 @@ import (
 	"neo/internal/server"
 	"neo/pkg/grpcauth"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -76,6 +78,14 @@ func main() {
 	neopb.RegisterExploitManagerServer(s, srv)
 	reflection.Register(s)
 
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		logrus.Infof("Starting metrics server on %s", viper.GetString("metrics.address"))
+		if err := http.ListenAndServe(viper.GetString("metrics.address"), http.DefaultServeMux); err != nil {
+			logrus.Fatalf("Failed to serve metrics: %v", err)
+		}
+	}()
+
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
@@ -109,6 +119,7 @@ func setConfigDefaults() {
 	viper.SetDefault("config", "server_config.yml")
 	viper.SetDefault("ping_every", time.Second*5)
 	viper.SetDefault("submit_every", time.Second*2)
+	viper.SetDefault("metrics.address", ":3000")
 }
 
 func readConfig() (*server.Config, error) {

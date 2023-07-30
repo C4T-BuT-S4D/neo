@@ -1,0 +1,6 @@
+scrape_configs:
+  - job_name: 'neo_server'
+    scrape_interval: 5s
+    scrape_timeout: 3s
+    static_configs:
+      - targets: ['server:3000']
