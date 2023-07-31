@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"neo/internal/models"
 	"neo/pkg/testutils"
 
 	"github.com/google/go-cmp/cmp"
@@ -17,20 +18,44 @@ import (
 func TestSimpleQueue_Add(t *testing.T) {
 	makeQueue := func(s int) *simpleQueue {
 		q := NewSimpleQueue(1).(*simpleQueue)
-		q.c = make(chan *Task, s)
+		q.c = make(chan *Job, s)
 		return q
 	}
 	for _, tc := range []struct {
 		q        *simpleQueue
-		t        *Task
-		wantTask *Task
+		t        *Job
+		wantTask *Job
 		wantErr  error
 	}{
-		{q: makeQueue(100), t: &Task{executable: "1"}, wantErr: nil},
-		{q: makeQueue(1), t: &Task{executable: "1"}, wantErr: nil},
-		{q: makeQueue(0), t: &Task{executable: "1"}, wantErr: ErrQueueFull},
+		{
+			q: makeQueue(100),
+			t: &Job{
+				Exploit:    &models.Exploit{ID: "kek"},
+				Target:     &models.Target{ID: "t", IP: "i"},
+				executable: "1",
+			},
+			wantErr: nil,
+		},
+		{
+			q: makeQueue(1),
+			t: &Job{
+				Exploit:    &models.Exploit{ID: "kek"},
+				Target:     &models.Target{ID: "t", IP: "i"},
+				executable: "1",
+			},
+			wantErr: nil,
+		},
+		{
+			q: makeQueue(0),
+			t: &Job{
+				Exploit:    &models.Exploit{ID: "kek"},
+				Target:     &models.Target{ID: "t", IP: "i"},
+				executable: "1",
+			},
+			wantErr: ErrQueueFull,
+		},
 	} {
-		tc.t.logger = testutils.DummyTaskLogger(tc.t.name, tc.t.teamIP)
+		tc.t.logger = testutils.DummyJobLogger(tc.t.Exploit.ID, tc.t.Target.IP)
 		err := tc.q.Add(tc.t)
 		require.ErrorIs(t, err, tc.wantErr)
 		if err != nil {
@@ -43,48 +68,73 @@ func TestSimpleQueue_Add(t *testing.T) {
 func TestSimpleQueue_runExploit(t *testing.T) {
 	for _, tc := range []struct {
 		q        *simpleQueue
-		t        *Task
+		t        *Job
 		ctx      context.Context
 		wantErr  error
 		wantData []byte
 	}{
 		{
-			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        &Task{name: "echo", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
+			q: NewSimpleQueue(1).(*simpleQueue),
+			t: &Job{
+				Exploit:    &models.Exploit{ID: "echo"},
+				executable: "echo",
+				Target:     &models.Target{ID: "id", IP: "ip"},
+				timeout:    time.Second * 5,
+			},
 			wantErr:  nil,
 			wantData: []byte("ip\n"),
 			ctx:      context.Background(),
 		},
 		{
-			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        &Task{name: "bad executable", executable: "notfoundcli", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
+			q: NewSimpleQueue(1).(*simpleQueue),
+			t: &Job{
+				Exploit:    &models.Exploit{ID: "bad executable"},
+				executable: "notfoundcli",
+				Target:     &models.Target{ID: "id", IP: "ip"},
+				timeout:    time.Second * 5,
+			},
 			wantErr:  exec.ErrNotFound,
 			wantData: nil,
 			ctx:      context.Background(),
 		},
 		{
-			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        &Task{name: "cancelled ctx", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
+			q: NewSimpleQueue(1).(*simpleQueue),
+			t: &Job{
+				Exploit:    &models.Exploit{ID: "cancelled ctx"},
+				executable: "echo",
+				Target:     &models.Target{ID: "id", IP: "ip"},
+				timeout:    time.Second * 5,
+			},
 			wantErr:  context.Canceled,
 			wantData: nil,
 			ctx:      testutils.CanceledContext(),
 		},
 		{
-			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        &Task{name: "timed out ctx", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 5},
+			q: NewSimpleQueue(1).(*simpleQueue),
+			t: &Job{
+				Exploit:    &models.Exploit{ID: "timed out ctx"},
+				executable: "echo",
+				Target:     &models.Target{ID: "id", IP: "ip"},
+				timeout:    time.Second * 5,
+			},
 			wantErr:  context.DeadlineExceeded,
 			wantData: nil,
 			ctx:      testutils.TimedOutContext(),
 		},
 		{
-			q:        NewSimpleQueue(1).(*simpleQueue),
-			t:        &Task{name: "zero timeout", executable: "echo", teamID: "id", teamIP: "ip", timeout: time.Second * 0},
+			q: NewSimpleQueue(1).(*simpleQueue),
+			t: &Job{
+				Exploit:    &models.Exploit{ID: "zero timeout"},
+				executable: "echo",
+				Target:     &models.Target{ID: "id", IP: "ip"},
+				timeout:    time.Second * 0,
+			},
 			wantErr:  context.DeadlineExceeded,
 			wantData: nil,
 			ctx:      context.Background(),
 		},
 	} {
-		tc.t.logger = testutils.DummyTaskLogger(tc.t.name, tc.t.teamIP)
+		tc.t.logger = testutils.DummyJobLogger(tc.t.Exploit.ID, tc.t.Target.IP)
 		data, err := tc.q.runExploit(tc.ctx, tc.t)
 		require.ErrorIs(t, err, tc.wantErr)
 
@@ -96,14 +146,16 @@ func TestSimpleQueue_runExploit(t *testing.T) {
 
 func TestSimpleQueue_Start(t *testing.T) {
 	q := NewSimpleQueue(10)
-	task := &Task{
-		name:       "kek",
+	task := &Job{
+		Exploit: &models.Exploit{ID: "kek"},
+		Target: &models.Target{
+			ID: "id",
+			IP: "ip",
+		},
 		executable: "echo",
 		dir:        "",
-		teamID:     "id",
-		teamIP:     "ip",
 		timeout:    time.Second * 2,
-		logger:     testutils.DummyTaskLogger("echo", "ip"),
+		logger:     testutils.DummyJobLogger("echo", "ip"),
 	}
 	require.NoError(t, q.Add(task))
 
@@ -115,8 +167,8 @@ func TestSimpleQueue_Start(t *testing.T) {
 	case <-time.After(time.Second * 3):
 		t.Fatal("timeout")
 	case out := <-q.Results():
-		assert.Equal(t, task.name, out.Name)
-		assert.Equal(t, task.teamID, out.Team)
-		assert.Equal(t, task.teamIP+"\n", string(out.Out))
+		assert.Equal(t, task.Exploit, out.Exploit)
+		assert.Equal(t, task.Target, out.Target)
+		assert.Equal(t, task.Target.IP+"\n", string(out.Out))
 	}
 }

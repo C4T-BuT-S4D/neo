@@ -1,4 +1,4 @@
 host: "localhost:5005"
-metrics_host: "localhost:9091"
+metrics_host: "localhost:8428/api/v1/import/prometheus"
 exploit_dir: "exploits"
 grpc_auth_key: "s3cret_t0ken_pls_d0nt_leak"

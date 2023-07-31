@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"neo/internal/logger"
+	"neo/internal/models"
 	"neo/pkg/testutils"
 
 	"github.com/sirupsen/logrus"
@@ -24,20 +25,20 @@ func TestMain(m *testing.M) {
 func Test_endlessQueue_Add(t *testing.T) {
 	makeQueue := func(s int) *endlessQueue {
 		q := NewEndlessQueue(1).(*endlessQueue)
-		q.c = make(chan *Task, s)
+		q.c = make(chan *Job, s)
 		return q
 	}
 	for _, tc := range []struct {
 		q        *endlessQueue
-		t        *Task
-		wantTask *Task
+		t        *Job
+		wantTask *Job
 		wantErr  error
 	}{
-		{q: makeQueue(100), t: &Task{executable: "1"}, wantErr: nil},
-		{q: makeQueue(1), t: &Task{executable: "1"}, wantErr: nil},
-		{q: makeQueue(0), t: &Task{executable: "1"}, wantErr: ErrQueueFull},
+		{q: makeQueue(100), t: &Job{executable: "1"}, wantErr: nil},
+		{q: makeQueue(1), t: &Job{executable: "1"}, wantErr: nil},
+		{q: makeQueue(0), t: &Job{executable: "1"}, wantErr: ErrQueueFull},
 	} {
-		tc.t.logger = testutils.DummyTaskLogger("1", "127.0.0.1")
+		tc.t.logger = testutils.DummyJobLogger("1", "127.0.0.1")
 		err := tc.q.Add(tc.t)
 		require.ErrorIs(t, err, tc.wantErr)
 		if err != nil {
@@ -49,14 +50,16 @@ func Test_endlessQueue_Add(t *testing.T) {
 
 func Test_endlessQueue_Start(t *testing.T) {
 	q := NewEndlessQueue(10)
-	task := &Task{
-		name:       "kek",
+	task := &Job{
+		Exploit: &models.Exploit{ID: "kek"},
+		Target: &models.Target{
+			ID: "id",
+			IP: "ip",
+		},
 		executable: "echo",
 		dir:        "",
-		teamID:     "id",
-		teamIP:     "ip",
 		timeout:    time.Second * 2,
-		logger:     testutils.DummyTaskLogger("echo", "ip"),
+		logger:     testutils.DummyJobLogger("echo", "ip"),
 	}
 	require.NoError(t, q.Add(task))
 
@@ -74,9 +77,9 @@ func Test_endlessQueue_Start(t *testing.T) {
 	case <-time.After(time.Second * 3):
 		t.Fatal("timeout")
 	case out := <-q.Results():
-		assert.Equal(t, task.name, out.Name)
-		assert.Equal(t, task.teamID, out.Team)
-		assert.Equal(t, task.teamIP, string(out.Out))
+		assert.Equal(t, task.Exploit, out.Exploit)
+		assert.Equal(t, task.Target, out.Target)
+		assert.Equal(t, task.Target.IP, string(out.Out))
 		break
 	}
 

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"neo/pkg/hostbucket"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
 
@@ -25,7 +27,12 @@ func testServer() (*ExploitManagerServer, func()) {
 	if err != nil {
 		panic(err)
 	}
-	es, err := New(&Config{BaseDir: dir}, st, nil)
+
+	cfg := &Config{
+		BaseDir:          dir,
+		MetricsNamespace: fmt.Sprintf("tests_%s", uuid.NewString()[:8]),
+	}
+	es, err := New(cfg, st, nil)
 	if err != nil {
 		panic(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"neo/internal/client"
 	"neo/pkg/grpcauth"
@@ -23,6 +24,9 @@ type NeoCLI interface {
 
 type baseCLI struct {
 	c *client.Config
+
+	mu       sync.Mutex
+	clientID string
 }
 
 func (cmd *baseCLI) client() (*client.Client, error) {
@@ -50,14 +54,21 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 }
 
 func (cmd *baseCLI) ClientID() string {
-	if id := viper.GetString("client_id"); id != "" {
-		return id
+	cmd.mu.Lock()
+	defer cmd.mu.Unlock()
+	if cmd.clientID != "" {
+		return cmd.clientID
 	}
-	id, err := machineid.ID()
-	if err != nil {
-		logrus.Fatalf("Failed to get unique client name: %v", err)
+
+	cmd.clientID = viper.GetString("client_id")
+	if cmd.clientID == "" {
+		var err error
+		if cmd.clientID, err = machineid.ID(); err != nil {
+			logrus.Fatalf("Failed to get unique client name: %v", err)
+		}
 	}
-	return id
+	logrus.Infof("Detected client id: %s", cmd.clientID)
+	return cmd.clientID
 }
 
 func (cmd *baseCLI) Run(_ context.Context) error {

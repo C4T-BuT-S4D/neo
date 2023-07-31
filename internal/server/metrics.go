@@ -9,9 +9,10 @@ type Metrics struct {
 	AliveClients prometheus.Gauge
 }
 
-func NewMetrics() *Metrics {
+func NewMetrics(namespace string) *Metrics {
 	return &Metrics{
 		AliveClients: promauto.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
 			Subsystem: "server",
 			Name:      "alive_clients",
 			Help:      "Number of alive clients",

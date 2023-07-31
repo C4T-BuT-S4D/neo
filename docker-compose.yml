@@ -14,20 +14,6 @@ services:
     image: redis:6.2.6-alpine
     restart: unless-stopped
 
-  prometheus:
-    image: prom/prometheus:v2.46.0
-    volumes:
-      - ./monitoring/cfg/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./volumes/prometheus:/prometheus
-    restart: unless-stopped
-    cpus: 2
-    mem_limit: 4gb
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    dns:
-      - 1.1.1.1
-      - 8.8.8.8
-
   grafana:
     image: grafana/grafana-oss:10.0.3
     volumes:
@@ -43,9 +29,18 @@ services:
     ports:
       - "3000:3000"
 
-  pushgateway:
-    image: prom/pushgateway:v1.6.0
-    container_name: pushgateway
+  victoria:
+    image: victoriametrics/victoria-metrics:v1.92.1
+    volumes:
+      - ./monitoring/cfg/prometheus:/etc/prometheus
+      - ./volumes/victoria-metrics:/victoria-metrics-data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - "-storageDataPath=/victoria-metrics-data"
+      - "-promscrape.config=/etc/prometheus/config.yml"
     restart: unless-stopped
+    cpus: 2
+    mem_limit: 4gb
     ports:
-      - "9091:9091"
+      - "8428:8428"

@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"neo/pkg/tasklogger"
+	"neo/pkg/joblogger"
+
+	"github.com/google/uuid"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -56,6 +58,10 @@ func RandomIP() string {
 	return fmt.Sprintf("%d.%d.%d.%d", gen(), gen(), gen(), gen())
 }
 
+func MetricsNamespace() string {
+	return fmt.Sprintf("test_%s", uuid.NewString()[:8])
+}
+
 type HTTPRequestChecker func(*testing.T, *http.Request)
 
 func NewCheckedTestServer(t *testing.T, checker HTTPRequestChecker) *httptest.Server {
@@ -67,6 +73,6 @@ func NewCheckedTestServer(t *testing.T, checker HTTPRequestChecker) *httptest.Se
 	return s
 }
 
-func DummyTaskLogger(name, team string) *tasklogger.TaskLogger {
-	return tasklogger.New(name, 1, team, tasklogger.NewDummySender())
+func DummyJobLogger(name, team string) *joblogger.JobLogger {
+	return joblogger.New(name, 1, team, joblogger.NewDummySender())
 }

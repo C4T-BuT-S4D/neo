@@ -1,4 +1,4 @@
-package tasklogger
+package joblogger
 
 import (
 	"context"

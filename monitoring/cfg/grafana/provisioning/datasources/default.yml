@@ -2,8 +2,8 @@ datasources:
   - access: 'proxy'
     editable: true
     is_default: true
-    name: 'prometheus'
+    name: 'victoria'
     org_id: 1
     type: 'prometheus'
-    url: 'http://prometheus:9090'
+    url: 'http://victoria:8428'
     version: 1

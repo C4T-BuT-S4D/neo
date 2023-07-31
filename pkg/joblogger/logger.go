@@ -1,4 +1,4 @@
-package tasklogger
+package joblogger
 
 import (
 	"fmt"
@@ -15,8 +15,8 @@ import (
 // 1 MB.
 const maxMessageLength = 1024 * 1024
 
-func New(exploit string, version int64, team string, sender Sender) *TaskLogger {
-	return &TaskLogger{
+func New(exploit string, version int64, team string, sender Sender) *JobLogger {
+	return &JobLogger{
 		exploit: exploit,
 		version: version,
 		team:    team,
@@ -24,38 +24,38 @@ func New(exploit string, version int64, team string, sender Sender) *TaskLogger 
 	}
 }
 
-type TaskLogger struct {
+type JobLogger struct {
 	exploit string
 	version int64
 	team    string
 	sender  Sender
 }
 
-func (l *TaskLogger) Debugf(format string, args ...interface{}) {
+func (l *JobLogger) Debugf(format string, args ...interface{}) {
 	l.logProxy(logrus.DebugLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "debug"))
 }
 
-func (l *TaskLogger) Infof(format string, args ...interface{}) {
+func (l *JobLogger) Infof(format string, args ...interface{}) {
 	l.logProxy(logrus.InfoLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "info"))
 }
 
-func (l *TaskLogger) Warningf(format string, args ...interface{}) {
+func (l *JobLogger) Warningf(format string, args ...interface{}) {
 	l.logProxy(logrus.WarnLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "warning"))
 }
 
-func (l *TaskLogger) Errorf(format string, args ...interface{}) {
+func (l *JobLogger) Errorf(format string, args ...interface{}) {
 	l.logProxy(logrus.ErrorLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "error"))
 }
 
-func (l *TaskLogger) newLine(msg, level string) *neopb.LogLine {
+func (l *JobLogger) newLine(msg, level string) *neopb.LogLine {
 	return &neopb.LogLine{
 		Exploit: l.exploit,
 		Version: l.version,
@@ -65,7 +65,7 @@ func (l *TaskLogger) newLine(msg, level string) *neopb.LogLine {
 	}
 }
 
-func (l *TaskLogger) getLogger() *logrus.Entry {
+func (l *JobLogger) getLogger() *logrus.Entry {
 	return logrus.WithFields(logrus.Fields{
 		"exploit": l.exploit,
 		"version": l.version,
@@ -73,7 +73,7 @@ func (l *TaskLogger) getLogger() *logrus.Entry {
 	})
 }
 
-func (l *TaskLogger) logProxy(level logrus.Level, format string, args ...interface{}) {
+func (l *JobLogger) logProxy(level logrus.Level, format string, args ...interface{}) {
 	if logrus.IsLevelEnabled(level) {
 		l.
 			getLogger().

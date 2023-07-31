@@ -2,11 +2,10 @@ package cli
 
 import (
 	"context"
-	"runtime"
 
 	"neo/internal/client"
 	"neo/internal/exploit"
-	"neo/pkg/tasklogger"
+	"neo/pkg/joblogger"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -17,7 +16,7 @@ const JobsPerCPU = 5
 type runCLI struct {
 	*baseCLI
 	run    *exploit.Runner
-	sender *tasklogger.RemoteSender
+	sender *joblogger.RemoteSender
 }
 
 func parseJobsFlag(cmd *cobra.Command, name string) int {
@@ -25,11 +24,8 @@ func parseJobsFlag(cmd *cobra.Command, name string) int {
 	if err != nil {
 		logrus.Fatalf("Could not get jobs number: %v", err)
 	}
-	if jobs == 0 {
-		jobs = runtime.NumCPU() * JobsPerCPU
-	}
-	if jobs <= 0 {
-		logrus.Fatal("run: job count should be positive")
+	if jobs < 0 {
+		logrus.Fatal("run: job count should be non-negavtive")
 	}
 	return jobs
 }
@@ -47,7 +43,7 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 	endlessJobs := parseJobsFlag(cmd, "endless-jobs")
 
 	neocli.Weight = jobs
-	cli.sender = tasklogger.NewRemoteSender(neocli)
+	cli.sender = joblogger.NewRemoteSender(neocli)
 	cli.run = exploit.NewRunner(
 		cli.ClientID(),
 		jobs,

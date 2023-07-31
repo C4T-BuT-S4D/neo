@@ -11,7 +11,7 @@ import (
 	"neo/internal/config"
 	"neo/internal/exploit"
 	"neo/internal/queue"
-	"neo/pkg/tasklogger"
+	"neo/pkg/joblogger"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -82,11 +82,11 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 		}
 	}
 
-	sender := tasklogger.NewDummySender()
+	sender := joblogger.NewDummySender()
 
-	var tasks []*queue.Task
+	var tasks []*queue.Job
 	if rc.teamIP == "" && rc.teamID == "" {
-		tasks = exploit.CreateExploitTasks(ex, allTeams, cfg.Environ, sender)
+		tasks = exploit.CreateExploitJobs(ex, allTeams, cfg.Environ, sender)
 	} else {
 		oneTeamMap := make(map[string]string)
 		for k, v := range allTeams {
@@ -94,7 +94,7 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 				oneTeamMap[k] = v
 			}
 		}
-		tasks = exploit.CreateExploitTasks(ex, oneTeamMap, cfg.Environ, sender)
+		tasks = exploit.CreateExploitJobs(ex, oneTeamMap, cfg.Environ, sender)
 	}
 
 	var q queue.Queue
@@ -132,7 +132,7 @@ loop:
 				break loop
 			}
 			tasksDone++
-			logrus.Infof("Team = %v, Out = %v", res.Team, string(res.Out))
+			logrus.Infof("Target = %v, Out = %v", res.Target, string(res.Out))
 		case <-ctx.Done():
 			logrus.Info("Got interrupt")
 			return nil

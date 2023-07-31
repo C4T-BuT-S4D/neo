@@ -42,7 +42,7 @@ func New(cfg *Config, storage *CachedStorage, logStore *LogStorage) (*ExploitMan
 		singleRunPubSub: pubsub.NewPubSub[*neopb.SingleRunRequest](),
 		broadcastPubSub: pubsub.NewPubSub[*neopb.Command](),
 		logStorage:      logStore,
-		metrics:         NewMetrics(),
+		metrics:         NewMetrics(cfg.MetricsNamespace),
 	}
 	ems.UpdateConfig(cfg)
 	return ems, nil

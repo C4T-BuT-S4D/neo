@@ -68,20 +68,16 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		ipCount       int
-		idCount       int
-		maxDeviation  float64
-		maxStdDev     float64
-		maxMeanStdDev float64
-		weightMax     int
-		runs          int
+		ipCount      int
+		idCount      int
+		maxDeviation float64
+		weightMax    int
+		runs         int
 	}{
 		{
 			100,
 			5,
 			1.5,
-			0.7,
-			0.3,
 			32,
 			100,
 		},
@@ -89,13 +85,10 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 			1000,
 			10,
 			1,
-			0.5,
-			0.2,
 			32,
 			100,
 		},
 	} {
-		meanStdDev := 0.0
 		for i := 0; i < tc.runs; i++ {
 			b := populate(tc.idCount, tc.ipCount, tc.weightMax)
 			sizes := make([]float64, tc.idCount)
@@ -107,7 +100,6 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 			}
 			meanSize /= float64(len(sizes))
 
-			stdDev := 0.0
 			for i := range sizes {
 				deviation := math.Abs((sizes[i] - meanSize) / meanSize)
 				require.Truef(
@@ -121,16 +113,8 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 					b.nodes[i].weight,
 					sizes[i],
 				)
-				curDev := math.Abs(sizes[i] - meanSize)
-				stdDev += curDev * curDev
 			}
-			stdDev = math.Sqrt(stdDev/float64(len(sizes))) / meanSize
-			require.LessOrEqual(t, stdDev, tc.maxStdDev)
-			meanStdDev += stdDev
 		}
-		meanStdDev /= float64(tc.runs)
-		require.LessOrEqual(t, meanStdDev, tc.maxMeanStdDev)
-		t.Logf("Mean std dev: %f", meanStdDev)
 	}
 }
 

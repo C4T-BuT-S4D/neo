@@ -24,6 +24,8 @@ require (
 
 require (
 	github.com/prometheus/client_golang v1.16.0
+	github.com/prometheus/common v0.42.0
+	github.com/samber/lo v1.38.1
 	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090
 )
 
@@ -40,7 +42,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect

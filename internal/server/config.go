@@ -8,16 +8,17 @@ import (
 )
 
 type Config struct {
-	Debug       bool              `mapstructure:"debug"`
-	Port        string            `mapstructure:"port"`
-	DBPath      string            `mapstructure:"db_path"`
-	RedisURL    string            `mapstructure:"redis_url"`
-	BaseDir     string            `mapstructure:"base_dir"`
-	PingEvery   time.Duration     `mapstructure:"ping_every"`
-	SubmitEvery time.Duration     `mapstructure:"submit_every"`
-	FarmConfig  FarmConfig        `mapstructure:"farm"`
-	GrpcAuthKey string            `mapstructure:"grpc_auth_key"`
-	Environ     map[string]string `mapstructure:"env"`
+	Debug            bool              `mapstructure:"debug"`
+	Port             string            `mapstructure:"port"`
+	DBPath           string            `mapstructure:"db_path"`
+	RedisURL         string            `mapstructure:"redis_url"`
+	BaseDir          string            `mapstructure:"base_dir"`
+	PingEvery        time.Duration     `mapstructure:"ping_every"`
+	SubmitEvery      time.Duration     `mapstructure:"submit_every"`
+	FarmConfig       FarmConfig        `mapstructure:"farm"`
+	GrpcAuthKey      string            `mapstructure:"grpc_auth_key"`
+	Environ          map[string]string `mapstructure:"env"`
+	MetricsNamespace string            `mapstructure:"metrics_namespace"`
 }
 
 type FarmConfig struct {
