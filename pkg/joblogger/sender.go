@@ -8,8 +8,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"neo/internal/client"
-	neopb "neo/lib/genproto/neo"
+	"github.com/c4t-but-s4d/neo/internal/client"
+	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 )
 
 type Sender interface {
-	Add(lines ...*neopb.LogLine)
+	Add(lines ...*logspb.LogLine)
 }
 
 func NewDummySender() *DummySender {
@@ -26,23 +26,23 @@ func NewDummySender() *DummySender {
 
 type DummySender struct{}
 
-func (s *DummySender) Add(...*neopb.LogLine) {
+func (s *DummySender) Add(...*logspb.LogLine) {
 }
 
 func NewRemoteSender(client *client.Client) *RemoteSender {
 	return &RemoteSender{
 		client: client,
-		queue:  make([]*neopb.LogLine, 0, 1000),
+		queue:  make([]*logspb.LogLine, 0, 1000),
 	}
 }
 
 type RemoteSender struct {
 	client *client.Client
-	queue  []*neopb.LogLine
+	queue  []*logspb.LogLine
 	mu     sync.Mutex
 }
 
-func (s *RemoteSender) Add(lines ...*neopb.LogLine) {
+func (s *RemoteSender) Add(lines ...*logspb.LogLine) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.queue = append(s.queue, lines...)
@@ -66,7 +66,7 @@ func (s *RemoteSender) Start(ctx context.Context) {
 
 func (s *RemoteSender) send(ctx context.Context) error {
 	s.mu.Lock()
-	batch := make([]*neopb.LogLine, len(s.queue))
+	batch := make([]*logspb.LogLine, len(s.queue))
 	copy(batch, s.queue)
 	s.queue = s.queue[:0]
 	s.mu.Unlock()

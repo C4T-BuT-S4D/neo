@@ -10,9 +10,13 @@ import (
 	"syscall"
 	"time"
 
-	"neo/internal/logger"
-	"neo/internal/server"
-	"neo/pkg/grpcauth"
+	"github.com/c4t-but-s4d/neo/internal/logger"
+	"github.com/c4t-but-s4d/neo/internal/server/config"
+	"github.com/c4t-but-s4d/neo/internal/server/exploit_manager"
+	"github.com/c4t-but-s4d/neo/internal/server/fs"
+	logs "github.com/c4t-but-s4d/neo/internal/server/logs"
+	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
+	"github.com/c4t-but-s4d/neo/pkg/neosync"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -22,7 +26,9 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/reflection"
 
-	neopb "neo/lib/genproto/neo"
+	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
+	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
+	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
 )
 
 func main() {
@@ -38,18 +44,19 @@ func main() {
 
 	setLogLevel(cfg)
 
-	ctx := context.Background()
-	fc := server.NewFarmClient(cfg.FarmConfig)
-	if err := fc.FillConfig(ctx, &cfg.FarmConfig); err != nil {
+	initCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	fc := exploit_manager.NewFarmClient(cfg.FarmConfig)
+	if err := fc.FillConfig(initCtx, &cfg.FarmConfig); err != nil {
 		logrus.Fatalf("Failed to fetch config from farm: %v", err)
 	}
 
-	st, err := server.NewBoltStorage(cfg.DBPath)
+	st, err := exploit_manager.NewBoltStorage(cfg.DBPath)
 	if err != nil {
 		logrus.Fatalf("Failed to create bolt storage: %v", err)
 	}
 
-	logStore, err := server.NewLogStorage(ctx, cfg.RedisURL)
+	logStore, err := logs.NewLogStorage(initCtx, cfg.RedisURL)
 	if err != nil {
 		logrus.Fatalf("Failed to create log storage: %v", err)
 	}
@@ -58,10 +65,14 @@ func main() {
 		logrus.Fatalf("ping_every should be positive")
 	}
 	logrus.Infof("Config: %+v", cfg)
-	srv, err := server.New(cfg, st, logStore)
+
+	exploitsServer := exploit_manager.New(cfg, st)
+	fsServer, err := fs.New(cfg)
 	if err != nil {
-		logrus.Fatalf("Failed to create server: %v", err)
+		logrus.Fatalf("Failed to create file server: %v", err)
 	}
+	logsServer := logs.New(logStore)
+
 	lis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
 		logrus.Fatalf("Failed to listen: %v", err)
@@ -75,7 +86,9 @@ func main() {
 	}
 
 	s := grpc.NewServer(opts...)
-	neopb.RegisterExploitManagerServer(s, srv)
+	empb.RegisterServiceServer(s, exploitsServer)
+	fspb.RegisterServiceServer(s, fsServer)
+	logspb.RegisterServiceServer(s, logsServer)
 	reflection.Register(s)
 
 	http.Handle("/metrics", promhttp.Handler())
@@ -86,19 +99,36 @@ func main() {
 		}
 	}()
 
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	runCtx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	go srv.HeartBeat(ctx)
-	go srv.UpdateMetrics(ctx)
+	wg := neosync.NewWG()
+
+	wg.Add(3)
 	go func() {
-		<-ctx.Done()
+		defer wg.Done()
+		exploitsServer.HeartBeat(runCtx)
+	}()
+	go func() {
+		defer wg.Done()
+		exploitsServer.UpdateMetrics(runCtx)
+	}()
+	go func() {
+		defer wg.Done()
+		<-runCtx.Done()
 		logrus.Info("Received shutdown signal, stopping server")
 		s.GracefulStop()
 	}()
+
 	logrus.Infof("Starting server on port %s", cfg.Port)
 	if err := s.Serve(lis); err != nil {
 		logrus.Fatalf("Failed to serve: %v", err)
+	}
+	select {
+	case <-wg.Await():
+		logrus.Info("Shutdown finished")
+	case <-time.After(10 * time.Second):
+		logrus.Warn("Shutdown timeout")
 	}
 }
 
@@ -123,13 +153,13 @@ func setConfigDefaults() {
 	viper.SetDefault("metrics.address", ":3000")
 }
 
-func readConfig() (*server.Config, error) {
+func readConfig() (*config.Config, error) {
 	viper.SetConfigFile(viper.GetString("config"))
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("reading yaml config: %w", err)
 	}
-	cfg := new(server.Config)
+	cfg := new(config.Config)
 	if err := viper.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
@@ -137,7 +167,7 @@ func readConfig() (*server.Config, error) {
 	return cfg, nil
 }
 
-func setLogLevel(cfg *server.Config) {
+func setLogLevel(cfg *config.Config) {
 	if cfg.Debug {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else {

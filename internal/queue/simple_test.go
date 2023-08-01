@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"neo/internal/models"
-	"neo/pkg/testutils"
+	"github.com/c4t-but-s4d/neo/internal/models"
+	"github.com/c4t-but-s4d/neo/pkg/testutils"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"

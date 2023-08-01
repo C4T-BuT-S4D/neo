@@ -5,12 +5,12 @@ import (
 	"regexp"
 	"time"
 
-	neopb "neo/lib/genproto/neo"
-
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
 )
 
-type Config struct {
+type ExploitsConfig struct {
 	PingEvery    time.Duration
 	SubmitEvery  time.Duration
 	FarmURL      string
@@ -19,8 +19,8 @@ type Config struct {
 	Environ      []string
 }
 
-func ToProto(c *Config) *neopb.Config {
-	return &neopb.Config{
+func ToProto(c *ExploitsConfig) *empb.Config {
+	return &empb.Config{
 		FarmUrl:      c.FarmURL,
 		FarmPassword: c.FarmPassword,
 		FlagRegexp:   c.FlagRegexp.String(),
@@ -30,9 +30,9 @@ func ToProto(c *Config) *neopb.Config {
 	}
 }
 
-func FromProto(config *neopb.Config) (*Config, error) {
+func FromProto(config *empb.Config) (*ExploitsConfig, error) {
 	var (
-		cfg Config
+		cfg ExploitsConfig
 		err error
 	)
 	if cfg.FlagRegexp, err = regexp.Compile(config.FlagRegexp); err != nil {

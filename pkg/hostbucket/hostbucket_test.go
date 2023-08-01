@@ -5,7 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"neo/pkg/testutils"
+	"github.com/c4t-but-s4d/neo/pkg/testutils"
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/go-cmp/cmp"

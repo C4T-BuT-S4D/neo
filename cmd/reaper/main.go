@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"neo/internal/logger"
-	"neo/pkg/neoproc"
+	"github.com/c4t-but-s4d/neo/internal/logger"
+	"github.com/c4t-but-s4d/neo/pkg/neoproc"
 
 	"github.com/sirupsen/logrus"
 )

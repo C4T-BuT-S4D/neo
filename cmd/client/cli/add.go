@@ -13,14 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"neo/internal/client"
-	"neo/pkg/archive"
+	"github.com/c4t-but-s4d/neo/internal/client"
+	"github.com/c4t-but-s4d/neo/pkg/archive"
+	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/types/known/durationpb"
-
-	neopb "neo/lib/genproto/neo"
 )
 
 type addCLI struct {
@@ -36,7 +35,7 @@ type addCLI struct {
 
 func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	c := &addCLI{
-		baseCLI: &baseCLI{cfg},
+		baseCLI: &baseCLI{cfg: cfg},
 		path:    args[0],
 	}
 
@@ -89,7 +88,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
+	state, err := c.GetServerState(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
@@ -145,10 +144,10 @@ func (ac *addCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to upload exploit file: %w", err)
 	}
 
-	exState := &neopb.ExploitState{
+	exState := &empb.ExploitState{
 		ExploitId: ac.exploitID,
 		File:      fileInfo,
-		Config: &neopb.ExploitConfiguration{
+		Config: &empb.ExploitConfiguration{
 			Entrypoint: file,
 			IsArchive:  ac.isArchive,
 			RunEvery:   durationpb.New(ac.runEvery),

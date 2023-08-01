@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"neo/pkg/joblogger"
+	"github.com/c4t-but-s4d/neo/pkg/joblogger"
 
 	"github.com/google/uuid"
 )

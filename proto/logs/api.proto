@@ -1,0 +1,32 @@
+syntax = "proto3";
+package logs;
+
+option go_package = "logs";
+
+import "google/protobuf/empty.proto";
+
+message LogLine {
+    string exploit = 1;
+    int64 version = 2;
+    string message = 3;
+    string level = 4;
+    string team = 5;
+}
+
+message AddLogLinesRequest {
+    repeated LogLine lines = 1;
+}
+
+message SearchLogLinesRequest {
+    string exploit = 1;
+    int64 version = 2;
+}
+
+message SearchLogLinesResponse {
+    repeated LogLine lines = 1;
+}
+
+service Service {
+    rpc AddLogLines(AddLogLinesRequest) returns (google.protobuf.Empty) {}
+    rpc SearchLogLines(SearchLogLinesRequest) returns (stream SearchLogLinesResponse) {}
+}

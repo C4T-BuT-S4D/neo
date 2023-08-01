@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"neo/internal/client"
+	"github.com/c4t-but-s4d/neo/internal/client"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -21,7 +21,7 @@ func NewBroadcast(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 		logrus.Fatalf("Could not parse command: %v", cmd)
 	}
 	return &broadcastCLI{
-		baseCLI: &baseCLI{cfg},
+		baseCLI: &baseCLI{cfg: cfg},
 		cmd:     command,
 	}
 }

@@ -6,9 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"neo/internal/client"
-
-	neopb "neo/lib/genproto/neo"
+	"github.com/c4t-but-s4d/neo/internal/client"
+	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
 )
 
 type setDisabledCli struct {
@@ -19,7 +18,7 @@ type setDisabledCli struct {
 
 func NewSetDisabled(_ *cobra.Command, args []string, cfg *client.Config, disabled bool) NeoCLI {
 	return &setDisabledCli{
-		baseCLI:   &baseCLI{cfg},
+		baseCLI:   &baseCLI{cfg: cfg},
 		exploitID: args[0],
 		disabled:  disabled,
 	}
@@ -30,12 +29,12 @@ func (sc *setDisabledCli) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
+	state, err := c.GetServerState(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
 
-	var spl *neopb.ExploitState
+	var spl *empb.ExploitState
 	for _, v := range state.Exploits {
 		if v.ExploitId == sc.exploitID {
 			spl = v

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	neopb "neo/lib/genproto/neo"
+	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
 )
 
 const (
@@ -13,11 +13,11 @@ const (
 )
 
 type DownloadStream interface {
-	Recv() (*neopb.FileStream, error)
+	Recv() (*fspb.FileStream, error)
 }
 
 type UploadStream interface {
-	Send(*neopb.FileStream) error
+	Send(*fspb.FileStream) error
 }
 
 func Save(stream DownloadStream, out io.Writer) error {
@@ -45,7 +45,7 @@ func Load(in io.Reader, stream UploadStream) error {
 		if err != nil {
 			return fmt.Errorf("reading content: %w", err)
 		}
-		if err := stream.Send(&neopb.FileStream{Chunk: b[:n]}); err != nil {
+		if err := stream.Send(&fspb.FileStream{Chunk: b[:n]}); err != nil {
 			return fmt.Errorf("sending chunk to stream: %w", err)
 		}
 	}

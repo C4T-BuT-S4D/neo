@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sync"
 
-	"neo/internal/client"
-	"neo/pkg/grpcauth"
+	"github.com/c4t-but-s4d/neo/internal/client"
+	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/sirupsen/logrus"
@@ -23,7 +23,7 @@ type NeoCLI interface {
 }
 
 type baseCLI struct {
-	c *client.Config
+	cfg *client.Config
 
 	mu       sync.Mutex
 	clientID string
@@ -38,15 +38,15 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 			grpc.UseCompressor(gzip.Name),
 		),
 	)
-	if cmd.c.GrpcAuthKey != "" {
-		interceptor := grpcauth.NewClientInterceptor(cmd.c.GrpcAuthKey)
+	if cmd.cfg.GrpcAuthKey != "" {
+		interceptor := grpcauth.NewClientInterceptor(cmd.cfg.GrpcAuthKey)
 		opts = append(
 			opts,
 			grpc.WithUnaryInterceptor(interceptor.Unary()),
 			grpc.WithStreamInterceptor(interceptor.Stream()),
 		)
 	}
-	conn, err := grpc.Dial(cmd.c.Host, opts...)
+	conn, err := grpc.Dial(cmd.cfg.Host, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing grpc: %w", err)
 	}

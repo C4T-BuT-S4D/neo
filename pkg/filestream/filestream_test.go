@@ -11,7 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
-	neopb "neo/lib/genproto/neo"
+	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
 )
 
 type failedReadWriter struct {
@@ -32,7 +32,7 @@ type mockUploadStream struct {
 	buf       bytes.Buffer
 }
 
-func (ms *mockUploadStream) Send(s *neopb.FileStream) error {
+func (ms *mockUploadStream) Send(s *fspb.FileStream) error {
 	ms.buf.Write(s.Chunk)
 	if ms.withError {
 		return errTestWrite
@@ -46,7 +46,7 @@ type mockDownloadStream struct {
 	chunkSize int
 }
 
-func (ms *mockDownloadStream) Recv() (*neopb.FileStream, error) {
+func (ms *mockDownloadStream) Recv() (*fspb.FileStream, error) {
 	if ms.chunkSize == 0 {
 		ms.chunkSize = chunkSize
 	}
@@ -58,7 +58,7 @@ func (ms *mockDownloadStream) Recv() (*neopb.FileStream, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading stream content: %w", err)
 	}
-	return &neopb.FileStream{Chunk: b[:n]}, nil
+	return &fspb.FileStream{Chunk: b[:n]}, nil
 }
 
 func TestLoad(t *testing.T) {

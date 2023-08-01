@@ -7,9 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"neo/internal/client"
-
-	neopb "neo/lib/genproto/neo"
+	"github.com/c4t-but-s4d/neo/internal/client"
 )
 
 type singleRunCLI struct {
@@ -19,7 +17,7 @@ type singleRunCLI struct {
 
 func NewSingleRun(_ *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	return &singleRunCLI{
-		baseCLI:   &baseCLI{cfg},
+		baseCLI:   &baseCLI{cfg: cfg},
 		exploitID: args[0],
 	}
 }
@@ -29,7 +27,7 @@ func (sc *singleRunCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
+	state, err := c.GetServerState(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}

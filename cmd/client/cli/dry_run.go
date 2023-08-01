@@ -7,16 +7,14 @@ import (
 	"path"
 	"sync"
 
-	"neo/internal/client"
-	"neo/internal/config"
-	"neo/internal/exploit"
-	"neo/internal/queue"
-	"neo/pkg/joblogger"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	neopb "neo/lib/genproto/neo"
+	"github.com/c4t-but-s4d/neo/internal/client"
+	"github.com/c4t-but-s4d/neo/internal/config"
+	"github.com/c4t-but-s4d/neo/internal/exploit"
+	"github.com/c4t-but-s4d/neo/internal/queue"
+	"github.com/c4t-but-s4d/neo/pkg/joblogger"
 )
 
 type dryRunCLI struct {
@@ -34,7 +32,7 @@ func NewDryRun(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	}
 
 	cli := &dryRunCLI{
-		baseCLI:   &baseCLI{c: cfg},
+		baseCLI:   &baseCLI{cfg: cfg},
 		exploitID: args[0],
 		jobs:      parseJobsFlag(cmd, "jobs"),
 	}
@@ -48,7 +46,7 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
+	state, err := c.GetServerState(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
@@ -68,7 +66,7 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("exploit %s does not exist, add it first", rc.exploitID)
 	}
 
-	storage := exploit.NewStorage(exploit.NewCache(), rc.baseCLI.c.ExploitDir, c)
+	storage := exploit.NewStorage(exploit.NewCache(), rc.baseCLI.cfg.ExploitDir, c)
 	storage.UpdateExploits(ctx, state.Exploits)
 	ex, ok := storage.Exploit(rc.exploitID)
 	if !ok {

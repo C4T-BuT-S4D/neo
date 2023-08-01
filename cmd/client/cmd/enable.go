@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"neo/cmd/client/cli"
-	"neo/internal/client"
+	"github.com/c4t-but-s4d/neo/internal/client"
+
+	"github.com/c4t-but-s4d/neo/cmd/client/cli"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

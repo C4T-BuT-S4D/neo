@@ -9,61 +9,106 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"neo/pkg/filestream"
+	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
+	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
+	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
+
+	"github.com/c4t-but-s4d/neo/pkg/filestream"
 
 	"google.golang.org/grpc"
-
-	neopb "neo/lib/genproto/neo"
 )
 
 func New(cc grpc.ClientConnInterface, id string) *Client {
 	return &Client{
-		c:  neopb.NewExploitManagerClient(cc),
-		ID: id,
+		exploits: empb.NewServiceClient(cc),
+		fs:       fspb.NewServiceClient(cc),
+		logs:     logspb.NewServiceClient(cc),
+		ID:       id,
 	}
 }
 
 type Client struct {
-	c      neopb.ExploitManagerClient
+	exploits empb.ServiceClient
+	fs       fspb.ServiceClient
+	logs     logspb.ServiceClient
+
 	ID     string
 	Weight int
 }
 
-func (nc *Client) Ping(ctx context.Context, t neopb.PingRequest_PingType) (*neopb.ServerState, error) {
-	req := &neopb.PingRequest{ClientId: nc.ID, Type: t}
-	if t == neopb.PingRequest_HEARTBEAT {
-		req.Type = neopb.PingRequest_HEARTBEAT
-		req.Weight = int32(nc.Weight)
-	}
-	resp, err := nc.c.Ping(ctx, req)
+func (nc *Client) GetServerState(ctx context.Context) (*empb.ServerState, error) {
+	resp, err := nc.exploits.Ping(
+		ctx,
+		&empb.PingRequest{
+			Payload: &empb.PingRequest_ServerInfoRequest{
+				ServerInfoRequest: &empb.PingRequest_ServerInfo{
+					ClientId: nc.ID,
+				},
+			},
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("making ping request: %w", err)
 	}
 	return resp.State, nil
 }
 
-func (nc *Client) Exploit(ctx context.Context, id string) (*neopb.ExploitResponse, error) {
-	req := &neopb.ExploitRequest{
+func (nc *Client) Heartbeat(ctx context.Context) (*empb.ServerState, error) {
+	resp, err := nc.exploits.Ping(
+		ctx,
+		&empb.PingRequest{
+			Payload: &empb.PingRequest_HeartbeatRequest{
+				HeartbeatRequest: &empb.PingRequest_Heartbeat{
+					ClientId: nc.ID,
+					Weight:   int32(nc.Weight),
+				},
+			},
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("making ping request: %w", err)
+	}
+	return resp.State, nil
+}
+
+func (nc *Client) Leave(ctx context.Context) error {
+	if _, err := nc.exploits.Ping(
+		ctx,
+		&empb.PingRequest{
+			Payload: &empb.PingRequest_LeaveRequest{
+				LeaveRequest: &empb.PingRequest_Leave{
+					ClientId: nc.ID,
+				},
+			},
+		},
+	); err != nil {
+		return fmt.Errorf("making ping request: %w", err)
+	}
+	return nil
+}
+
+func (nc *Client) Exploit(ctx context.Context, id string) (*empb.ExploitResponse, error) {
+	req := &empb.ExploitRequest{
 		ExploitId: id,
 	}
-	resp, err := nc.c.Exploit(ctx, req)
+	resp, err := nc.exploits.Exploit(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("making exploit request: %w", err)
 	}
 	return resp, nil
 }
 
-func (nc *Client) UpdateExploit(ctx context.Context, state *neopb.ExploitState) (*neopb.ExploitState, error) {
-	req := &neopb.UpdateExploitRequest{State: state}
-	resp, err := nc.c.UpdateExploit(ctx, req)
+func (nc *Client) UpdateExploit(ctx context.Context, state *empb.ExploitState) (*empb.ExploitState, error) {
+	req := &empb.UpdateExploitRequest{State: state}
+	resp, err := nc.exploits.UpdateExploit(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("aking update exploit request: %w", err)
 	}
 	return resp.State, nil
 }
 
-func (nc *Client) DownloadFile(ctx context.Context, info *neopb.FileInfo, out io.Writer) error {
-	resp, err := nc.c.DownloadFile(ctx, info)
+func (nc *Client) DownloadFile(ctx context.Context, info *fspb.FileInfo, out io.Writer) error {
+	resp, err := nc.fs.DownloadFile(ctx, info)
 	if err != nil {
 		return fmt.Errorf("making download file request: %w", err)
 	}
@@ -76,8 +121,8 @@ func (nc *Client) DownloadFile(ctx context.Context, info *neopb.FileInfo, out io
 	return nil
 }
 
-func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*neopb.FileInfo, error) {
-	client, err := nc.c.UploadFile(ctx)
+func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*fspb.FileInfo, error) {
+	client, err := nc.fs.UploadFile(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("making upload file request: %w", err)
 	}
@@ -92,16 +137,16 @@ func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*neopb.FileInfo,
 }
 
 func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
-	req := &neopb.Command{Command: command}
-	if _, err := nc.c.BroadcastCommand(ctx, req); err != nil {
+	req := &empb.Command{Command: command}
+	if _, err := nc.exploits.BroadcastCommand(ctx, req); err != nil {
 		return fmt.Errorf("making broadcast command request: %w", err)
 	}
 	return nil
 }
 
 func (nc *Client) SingleRun(ctx context.Context, exploitID string) error {
-	req := &neopb.SingleRunRequest{ExploitId: exploitID}
-	if _, err := nc.c.SingleRun(ctx, req); err != nil {
+	req := &empb.SingleRunRequest{ExploitId: exploitID}
+	if _, err := nc.exploits.SingleRun(ctx, req); err != nil {
 		return fmt.Errorf("making single run request: %w", err)
 	}
 	return nil
@@ -113,22 +158,22 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 		return fmt.Errorf("fetching current exploit config: %w", err)
 	}
 
-	req := &neopb.UpdateExploitRequest{State: resp.State}
+	req := &empb.UpdateExploitRequest{State: resp.State}
 	req.State.Disabled = disabled
 
-	if _, err := nc.c.UpdateExploit(ctx, req); err != nil {
+	if _, err := nc.exploits.UpdateExploit(ctx, req); err != nil {
 		return fmt.Errorf("making delete exploit request: %w", err)
 	}
 	return nil
 }
 
-func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, error) {
-	stream, err := nc.c.BroadcastRequests(ctx, &emptypb.Empty{})
+func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *empb.Command, error) {
+	stream, err := nc.exploits.BroadcastRequests(ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("creating broadcast requests stream: %w", err)
 	}
 
-	results := make(chan *neopb.Command)
+	results := make(chan *empb.Command)
 	go func() {
 		defer close(results)
 		for {
@@ -148,13 +193,13 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *neopb.Command, 
 	return results, nil
 }
 
-func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.SingleRunRequest, error) {
-	stream, err := nc.c.SingleRunRequests(ctx, &emptypb.Empty{})
+func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *empb.SingleRunRequest, error) {
+	stream, err := nc.exploits.SingleRunRequests(ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("creating single run requests stream: %w", err)
 	}
 
-	results := make(chan *neopb.SingleRunRequest)
+	results := make(chan *empb.SingleRunRequest)
 	go func() {
 		defer close(results)
 		for {
@@ -174,25 +219,25 @@ func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *neopb.SingleRun
 	return results, nil
 }
 
-func (nc *Client) AddLogLines(ctx context.Context, lines ...*neopb.LogLine) error {
-	req := neopb.AddLogLinesRequest{Lines: lines}
-	if _, err := nc.c.AddLogLines(ctx, &req); err != nil {
+func (nc *Client) AddLogLines(ctx context.Context, lines ...*logspb.LogLine) error {
+	req := logspb.AddLogLinesRequest{Lines: lines}
+	if _, err := nc.logs.AddLogLines(ctx, &req); err != nil {
 		return fmt.Errorf("sending a batch of %d logs: %w", len(lines), err)
 	}
 	return nil
 }
 
-func (nc *Client) SearchLogLines(ctx context.Context, exploit string, version int64) (<-chan []*neopb.LogLine, error) {
-	req := neopb.SearchLogLinesRequest{
+func (nc *Client) SearchLogLines(ctx context.Context, exploit string, version int64) (<-chan []*logspb.LogLine, error) {
+	req := logspb.SearchLogLinesRequest{
 		Exploit: exploit,
 		Version: version,
 	}
-	stream, err := nc.c.SearchLogLines(ctx, &req)
+	stream, err := nc.logs.SearchLogLines(ctx, &req)
 	if err != nil {
 		return nil, fmt.Errorf("querying server: %w", err)
 	}
 
-	results := make(chan []*neopb.LogLine)
+	results := make(chan []*logspb.LogLine)
 	go func() {
 		defer close(results)
 		for {

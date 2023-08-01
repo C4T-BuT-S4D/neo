@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"neo/internal/logger"
-	"neo/internal/models"
-	"neo/pkg/testutils"
+	"github.com/c4t-but-s4d/neo/internal/logger"
+	"github.com/c4t-but-s4d/neo/internal/models"
+	"github.com/c4t-but-s4d/neo/pkg/testutils"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

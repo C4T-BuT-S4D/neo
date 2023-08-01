@@ -6,7 +6,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	neopb "neo/lib/genproto/neo"
+	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
 )
 
 func NewLogLineFromValues(vals map[string]interface{}) (*LogLine, error) {
@@ -17,7 +17,7 @@ func NewLogLineFromValues(vals map[string]interface{}) (*LogLine, error) {
 	return &line, nil
 }
 
-func NewLogLineFromProto(p *neopb.LogLine) *LogLine {
+func NewLogLineFromProto(p *logspb.LogLine) *LogLine {
 	return &LogLine{
 		Exploit: p.Exploit,
 		Version: strconv.FormatInt(p.Version, 10),
@@ -57,12 +57,12 @@ func (l *LogLine) EstimateSize() int {
 	return sizeEst * estNum / estDenom
 }
 
-func (l *LogLine) ToProto() (*neopb.LogLine, error) {
+func (l *LogLine) ToProto() (*logspb.LogLine, error) {
 	version, err := strconv.ParseInt(l.Version, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("converting version (%v): %w", l.Version, err)
 	}
-	return &neopb.LogLine{
+	return &logspb.LogLine{
 		Exploit: l.Exploit,
 		Version: version,
 		Message: l.Message,

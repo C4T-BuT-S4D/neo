@@ -3,9 +3,9 @@ package cli
 import (
 	"context"
 
-	"neo/internal/client"
-	"neo/internal/exploit"
-	"neo/pkg/joblogger"
+	"github.com/c4t-but-s4d/neo/internal/client"
+	"github.com/c4t-but-s4d/neo/internal/exploit"
+	"github.com/c4t-but-s4d/neo/pkg/joblogger"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -32,7 +32,7 @@ func parseJobsFlag(cmd *cobra.Command, name string) int {
 
 func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 	cli := &runCLI{
-		baseCLI: &baseCLI{c: cfg},
+		baseCLI: &baseCLI{cfg: cfg},
 	}
 	neocli, err := cli.client()
 	if err != nil {

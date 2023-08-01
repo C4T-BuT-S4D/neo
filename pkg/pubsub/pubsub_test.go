@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"neo/pkg/neosync"
+	"github.com/c4t-but-s4d/neo/pkg/neosync"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"

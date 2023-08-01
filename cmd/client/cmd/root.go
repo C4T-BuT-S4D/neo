@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"neo/internal/logger"
+	"github.com/c4t-but-s4d/neo/internal/logger"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

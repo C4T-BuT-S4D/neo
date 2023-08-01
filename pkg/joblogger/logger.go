@@ -5,11 +5,10 @@ import (
 	"runtime"
 	"strings"
 
-	"neo/internal/logger"
+	"github.com/c4t-but-s4d/neo/internal/logger"
+	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
 
 	"github.com/sirupsen/logrus"
-
-	neopb "neo/lib/genproto/neo"
 )
 
 // 1 MB.
@@ -55,8 +54,8 @@ func (l *JobLogger) Errorf(format string, args ...interface{}) {
 	l.sender.Add(l.newLine(msg, "error"))
 }
 
-func (l *JobLogger) newLine(msg, level string) *neopb.LogLine {
-	return &neopb.LogLine{
+func (l *JobLogger) newLine(msg, level string) *logspb.LogLine {
+	return &logspb.LogLine{
 		Exploit: l.exploit,
 		Version: l.version,
 		Message: sanitizeMessage(msg),
