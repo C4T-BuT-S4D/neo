@@ -13,9 +13,10 @@ import (
 	"strings"
 	"time"
 
+	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
+
 	"github.com/c4t-but-s4d/neo/internal/client"
 	"github.com/c4t-but-s4d/neo/pkg/archive"
-	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -144,10 +145,10 @@ func (ac *addCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to upload exploit file: %w", err)
 	}
 
-	exState := &empb.ExploitState{
+	exState := &epb.ExploitState{
 		ExploitId: ac.exploitID,
 		File:      fileInfo,
-		Config: &empb.ExploitConfiguration{
+		Config: &epb.ExploitConfiguration{
 			Entrypoint: file,
 			IsArchive:  ac.isArchive,
 			RunEvery:   durationpb.New(ac.runEvery),

@@ -9,7 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
+	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
+
 	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
 	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
 
@@ -20,7 +21,7 @@ import (
 
 func New(cc grpc.ClientConnInterface, id string) *Client {
 	return &Client{
-		exploits: empb.NewServiceClient(cc),
+		exploits: epb.NewServiceClient(cc),
 		fs:       fspb.NewServiceClient(cc),
 		logs:     logspb.NewServiceClient(cc),
 		ID:       id,
@@ -28,7 +29,7 @@ func New(cc grpc.ClientConnInterface, id string) *Client {
 }
 
 type Client struct {
-	exploits empb.ServiceClient
+	exploits epb.ServiceClient
 	fs       fspb.ServiceClient
 	logs     logspb.ServiceClient
 
@@ -36,12 +37,12 @@ type Client struct {
 	Weight int
 }
 
-func (nc *Client) GetServerState(ctx context.Context) (*empb.ServerState, error) {
+func (nc *Client) GetServerState(ctx context.Context) (*epb.ServerState, error) {
 	resp, err := nc.exploits.Ping(
 		ctx,
-		&empb.PingRequest{
-			Payload: &empb.PingRequest_ServerInfoRequest{
-				ServerInfoRequest: &empb.PingRequest_ServerInfo{
+		&epb.PingRequest{
+			Payload: &epb.PingRequest_ServerInfoRequest{
+				ServerInfoRequest: &epb.PingRequest_ServerInfo{
 					ClientId: nc.ID,
 				},
 			},
@@ -53,12 +54,12 @@ func (nc *Client) GetServerState(ctx context.Context) (*empb.ServerState, error)
 	return resp.State, nil
 }
 
-func (nc *Client) Heartbeat(ctx context.Context) (*empb.ServerState, error) {
+func (nc *Client) Heartbeat(ctx context.Context) (*epb.ServerState, error) {
 	resp, err := nc.exploits.Ping(
 		ctx,
-		&empb.PingRequest{
-			Payload: &empb.PingRequest_HeartbeatRequest{
-				HeartbeatRequest: &empb.PingRequest_Heartbeat{
+		&epb.PingRequest{
+			Payload: &epb.PingRequest_HeartbeatRequest{
+				HeartbeatRequest: &epb.PingRequest_Heartbeat{
 					ClientId: nc.ID,
 					Weight:   int32(nc.Weight),
 				},
@@ -74,9 +75,9 @@ func (nc *Client) Heartbeat(ctx context.Context) (*empb.ServerState, error) {
 func (nc *Client) Leave(ctx context.Context) error {
 	if _, err := nc.exploits.Ping(
 		ctx,
-		&empb.PingRequest{
-			Payload: &empb.PingRequest_LeaveRequest{
-				LeaveRequest: &empb.PingRequest_Leave{
+		&epb.PingRequest{
+			Payload: &epb.PingRequest_LeaveRequest{
+				LeaveRequest: &epb.PingRequest_Leave{
 					ClientId: nc.ID,
 				},
 			},
@@ -87,8 +88,8 @@ func (nc *Client) Leave(ctx context.Context) error {
 	return nil
 }
 
-func (nc *Client) Exploit(ctx context.Context, id string) (*empb.ExploitResponse, error) {
-	req := &empb.ExploitRequest{
+func (nc *Client) Exploit(ctx context.Context, id string) (*epb.ExploitResponse, error) {
+	req := &epb.ExploitRequest{
 		ExploitId: id,
 	}
 	resp, err := nc.exploits.Exploit(ctx, req)
@@ -98,8 +99,8 @@ func (nc *Client) Exploit(ctx context.Context, id string) (*empb.ExploitResponse
 	return resp, nil
 }
 
-func (nc *Client) UpdateExploit(ctx context.Context, state *empb.ExploitState) (*empb.ExploitState, error) {
-	req := &empb.UpdateExploitRequest{State: state}
+func (nc *Client) UpdateExploit(ctx context.Context, state *epb.ExploitState) (*epb.ExploitState, error) {
+	req := &epb.UpdateExploitRequest{State: state}
 	resp, err := nc.exploits.UpdateExploit(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("aking update exploit request: %w", err)
@@ -137,7 +138,7 @@ func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*fspb.FileInfo, 
 }
 
 func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
-	req := &empb.Command{Command: command}
+	req := &epb.Command{Command: command}
 	if _, err := nc.exploits.BroadcastCommand(ctx, req); err != nil {
 		return fmt.Errorf("making broadcast command request: %w", err)
 	}
@@ -145,7 +146,7 @@ func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
 }
 
 func (nc *Client) SingleRun(ctx context.Context, exploitID string) error {
-	req := &empb.SingleRunRequest{ExploitId: exploitID}
+	req := &epb.SingleRunRequest{ExploitId: exploitID}
 	if _, err := nc.exploits.SingleRun(ctx, req); err != nil {
 		return fmt.Errorf("making single run request: %w", err)
 	}
@@ -158,7 +159,7 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 		return fmt.Errorf("fetching current exploit config: %w", err)
 	}
 
-	req := &empb.UpdateExploitRequest{State: resp.State}
+	req := &epb.UpdateExploitRequest{State: resp.State}
 	req.State.Disabled = disabled
 
 	if _, err := nc.exploits.UpdateExploit(ctx, req); err != nil {
@@ -167,13 +168,13 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 	return nil
 }
 
-func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *empb.Command, error) {
+func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *epb.Command, error) {
 	stream, err := nc.exploits.BroadcastRequests(ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("creating broadcast requests stream: %w", err)
 	}
 
-	results := make(chan *empb.Command)
+	results := make(chan *epb.Command)
 	go func() {
 		defer close(results)
 		for {
@@ -193,13 +194,13 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *empb.Command, e
 	return results, nil
 }
 
-func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *empb.SingleRunRequest, error) {
+func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *epb.SingleRunRequest, error) {
 	stream, err := nc.exploits.SingleRunRequests(ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("creating single run requests stream: %w", err)
 	}
 
-	results := make(chan *empb.SingleRunRequest)
+	results := make(chan *epb.SingleRunRequest)
 	go func() {
 		defer close(results)
 		for {

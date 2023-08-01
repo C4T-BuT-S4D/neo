@@ -45,6 +45,7 @@ linters-settings:
       - (context.Context).Err()
       - fmt.Errorf(
       - errors.New(
+      - WrapErrorf
 
 issues:
   exclude-use-default: false

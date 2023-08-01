@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 
-	"github.com/c4t-but-s4d/neo/internal/config"
 	"github.com/c4t-but-s4d/neo/pkg/filestream"
 )
 
@@ -34,8 +33,7 @@ type Server struct {
 	fspb.UnimplementedServiceServer
 	common.LoggingServer
 
-	config *config.ExploitsConfig
-	fs     filesystem
+	fs filesystem
 }
 
 func (s *Server) UploadFile(stream fspb.Service_UploadFileServer) error {

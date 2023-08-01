@@ -12,7 +12,7 @@ import (
 
 	"github.com/c4t-but-s4d/neo/internal/logger"
 	"github.com/c4t-but-s4d/neo/internal/server/config"
-	"github.com/c4t-but-s4d/neo/internal/server/exploit_manager"
+	"github.com/c4t-but-s4d/neo/internal/server/exploits"
 	"github.com/c4t-but-s4d/neo/internal/server/fs"
 	logs "github.com/c4t-but-s4d/neo/internal/server/logs"
 	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
@@ -26,7 +26,8 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/reflection"
 
-	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
+	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
+
 	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
 	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
 )
@@ -46,12 +47,12 @@ func main() {
 
 	initCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	fc := exploit_manager.NewFarmClient(cfg.FarmConfig)
+	fc := exploits.NewFarmClient(cfg.FarmConfig)
 	if err := fc.FillConfig(initCtx, &cfg.FarmConfig); err != nil {
 		logrus.Fatalf("Failed to fetch config from farm: %v", err)
 	}
 
-	st, err := exploit_manager.NewBoltStorage(cfg.DBPath)
+	st, err := exploits.NewBoltStorage(cfg.DBPath)
 	if err != nil {
 		logrus.Fatalf("Failed to create bolt storage: %v", err)
 	}
@@ -66,7 +67,7 @@ func main() {
 	}
 	logrus.Infof("Config: %+v", cfg)
 
-	exploitsServer := exploit_manager.New(cfg, st)
+	exploitsServer := exploits.New(cfg, st)
 	fsServer, err := fs.New(cfg)
 	if err != nil {
 		logrus.Fatalf("Failed to create file server: %v", err)
@@ -86,7 +87,7 @@ func main() {
 	}
 
 	s := grpc.NewServer(opts...)
-	empb.RegisterServiceServer(s, exploitsServer)
+	epb.RegisterServiceServer(s, exploitsServer)
 	fspb.RegisterServiceServer(s, fsServer)
 	logspb.RegisterServiceServer(s, logsServer)
 	reflection.Register(s)

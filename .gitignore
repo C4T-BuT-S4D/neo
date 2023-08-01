@@ -20,7 +20,7 @@ db.db
 # release files
 client_config.yml
 server_config.yml
-exploits
+/exploits
 
 kek*
 

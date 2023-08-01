@@ -40,10 +40,6 @@ type Job struct {
 	environ    []string
 	timeout    time.Duration
 	logger     *joblogger.JobLogger
-
-	beforeStart []func()
-	onFail      []func()
-	onSuccess   []func()
 }
 
 func (t *Job) String() string {

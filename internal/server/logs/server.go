@@ -11,8 +11,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
-
-	"github.com/c4t-but-s4d/neo/internal/config"
 )
 
 const (
@@ -33,7 +31,6 @@ type Server struct {
 	common.LoggingServer
 
 	storage *LogStorage
-	config  *config.ExploitsConfig
 }
 
 func (s *Server) AddLogLines(ctx context.Context, lines *logspb.AddLogLinesRequest) (*emptypb.Empty, error) {

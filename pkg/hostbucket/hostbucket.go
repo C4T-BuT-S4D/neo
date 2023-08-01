@@ -3,8 +3,9 @@ package hostbucket
 import (
 	"sync"
 
+	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
+
 	"github.com/c4t-but-s4d/neo/pkg/rendezvous"
-	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -12,7 +13,7 @@ import (
 
 func New(teams map[string]string) *HostBucket {
 	return &HostBucket{
-		buck:  make(map[string]*empb.TeamBucket),
+		buck:  make(map[string]*epb.TeamBucket),
 		nodes: nil,
 		teams: teams,
 		r:     rendezvous.New(),
@@ -21,7 +22,7 @@ func New(teams map[string]string) *HostBucket {
 
 type HostBucket struct {
 	m     sync.RWMutex
-	buck  map[string]*empb.TeamBucket
+	buck  map[string]*epb.TeamBucket
 	nodes []*node
 	teams map[string]string
 	r     *rendezvous.Rendezvous
@@ -40,11 +41,11 @@ func (hb *HostBucket) UpdateTeams(teams map[string]string) {
 	}
 }
 
-func (hb *HostBucket) Buckets() map[string]*empb.TeamBucket {
+func (hb *HostBucket) Buckets() map[string]*epb.TeamBucket {
 	hb.m.RLock()
 	defer hb.m.RUnlock()
 
-	clone := make(map[string]*empb.TeamBucket, len(hb.buck))
+	clone := make(map[string]*epb.TeamBucket, len(hb.buck))
 	for k, v := range hb.buck {
 		clone[k] = v
 	}
@@ -66,7 +67,7 @@ func (hb *HostBucket) AddNode(id string, weight int) {
 		return
 	}
 
-	hb.buck[id] = &empb.TeamBucket{}
+	hb.buck[id] = &epb.TeamBucket{}
 	n := &node{
 		id:     id,
 		weight: weight,

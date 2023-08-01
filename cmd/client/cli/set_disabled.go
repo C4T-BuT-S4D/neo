@@ -6,8 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
+
 	"github.com/c4t-but-s4d/neo/internal/client"
-	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
 )
 
 type setDisabledCli struct {
@@ -34,7 +35,7 @@ func (sc *setDisabledCli) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
 
-	var spl *empb.ExploitState
+	var spl *epb.ExploitState
 	for _, v := range state.Exploits {
 		if v.ExploitId == sc.exploitID {
 			spl = v

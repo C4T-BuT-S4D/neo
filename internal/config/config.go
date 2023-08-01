@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	empb "github.com/c4t-but-s4d/neo/proto/go/exploit_manager"
+	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
 )
 
 type ExploitsConfig struct {
@@ -19,8 +19,8 @@ type ExploitsConfig struct {
 	Environ      []string
 }
 
-func ToProto(c *ExploitsConfig) *empb.Config {
-	return &empb.Config{
+func ToProto(c *ExploitsConfig) *epb.Config {
+	return &epb.Config{
 		FarmUrl:      c.FarmURL,
 		FarmPassword: c.FarmPassword,
 		FlagRegexp:   c.FlagRegexp.String(),
@@ -30,7 +30,7 @@ func ToProto(c *ExploitsConfig) *empb.Config {
 	}
 }
 
-func FromProto(config *empb.Config) (*ExploitsConfig, error) {
+func FromProto(config *epb.Config) (*ExploitsConfig, error) {
 	var (
 		cfg ExploitsConfig
 		err error
