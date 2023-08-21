@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
 
@@ -41,10 +40,9 @@ func (nc *Client) GetServerState(ctx context.Context) (*epb.ServerState, error) 
 	resp, err := nc.exploits.Ping(
 		ctx,
 		&epb.PingRequest{
+			ClientId: nc.ID,
 			Payload: &epb.PingRequest_ServerInfoRequest{
-				ServerInfoRequest: &epb.PingRequest_ServerInfo{
-					ClientId: nc.ID,
-				},
+				ServerInfoRequest: &epb.PingRequest_ServerInfo{},
 			},
 		},
 	)
@@ -58,10 +56,10 @@ func (nc *Client) Heartbeat(ctx context.Context) (*epb.ServerState, error) {
 	resp, err := nc.exploits.Ping(
 		ctx,
 		&epb.PingRequest{
+			ClientId: nc.ID,
 			Payload: &epb.PingRequest_HeartbeatRequest{
 				HeartbeatRequest: &epb.PingRequest_Heartbeat{
-					ClientId: nc.ID,
-					Weight:   int32(nc.Weight),
+					Weight: int32(nc.Weight),
 				},
 			},
 		},
@@ -76,10 +74,9 @@ func (nc *Client) Leave(ctx context.Context) error {
 	if _, err := nc.exploits.Ping(
 		ctx,
 		&epb.PingRequest{
+			ClientId: nc.ID,
 			Payload: &epb.PingRequest_LeaveRequest{
-				LeaveRequest: &epb.PingRequest_Leave{
-					ClientId: nc.ID,
-				},
+				LeaveRequest: &epb.PingRequest_Leave{},
 			},
 		},
 	); err != nil {
@@ -138,7 +135,7 @@ func (nc *Client) UploadFile(ctx context.Context, r io.Reader) (*fspb.FileInfo, 
 }
 
 func (nc *Client) BroadcastCommand(ctx context.Context, command string) error {
-	req := &epb.Command{Command: command}
+	req := &epb.BroadcastRequest{Command: command}
 	if _, err := nc.exploits.BroadcastCommand(ctx, req); err != nil {
 		return fmt.Errorf("making broadcast command request: %w", err)
 	}
@@ -168,13 +165,13 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 	return nil
 }
 
-func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *epb.Command, error) {
-	stream, err := nc.exploits.BroadcastRequests(ctx, &emptypb.Empty{})
+func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *epb.BroadcastSubscribeResponse, error) {
+	stream, err := nc.exploits.BroadcastSubscribe(ctx, &epb.BroadcastSubscribeRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("creating broadcast requests stream: %w", err)
 	}
 
-	results := make(chan *epb.Command)
+	results := make(chan *epb.BroadcastSubscribeResponse)
 	go func() {
 		defer close(results)
 		for {
@@ -194,13 +191,13 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *epb.Command, er
 	return results, nil
 }
 
-func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *epb.SingleRunRequest, error) {
-	stream, err := nc.exploits.SingleRunRequests(ctx, &emptypb.Empty{})
+func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *epb.SingleRunSubscribeResponse, error) {
+	stream, err := nc.exploits.SingleRunSubscribe(ctx, &epb.SingleRunSubscribeRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("creating single run requests stream: %w", err)
 	}
 
-	results := make(chan *epb.SingleRunRequest)
+	results := make(chan *epb.SingleRunSubscribeResponse)
 	go func() {
 		defer close(results)
 		for {

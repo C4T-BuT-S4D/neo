@@ -16,10 +16,8 @@ can be a pain and wastes time. **Neo** helps in two primary ways:
    automatically.
 
 2. Exploit writers don't upload the newly-created exploits to the exploit server, neither do they manage the
-   distribution
-   by hand, but rather submit them to the **Neo server** using the same client, and the server does all the work,
-   distributing the exploit
-   among the available clients.
+   distribution manually, but rather submit them to the **Neo server** using the same client,
+   and the server does all the work, distributing the exploit among the available clients.
 
 ## Usage
 

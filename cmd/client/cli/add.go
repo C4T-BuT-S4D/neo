@@ -93,15 +93,8 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
-	exists := false
-	for _, v := range state.Exploits {
-		if v.ExploitId == ac.exploitID {
-			exists = true
-			break
-		}
-	}
 
-	if exists {
+	if getExploitFromState(state, ac.exploitID) != nil {
 		fmt.Println("The exploit with this id already exists. Do you want to override (add new version) y/N ?")
 		var tmp string
 		if _, err := fmt.Scanln(&tmp); err != nil {

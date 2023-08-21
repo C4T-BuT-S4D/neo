@@ -55,14 +55,7 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	exists := false
-	for _, v := range state.Exploits {
-		if v.ExploitId == rc.exploitID {
-			exists = true
-			break
-		}
-	}
-	if !exists {
+	if getExploitFromState(state, rc.exploitID) == nil {
 		return fmt.Errorf("exploit %s does not exist, add it first", rc.exploitID)
 	}
 

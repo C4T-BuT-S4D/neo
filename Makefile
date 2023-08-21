@@ -5,7 +5,7 @@ TARGET := image-full
 CONTAINER_NAME := neo_env
 
 NEED_COMMANDS := curl wget dig nc file nslookup ifconfig python3 pip3 vim
-NEED_PACKAGES := pymongo pymysql psycopg2 redis z3 secrets checklib requests pwn numpy bs4 hashpumpy dnslib regex lxml gmpy2 sympy grequests
+NEED_PACKAGES := pymongo pymysql psycopg2 redis z3 secrets checklib requests pwn numpy bs4 hashpumpy dnslib regex lxml gmpy2 sympy grequests websocket
 
 .PHONY: lint-go
 lint-go:
@@ -17,6 +17,10 @@ lint-proto:
 
 .PHONY: lint
 lint: lint-go lint-proto
+
+.PHONY: goimports
+goimports:
+	goimports -local github.com/c4t-but-s4d/neo -w -d $(find . -type f -name '*.go' -not -path "./proto/*")
 
 .PHONY: test
 test:

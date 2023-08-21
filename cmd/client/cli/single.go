@@ -31,15 +31,8 @@ func (sc *singleRunCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
-	exists := false
-	for _, v := range state.Exploits {
-		if v.ExploitId == sc.exploitID {
-			exists = true
-			break
-		}
-	}
 
-	if !exists {
+	if getExploitFromState(state, sc.exploitID) == nil {
 		logrus.Fatalf("Exploit %s does not exist. Please, add it first.", sc.exploitID)
 	}
 	if err := c.SingleRun(ctx, sc.exploitID); err != nil {
