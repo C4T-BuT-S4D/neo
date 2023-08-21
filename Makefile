@@ -20,7 +20,7 @@ lint: lint-go lint-proto
 
 .PHONY: goimports
 goimports:
-	goimports -local github.com/c4t-but-s4d/neo -w -d $(find . -type f -name '*.go' -not -path "./proto/*")
+	gofancyimports fix --local github.com/c4t-but-s4d/neo -w $(shell find . -type f -name '*.go' -not -path "./proto/*")
 
 .PHONY: test
 test:
