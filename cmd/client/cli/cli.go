@@ -5,16 +5,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/c4t-but-s4d/neo/internal/client"
-	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
-
 	"github.com/denisbrodbeck/machineid"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
 
-	"google.golang.org/grpc"
+	"github.com/c4t-but-s4d/neo/internal/client"
+	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
 )
 
 type NeoCLI interface {

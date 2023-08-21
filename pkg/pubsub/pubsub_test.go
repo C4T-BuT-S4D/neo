@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/c4t-but-s4d/neo/pkg/neosync"
-
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
+
+	"github.com/c4t-but-s4d/neo/pkg/neosync"
 )
 
 func TestMain(m *testing.M) {

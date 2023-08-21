@@ -1,8 +1,6 @@
 package neosync
 
-import (
-	"sync"
-)
+import "sync"
 
 type WaitGroup struct {
 	sync.WaitGroup

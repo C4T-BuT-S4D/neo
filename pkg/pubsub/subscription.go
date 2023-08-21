@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-
 	"github.com/sirupsen/logrus"
 )
 

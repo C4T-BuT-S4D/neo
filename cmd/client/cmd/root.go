@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/c4t-but-s4d/neo/internal/logger"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/c4t-but-s4d/neo/internal/logger"
 )
 
 // rootCmd represents the base command when called without any subcommands

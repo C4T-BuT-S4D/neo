@@ -1,8 +1,6 @@
 package pubsub
 
-import (
-	"sync"
-)
+import "sync"
 
 type PubSub[T any] struct {
 	subs map[string]*Subscription[T]

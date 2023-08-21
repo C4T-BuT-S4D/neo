@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/c4t-but-s4d/neo/internal/logger"
-	"github.com/c4t-but-s4d/neo/internal/models"
-	"github.com/c4t-but-s4d/neo/pkg/testutils"
-
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
+
+	"github.com/c4t-but-s4d/neo/internal/logger"
+	"github.com/c4t-but-s4d/neo/internal/models"
+	"github.com/c4t-but-s4d/neo/pkg/testutils"
 )
 
 func TestMain(m *testing.M) {

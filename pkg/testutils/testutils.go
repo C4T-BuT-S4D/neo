@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/c4t-but-s4d/neo/pkg/joblogger"
-
 	"github.com/google/uuid"
+
+	"github.com/c4t-but-s4d/neo/pkg/joblogger"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

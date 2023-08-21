@@ -1,8 +1,6 @@
 package gstream
 
-import (
-	"context"
-)
+import "context"
 
 type RStream[T any] interface {
 	Recv() (*T, error)

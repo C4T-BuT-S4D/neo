@@ -7,15 +7,12 @@ import (
 	"io"
 
 	"github.com/sirupsen/logrus"
-
-	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
-
-	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
-	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
+	"google.golang.org/grpc"
 
 	"github.com/c4t-but-s4d/neo/pkg/filestream"
-
-	"google.golang.org/grpc"
+	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
+	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
+	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
 )
 
 func New(cc grpc.ClientConnInterface, id string) *Client {

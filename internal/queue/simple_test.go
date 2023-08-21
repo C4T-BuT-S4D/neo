@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/c4t-but-s4d/neo/internal/models"
-	"github.com/c4t-but-s4d/neo/pkg/testutils"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/c4t-but-s4d/neo/internal/models"
+	"github.com/c4t-but-s4d/neo/pkg/testutils"
 )
 
 func TestSimpleQueue_Add(t *testing.T) {

@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	"github.com/c4t-but-s4d/neo/internal/server/common"
 	"github.com/c4t-but-s4d/neo/internal/server/utils"
 	"github.com/c4t-but-s4d/neo/pkg/gstream"
 	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (

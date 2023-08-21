@@ -3,12 +3,11 @@ package hostbucket
 import (
 	"sync"
 
-	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
-
-	"github.com/c4t-but-s4d/neo/pkg/rendezvous"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
+	"github.com/c4t-but-s4d/neo/pkg/rendezvous"
+	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
 )
 
 func New(teams map[string]string) *HostBucket {

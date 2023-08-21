@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/c4t-but-s4d/neo/internal/client"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/c4t-but-s4d/neo/internal/client"
 )
 
 type broadcastCLI struct {

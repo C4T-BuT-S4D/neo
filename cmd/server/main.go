@@ -10,14 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/c4t-but-s4d/neo/internal/logger"
-	"github.com/c4t-but-s4d/neo/internal/server/config"
-	"github.com/c4t-but-s4d/neo/internal/server/exploits"
-	"github.com/c4t-but-s4d/neo/internal/server/fs"
-	logs "github.com/c4t-but-s4d/neo/internal/server/logs"
-	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
-	"github.com/c4t-but-s4d/neo/pkg/neosync"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -26,8 +18,14 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/c4t-but-s4d/neo/internal/logger"
+	"github.com/c4t-but-s4d/neo/internal/server/config"
+	"github.com/c4t-but-s4d/neo/internal/server/exploits"
+	"github.com/c4t-but-s4d/neo/internal/server/fs"
+	logs "github.com/c4t-but-s4d/neo/internal/server/logs"
+	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
+	"github.com/c4t-but-s4d/neo/pkg/neosync"
 	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
-
 	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
 	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
 )

@@ -5,12 +5,12 @@ import (
 	"math"
 	"testing"
 
-	"github.com/c4t-but-s4d/neo/pkg/testutils"
-
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
+
+	"github.com/c4t-but-s4d/neo/pkg/testutils"
 )
 
 func TestHostBucket_Add(t *testing.T) {

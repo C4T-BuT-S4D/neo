@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/c4t-but-s4d/neo/internal/server/common"
-	serverConfig "github.com/c4t-but-s4d/neo/internal/server/config"
-	"github.com/c4t-but-s4d/neo/internal/server/utils"
-	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
-
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 
+	"github.com/c4t-but-s4d/neo/internal/server/common"
+	serverConfig "github.com/c4t-but-s4d/neo/internal/server/config"
+	"github.com/c4t-but-s4d/neo/internal/server/utils"
 	"github.com/c4t-but-s4d/neo/pkg/filestream"
+	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
 )
 
 func New(cfg *serverConfig.Config) (*Server, error) {
