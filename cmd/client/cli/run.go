@@ -10,7 +10,6 @@ import (
 	"github.com/c4t-but-s4d/neo/internal/client"
 	"github.com/c4t-but-s4d/neo/internal/exploit"
 	"github.com/c4t-but-s4d/neo/pkg/joblogger"
-	"github.com/c4t-but-s4d/neo/pkg/neoproc"
 )
 
 const JobsPerCPU = 5
@@ -55,25 +54,19 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 		cli.sender,
 	)
 
-	if err := neoproc.SetSubreaper(); err != nil {
-		logrus.Fatalf("error setting process as subreaper: %v", err)
-	}
-
 	return cli
 }
 
 func (rc *runCLI) Run(ctx context.Context) error {
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	defer wg.Wait()
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		rc.sender.Start(ctx)
 		logrus.Info("log sender finished")
 	}()
-	go func() {
-		defer wg.Done()
-		neoproc.StartReaper(ctx)
-		logrus.Info("reaper finished")
-	}()
+
 	return rc.run.Run(ctx) // nolint:wrapcheck
 }

@@ -154,7 +154,7 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 	}
 
 	req := &epb.UpdateExploitRequest{State: resp.State}
-	req.State.Disabled = disabled
+	req.State.Config.Disabled = disabled
 
 	if _, err := nc.exploits.UpdateExploit(ctx, req); err != nil {
 		return fmt.Errorf("making delete exploit request: %w", err)

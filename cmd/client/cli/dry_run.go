@@ -15,7 +15,6 @@ import (
 	"github.com/c4t-but-s4d/neo/internal/exploit"
 	"github.com/c4t-but-s4d/neo/internal/queue"
 	"github.com/c4t-but-s4d/neo/pkg/joblogger"
-	"github.com/c4t-but-s4d/neo/pkg/neoproc"
 )
 
 type dryRunCLI struct {
@@ -99,19 +98,8 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	runCtx, runCancel := context.WithCancel(ctx)
 	defer runCancel()
 
-	if err := neoproc.SetSubreaper(); err != nil {
-		return fmt.Errorf("setting process as subpreaper: %w", err)
-	}
-
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		neoproc.StartReaper(runCtx)
-		logrus.Info("Reaper finished")
-	}()
 
 	wg.Add(1)
 	go func() {

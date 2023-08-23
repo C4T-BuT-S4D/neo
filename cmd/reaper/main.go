@@ -20,6 +20,10 @@ func main() {
 		"component": "reaper-runner",
 	})
 
+	if err := neoproc.SetSubreaper(); err != nil {
+		log.Fatalf("Failed to set subreaper: %v", err)
+	}
+
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 

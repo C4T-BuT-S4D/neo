@@ -145,9 +145,9 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			IsArchive:  ac.isArchive,
 			RunEvery:   durationpb.New(ac.runEvery),
 			Timeout:    durationpb.New(ac.timeout),
+			Endless:    ac.endless,
+			Disabled:   ac.disabled,
 		},
-		Endless:  ac.endless,
-		Disabled: ac.disabled,
 	}
 	newState, err := c.UpdateExploit(ctx, exState)
 	if err != nil {
