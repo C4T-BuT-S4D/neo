@@ -126,7 +126,7 @@ func TestPubSub_slowpoke(t *testing.T) {
 	})
 	go slowSub.Run(slowCtx)
 
-	fastWg := neosync.NewWG()
+	fastWg := sync.WaitGroup{}
 	fastWg.Add(samples)
 
 	fastSub := p.Subscribe(func(msg string) error {
@@ -145,7 +145,7 @@ func TestPubSub_slowpoke(t *testing.T) {
 	select {
 	case <-time.After(1 * time.Second):
 		t.Fatal("publish blocks on slowpoke?")
-	case <-fastWg.Await():
+	case <-neosync.AwaitWG(&fastWg):
 		// ok
 	}
 }

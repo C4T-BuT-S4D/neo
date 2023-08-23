@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -101,7 +102,7 @@ func main() {
 	runCtx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	wg := neosync.NewWG()
+	wg := sync.WaitGroup{}
 
 	wg.Add(3)
 	go func() {
@@ -124,7 +125,7 @@ func main() {
 		logrus.Fatalf("Failed to serve: %v", err)
 	}
 	select {
-	case <-wg.Await():
+	case <-neosync.AwaitWG(&wg):
 		logrus.Info("Shutdown finished")
 	case <-time.After(10 * time.Second):
 		logrus.Warn("Shutdown timeout")

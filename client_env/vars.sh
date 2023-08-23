@@ -9,5 +9,5 @@ if [[ -z "${NEO_VERSION}" ]]; then
 fi
 
 export NEO_VERSION
-export NEO_CONTAINER_NAME="neo-${VERSION}"
+export NEO_CONTAINER_NAME="neo-${NEO_VERSION}"
 export NEO_IMAGE="ghcr.io/c4t-but-s4d/${IMAGE_NAME}:${NEO_VERSION}"

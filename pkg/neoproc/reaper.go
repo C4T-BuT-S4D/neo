@@ -2,7 +2,6 @@ package neoproc
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,11 +11,6 @@ import (
 
 func StartReaper(ctx context.Context) {
 	logger := logrus.WithField("component", "reaper")
-
-	if os.Getpid() != 1 {
-		logger.Warn("Not PID 1, not reaping children")
-		return
-	}
 
 	c := make(chan os.Signal, 5)
 	signal.Notify(c, syscall.SIGCHLD)
@@ -44,11 +38,10 @@ func StartReaper(ctx context.Context) {
 			for {
 				var wstatus syscall.WaitStatus
 
-				pid, err := syscall.Wait4(-1, &wstatus, 0, nil)
-				for errors.Is(err, syscall.EINTR) {
-					pid, err = syscall.Wait4(pid, &wstatus, 0, nil)
-				}
-				if errors.Is(err, syscall.ECHILD) {
+				pid, err := syscall.Wait4(-1, &wstatus, syscall.WNOHANG, nil)
+				if err != nil {
+					logger.Warnf("Wait4 failed: %v", err)
+				} else if pid == 0 {
 					break
 				}
 
