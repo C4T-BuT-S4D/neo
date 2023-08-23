@@ -2,6 +2,8 @@ package neoproc
 
 import (
 	"fmt"
+
+	"golang.org/x/sys/unix"
 )
 
 // SetSubreaper sets current process as the subreaper for its children,
