@@ -44,7 +44,7 @@ archives:
       - cmd
       - internal
       - pkg
-      - lib
+      - proto/go
 
   - id: "client_env"
     format: zip
