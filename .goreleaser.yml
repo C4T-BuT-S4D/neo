@@ -58,7 +58,7 @@ archives:
       - src: client_env/start*.sh
         dst: .
       - src: client_env/vars.sh
-        dst: .
+        dst: vars.sh
       - src: client_env/requirements.txt
         dst: requirements.txt
       - src: configs/client/config.yml
