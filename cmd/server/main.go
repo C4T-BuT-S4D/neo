@@ -148,6 +148,7 @@ func setupConfig() error {
 
 	viper.MustBindEnv("grpc_auth_key")
 	viper.MustBindEnv("farm.password")
+	viper.MustBindEnv("farm.url")
 
 	viper.SetDefault("config", "server_config.yml")
 	viper.SetDefault("ping_every", time.Second*5)
