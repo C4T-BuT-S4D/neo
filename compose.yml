@@ -6,6 +6,9 @@ services:
     volumes:
       - "./configs/server/config.yml:/config.yml:ro"
       - "./volumes/data:/data"
+    environment:
+      GRPC_AUTH_KEY: ${GRPC_AUTH_KEY}
+      FARM_PASSWORD: ${FARM_PASSWORD}
     ports:
       - '5005:5005'
     restart: unless-stopped
@@ -24,8 +27,8 @@ services:
     cpus: 2
     mem_limit: 4gb
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=changeme
-      - GF_AUTH_ANONYMOUS_ENABLED=false
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-1234}
+      GF_AUTH_ANONYMOUS_ENABLED: false
     ports:
       - "3000:3000"
 
@@ -43,4 +46,4 @@ services:
     cpus: 2
     mem_limit: 4gb
     ports:
-      - "8428:8428"
+      - "127.0.0.1:8428:8428"

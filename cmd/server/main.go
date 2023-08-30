@@ -36,7 +36,7 @@ func main() {
 	if err := setupConfig(); err != nil {
 		logrus.Fatalf("Error setting up config: %v", err)
 	}
-	setConfigDefaults()
+
 	cfg, err := readConfig()
 	if err != nil {
 		logrus.Fatalf("Error reading config: %v", err)
@@ -73,7 +73,7 @@ func main() {
 	}
 	logsServer := logs.New(logStore)
 
-	lis, err := net.Listen("tcp", ":"+cfg.Port)
+	lis, err := net.Listen("tcp", cfg.Addr)
 	if err != nil {
 		logrus.Fatalf("Failed to listen: %v", err)
 	}
@@ -120,10 +120,11 @@ func main() {
 		s.GracefulStop()
 	}()
 
-	logrus.Infof("Starting server on port %s", cfg.Port)
+	logrus.Infof("Starting server on %s", cfg.Addr)
 	if err := s.Serve(lis); err != nil {
 		logrus.Fatalf("Failed to serve: %v", err)
 	}
+
 	select {
 	case <-neosync.AwaitWG(&wg):
 		logrus.Info("Shutdown finished")
@@ -136,34 +137,42 @@ func setupConfig() error {
 	pflag.BoolP("debug", "v", false, "Enable verbose logging")
 	pflag.StringP("config", "c", "server_config.yml", "Path to config file")
 	pflag.Parse()
+
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
 		return fmt.Errorf("binding flags: %w", err)
 	}
-	replacer := strings.NewReplacer(".", "_")
-	viper.SetEnvKeyReplacer(replacer)
+
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.SetEnvPrefix("NEO")
 	viper.AutomaticEnv()
-	return nil
-}
 
-func setConfigDefaults() {
+	viper.MustBindEnv("grpc_auth_key")
+	viper.MustBindEnv("farm.password")
+
 	viper.SetDefault("config", "server_config.yml")
 	viper.SetDefault("ping_every", time.Second*5)
 	viper.SetDefault("submit_every", time.Second*2)
 	viper.SetDefault("metrics.address", ":3000")
+	viper.SetDefault("addr", ":5005")
+
+	return nil
 }
 
 func readConfig() (*config.Config, error) {
 	viper.SetConfigFile(viper.GetString("config"))
 	viper.SetConfigType("yaml")
+
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("reading yaml config: %w", err)
 	}
-	cfg := new(config.Config)
+
+	cfg := &config.Config{}
 	if err := viper.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
+
 	logrus.Infof("Parsed config: %+v", cfg)
+
 	return cfg, nil
 }
 

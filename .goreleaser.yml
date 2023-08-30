@@ -45,6 +45,7 @@ archives:
       - internal
       - pkg
       - proto/go
+      - monitoring
 
   - id: "client_env"
     format: zip

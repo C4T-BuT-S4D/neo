@@ -970,7 +970,7 @@
             "uid": "PAB1CB712F2DCA756"
           },
           "editorMode": "code",
-          "expr": "sum by (status, sploit, team) (flags_submitted_total{status=~\"$farm_status\", sploit=~\"$farm_sploit\", team=~\"$target\"})",
+          "expr": "sum by (status, sploit, team) (delta(flags_submitted_total{status=~\"$farm_status\", sploit=~\"$farm_sploit\", team=~\"$target\"}[1m]))",
           "instant": false,
           "legendFormat": "{{sploit}}/{{team}} - {{status}}",
           "range": true,
@@ -1177,7 +1177,7 @@
             "uid": "PAB1CB712F2DCA756"
           },
           "editorMode": "code",
-          "expr": "sum by (sploit, team, status) (rate(flags_submitted_total{sploit=~\"$farm_sploit\", team=~\"$target\", status=~\"QUEUED\"}[$__rate_interval]))",
+          "expr": "sum by (sploit, team, status) (rate(flags_submitted_total{sploit=~\"$farm_sploit\", team=~\"$target\", status=~\"$farm_status\"}[$__rate_interval]))",
           "instant": false,
           "legendFormat": "{{ sploit }} / {{ team }} - {{ status }}",
           "range": true,
@@ -1196,7 +1196,7 @@
     "list": [
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
             "All"
           ],
@@ -1227,7 +1227,7 @@
       },
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
             "All"
           ],
@@ -1258,7 +1258,7 @@
       },
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
             "All"
           ],
@@ -1289,7 +1289,7 @@
       },
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
             "All"
           ],
@@ -1321,12 +1321,12 @@
       },
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
-            "All"
+            "ACCEPTED"
           ],
           "value": [
-            "$__all"
+            "ACCEPTED"
           ]
         },
         "datasource": {
@@ -1360,6 +1360,6 @@
   "timezone": "",
   "title": "Neo dash",
   "uid": "a158fed5-ebb8-44f2-ba29-9c1c6bedd8a6",
-  "version": 4,
+  "version": 1,
   "weekStart": ""
 }
