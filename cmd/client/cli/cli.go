@@ -28,7 +28,6 @@ type baseCLI struct {
 
 func (cmd *baseCLI) client() (*client.Client, error) {
 	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
 			grpc.UseCompressor(gzip.Name),
 		),
@@ -39,6 +38,12 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 			opts,
 			grpc.WithUnaryInterceptor(interceptor.Unary()),
 			grpc.WithStreamInterceptor(interceptor.Stream()),
+		)
+	}
+	if !cmd.cfg.UseTLS {
+		opts = append(
+			opts,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
 	}
 	conn, err := grpc.Dial(cmd.cfg.Host, opts...)
