@@ -38,7 +38,7 @@ archives:
       - configs/server/config.yml
       - Makefile
       - Dockerfile
-      - docker-compose.yml
+      - compose.yml
       - go.*
       - README.md
       - cmd
