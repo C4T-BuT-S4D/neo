@@ -21,8 +21,8 @@ if [[ ! $OUT ]]; then
         --network host \
         --name "${NEO_CONTAINER_NAME}" \
         --hostname "${NEO_CONTAINER_NAME}" \
-        --entrypoint "/usr/local/bin/reaper" \
-        "${NEO_IMAGE}"
+        "${NEO_IMAGE}" \
+        "/usr/local/bin/reaper"
 else
     echo "Container already exists"
 fi
