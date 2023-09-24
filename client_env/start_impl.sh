@@ -28,4 +28,4 @@ else
 fi
 
 # shellcheck disable=SC2068
-docker exec -it "${NEO_CONTAINER_NAME}" "$@"
+docker exec -it "${NEO_CONTAINER_NAME}" "/entrypoint.sh" "$@"
