@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/c4t-but-s4d/neo/internal/logger"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -29,11 +32,13 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringP("config", "c", "client_config.yml", "config file")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", true, "enable debug logging")
-	rootCmd.PersistentFlags().String("host", "127.0.0.1", "server host")
+	rootCmd.PersistentFlags().String("host", "127.0.0.1:5005", "server host")
+	rootCmd.PersistentFlags().String("metrics_host", "127.0.0.1:9091", "pushgateway host")
 
 	mustBindPersistent(rootCmd, "config")
 	mustBindPersistent(rootCmd, "host")
 	mustBindPersistent(rootCmd, "verbose")
+	mustBindPersistent(rootCmd, "metrics_host")
 }
 
 func mustBindPersistent(c *cobra.Command, flag string) {
@@ -44,10 +49,13 @@ func mustBindPersistent(c *cobra.Command, flag string) {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	logger.Init()
+
 	viper.SetConfigFile(viper.GetString("config"))
 	viper.SetConfigType("yaml")
 
 	viper.SetEnvPrefix("NEO")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.

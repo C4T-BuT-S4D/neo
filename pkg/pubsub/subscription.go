@@ -5,40 +5,30 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-
 	"github.com/sirupsen/logrus"
 )
 
-type MessageHandler func(interface{}) error
+type MessageHandler[T any] func(T) error
 
-type Subscription interface {
-	Run(ctx context.Context)
-	Push(interface{})
-	GetID() string
-	GetChannel() string
+type Subscription[T any] struct {
+	id     string
+	queue  []T
+	mu     sync.Mutex
+	notify chan struct{}
+	h      MessageHandler[T]
 }
 
-type subscription struct {
-	id      string
-	channel string
-	queue   []interface{}
-	mu      sync.Mutex
-	notify  chan struct{}
-	h       MessageHandler
-}
-
-func NewSubscription(channel string, onMsg MessageHandler) Subscription {
+func NewSubscription[T any](onMsg MessageHandler[T]) *Subscription[T] {
 	id := uuid.NewString()
-	return &subscription{
-		id:      id,
-		channel: channel,
-		queue:   nil,
-		notify:  make(chan struct{}, 1),
-		h:       onMsg,
+	return &Subscription[T]{
+		id:     id,
+		queue:  nil,
+		notify: make(chan struct{}, 1),
+		h:      onMsg,
 	}
 }
 
-func (s *subscription) Run(ctx context.Context) {
+func (s *Subscription[T]) Run(ctx context.Context) {
 	for {
 		select {
 		case _, ok := <-s.notify:
@@ -67,7 +57,7 @@ func (s *subscription) Run(ctx context.Context) {
 	}
 }
 
-func (s *subscription) Push(msg interface{}) {
+func (s *Subscription[T]) Push(msg T) {
 	s.mu.Lock()
 	s.queue = append(s.queue, msg)
 	s.mu.Unlock()
@@ -78,10 +68,6 @@ func (s *subscription) Push(msg interface{}) {
 	}
 }
 
-func (s *subscription) GetID() string {
+func (s *Subscription[T]) GetID() string {
 	return s.id
-}
-
-func (s *subscription) GetChannel() string {
-	return s.channel
 }

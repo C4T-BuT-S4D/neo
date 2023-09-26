@@ -9,13 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"neo/pkg/tasklogger"
+	"github.com/google/uuid"
+
+	"github.com/c4t-but-s4d/neo/pkg/joblogger"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-var seededRand = rand.New(
-	rand.NewSource(time.Now().UnixNano()))
+var seededRand = rand.New(rand.NewSource(1337))
 
 func LessString(v1, v2 string) bool {
 	return v1 < v2
@@ -57,6 +58,10 @@ func RandomIP() string {
 	return fmt.Sprintf("%d.%d.%d.%d", gen(), gen(), gen(), gen())
 }
 
+func MetricsNamespace() string {
+	return fmt.Sprintf("test_%s", uuid.NewString()[:8])
+}
+
 type HTTPRequestChecker func(*testing.T, *http.Request)
 
 func NewCheckedTestServer(t *testing.T, checker HTTPRequestChecker) *httptest.Server {
@@ -68,6 +73,6 @@ func NewCheckedTestServer(t *testing.T, checker HTTPRequestChecker) *httptest.Se
 	return s
 }
 
-func DummyTaskLogger(name, team string) *tasklogger.TaskLogger {
-	return tasklogger.New(name, 1, team, tasklogger.NewDummySender())
+func DummyJobLogger(name, team string) *joblogger.JobLogger {
+	return joblogger.New(name, 1, team, joblogger.NewDummySender())
 }

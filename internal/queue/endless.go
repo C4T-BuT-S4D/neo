@@ -5,100 +5,133 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	"os"
 	"sync"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+
+	"github.com/c4t-but-s4d/neo/pkg/neosync"
+)
+
+const (
+	endlessDebounce = 3 * time.Second
 )
 
 // Compile-time type checks
-var _ Queue = (*endlessQueue)(nil)
-var _ Factory = NewEndlessQueue
+var (
+	_ Queue = (*endlessQueue)(nil)
+)
 
 type endlessQueue struct {
 	out     chan *Output
-	c       chan Task
+	c       chan *Job
 	maxJobs int
-	wg      sync.WaitGroup
-	done    chan struct{}
+	metrics *Metrics
+	logger  *logrus.Entry
 }
 
 func NewEndlessQueue(maxJobs int) Queue {
+	queueID := uuid.NewString()[:8]
 	return &endlessQueue{
-		out:     make(chan *Output, maxBufferSize),
-		c:       make(chan Task, maxBufferSize),
-		done:    make(chan struct{}),
+		out:     make(chan *Output, resultBufferSize),
+		c:       make(chan *Job, jobBufferSize),
 		maxJobs: maxJobs,
+		metrics: NewMetrics("neo", queueID, TypeEndless),
+		logger: logrus.WithFields(logrus.Fields{
+			"component": "endless_queue",
+			"id":        queueID,
+		}),
 	}
 }
 
-func (eq *endlessQueue) Start(ctx context.Context) {
-	logrus.Infof("Starting a queue with %d jobs", eq.maxJobs)
-	eq.wg.Add(eq.maxJobs)
-	for i := 0; i < eq.maxJobs; i++ {
-		go eq.worker(ctx)
+func (q *endlessQueue) Type() Type {
+	return TypeEndless
+}
+
+// Start is synchronous.
+// Cancel the start's context to stop the queue.
+func (q *endlessQueue) Start(ctx context.Context) {
+	q.logger.WithField("jobs", q.maxJobs).Info("Starting")
+
+	q.metrics.MaxJobs.Add(float64(q.maxJobs))
+	defer q.metrics.MaxJobs.Sub(float64(q.maxJobs))
+
+	wg := sync.WaitGroup{}
+	wg.Add(q.maxJobs)
+	for i := 0; i < q.maxJobs; i++ {
+		go func() {
+			defer wg.Done()
+			q.worker(ctx)
+		}()
 	}
+	wg.Wait()
+
+	q.logger.Info("Stopped")
 }
 
-func (eq *endlessQueue) Results() <-chan *Output {
-	return eq.out
+func (q *endlessQueue) Results() <-chan *Output {
+	return q.out
 }
 
-func (eq *endlessQueue) Add(et Task) error {
+func (q *endlessQueue) Add(task *Job) error {
 	select {
-	case eq.c <- et:
+	case q.c <- task:
 		return nil
 	default:
 		return ErrQueueFull
 	}
 }
 
-func (eq *endlessQueue) Stop() {
-	close(eq.done)
-	eq.wg.Wait()
-	close(eq.out)
+func (q *endlessQueue) String() string {
+	return "EndlessQueue"
 }
 
-func (eq *endlessQueue) worker(ctx context.Context) {
-	defer eq.wg.Done()
+func (q *endlessQueue) worker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-eq.done:
-			return
-		case job := <-eq.c:
+		case job := <-q.c:
 			for {
-				err := eq.runExploit(ctx, job)
-				// eq.done is closed
-				if errors.Is(err, context.Canceled) {
+				select {
+				case <-ctx.Done():
 					return
+				default:
 				}
-				// context expired
-				if ctx.Err() != nil {
+
+				err := q.runExploit(ctx, job)
+				switch {
+				case errors.Is(err, context.Canceled):
 					return
-				}
-				if err != nil {
+				case err != nil:
 					job.logger.Errorf("Unexpected error returned from endless exploit: %v", err)
-				} else {
+					neosync.Sleep(ctx, endlessDebounce)
+				default:
 					job.logger.Errorf("Endless exploit terminated unexpectedly")
+					neosync.Sleep(ctx, endlessDebounce)
 				}
 			}
 		}
 	}
 }
 
-func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
-	cmdCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
+func (q *endlessQueue) runExploit(ctx context.Context, job *Job) error {
+	cmd := job.Command(ctx)
+	job.logger.Infof("Going to run endlessly: %s", cmd)
 
-	job.logger.Infof("Going to run endlessly: %s %s", job.executable, job.teamIP)
-	cmd := job.Command(cmdCtx)
+	// os.Pipe performs better than io.Pipe.
+	r, w, err := os.Pipe()
+	if err != nil {
+		return fmt.Errorf("creating pipe: %w", err)
+	}
 
-	r, w := io.Pipe()
+	exploitLabels := job.Exploit.MetricLabels()
+
 	errC := make(chan error, 1)
 	go func() {
-		defer func(w *io.PipeWriter) {
+		defer func(w *os.File) {
 			if err := w.Close(); err != nil {
 				job.logger.Errorf("Error closing pipe: %v", err)
 			}
@@ -106,6 +139,10 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 
 		cmd.Stdout = w
 		cmd.Stderr = w
+
+		q.metrics.ExploitInstancesRunning.With(exploitLabels).Inc()
+		defer q.metrics.ExploitInstancesRunning.With(exploitLabels).Dec()
+
 		errC <- cmd.Run()
 	}()
 
@@ -114,15 +151,12 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 		job.logger.Infof("Waiting for endless read to finish")
 		<-readDone
 	}()
+
 	go func() {
 		defer close(readDone)
 		scanner := bufio.NewScanner(r)
 		for scanner.Scan() {
-			eq.out <- &Output{
-				Name: job.name,
-				Out:  scanner.Bytes(),
-				Team: job.teamID,
-			}
+			q.out <- NewOutput(job, scanner.Bytes())
 		}
 		if err := scanner.Err(); err != nil && ctx.Err() == nil {
 			job.logger.Errorf("Unexpected error reading endless script output: %v", err)
@@ -130,18 +164,19 @@ func (eq *endlessQueue) runExploit(ctx context.Context, job Task) error {
 	}()
 
 	select {
-	case <-eq.done:
-		cancel()
-		<-errC
-		return context.Canceled
 	case <-ctx.Done():
 		<-errC
-		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("context done: %w", err)
-		}
+		q.metrics.ExploitsFinished.With(exploitLabels).Inc()
 		return nil
 	case err := <-errC:
+		// Context terminated, expected error.
+		if ctx.Err() != nil {
+			q.metrics.ExploitsFinished.With(exploitLabels).Inc()
+			return nil
+		}
+
 		job.logger.Errorf("Endless sploit %v terminated: %v", job, err)
+		q.metrics.ExploitsFailed.With(exploitLabels).Inc()
 		if err != nil {
 			return fmt.Errorf("unexpected error in endless exploit %v: %w", job, err)
 		}

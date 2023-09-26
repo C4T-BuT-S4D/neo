@@ -7,25 +7,56 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-      - name: Set up Go 1.18
-        uses: actions/setup-go@v2
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version-file: 'go.mod'
+
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           args: --config .golangci.yml
+
       - name: Run tests
         run: make test-cov
+
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
+
+  proto:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: bufbuild/buf-setup-action@v1
+      - uses: bufbuild/buf-lint-action@v1
+        with:
+          input: proto
+          config: proto/buf.yaml
 
   image:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-      - name: Build & test client image
-        run: make prepare-image
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Expose GitHub Runtime
+        uses: crazy-max/ghaction-github-runtime@v2
+
+      - name: Build && test client image
+        run: |
+          docker buildx create --use --driver=docker-container
+          docker buildx build --load \
+            -t ghcr.io/c4t-but-s4d/neo_env:latest \
+            --cache-to type=gha,mode=max \
+            --cache-from type=gha \
+            --target image-full \
+            -f client_env/Dockerfile \
+            .
+          make test-image

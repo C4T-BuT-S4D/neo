@@ -2,56 +2,42 @@ package pubsub
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewSubscription(t *testing.T) {
-	const channel = "test"
-	sub := NewSubscription(channel, nil)
-	if sub.GetChannel() != channel {
-		t.Errorf("NewSubscription(): invalid channel, expected %s, got %s", channel, sub.GetChannel())
-	}
-
-	newSub := NewSubscription(channel, nil)
-	if sub.GetID() == newSub.GetID() {
-		t.Errorf("NewSubscription(): subscription ID is not random")
-	}
+	sub := NewSubscription[int](nil)
+	newSub := NewSubscription[int](nil)
+	require.NotEqual(t, sub.GetID(), newSub.GetID(), "id is not random")
 }
 
 func Test_subscription_Push(t *testing.T) {
-	sub := &subscription{
-		id:      "test",
-		channel: "test",
-		queue:   nil,
-		notify:  make(chan struct{}),
-		h:       nil,
+	sub := &Subscription[string]{
+		id:     "test",
+		queue:  nil,
+		notify: make(chan struct{}),
+		h:      nil,
 	}
 	sub.Push("test")
-	if need := []interface{}{"test"}; !reflect.DeepEqual(sub.queue, need) {
-		t.Errorf("Push(): invalid queue state: expected %+v, got %+v", need, sub.queue)
-	}
+	require.Equal(t, []string{"test"}, sub.queue)
 }
 
 func Test_subscription_Run(t *testing.T) {
 	var received string
 	signal := make(chan struct{})
-	handler := func(msg interface{}) error {
-		cmd, ok := msg.(string)
-		if !ok {
-			t.Errorf("Invalid message passed to handler: %v", msg)
-		}
-		received = cmd
+	handler := func(msg string) error {
+		received = msg
 		close(signal)
 		return nil
 	}
-	sub := &subscription{
-		id:      "test",
-		channel: "test",
-		queue:   nil,
-		notify:  make(chan struct{}, 1),
-		h:       handler,
+	sub := &Subscription[string]{
+		id:     "test",
+		queue:  nil,
+		notify: make(chan struct{}, 1),
+		h:      handler,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -68,7 +54,5 @@ func Test_subscription_Run(t *testing.T) {
 		t.Errorf("Handler was not called in time")
 	}
 
-	if received != msg {
-		t.Errorf("Received incorrect command: expected = %v, actual = %v", msg, received)
-	}
+	require.Equal(t, msg, received)
 }

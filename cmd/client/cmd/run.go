@@ -3,11 +3,11 @@ package cmd
 import (
 	"runtime"
 
-	"neo/cmd/client/cli"
-	"neo/internal/client"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/c4t-but-s4d/neo/cmd/client/cli"
+	"github.com/c4t-but-s4d/neo/internal/client"
 )
 
 // runCmd represents the run command
@@ -27,5 +27,6 @@ var runCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "exploit jobs multiplier")
+	runCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "workers to run")
+	runCmd.Flags().IntP("endless-jobs", "e", 0, "workers to run for endless mode. Default is 0 for no endless mode")
 }

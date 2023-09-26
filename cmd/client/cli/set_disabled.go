@@ -6,9 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"neo/internal/client"
-
-	neopb "neo/lib/genproto/neo"
+	"github.com/c4t-but-s4d/neo/internal/client"
 )
 
 type setDisabledCli struct {
@@ -19,7 +17,7 @@ type setDisabledCli struct {
 
 func NewSetDisabled(_ *cobra.Command, args []string, cfg *client.Config, disabled bool) NeoCLI {
 	return &setDisabledCli{
-		baseCLI:   &baseCLI{cfg},
+		baseCLI:   &baseCLI{cfg: cfg},
 		exploitID: args[0],
 		disabled:  disabled,
 	}
@@ -30,23 +28,14 @@ func (sc *setDisabledCli) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
+	state, err := c.GetServerState(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
 
-	var spl *neopb.ExploitState
-	for _, v := range state.GetExploits() {
-		if v.GetExploitId() == sc.exploitID {
-			spl = v
-			break
-		}
-	}
-
-	if spl == nil {
+	if spl := getExploitFromState(state, sc.exploitID); spl == nil {
 		return fmt.Errorf("exploit %s does not exist", sc.exploitID)
-	}
-	if err := c.SetExploitDisabled(ctx, spl.GetExploitId(), sc.disabled); err != nil {
+	} else if err := c.SetExploitDisabled(ctx, spl.ExploitId, sc.disabled); err != nil {
 		return fmt.Errorf("set disabled failed: %w", err)
 	}
 

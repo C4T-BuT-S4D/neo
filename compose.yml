@@ -1,0 +1,50 @@
+version: '2.4'
+
+services:
+  server:
+    build: .
+    volumes:
+      - "./configs/server/config.yml:/config.yml:ro"
+      - "./volumes/data:/data"
+    environment:
+      NEO_GRPC_AUTH_KEY: ${GRPC_AUTH_KEY}
+      NEO_FARM_PASSWORD: ${FARM_PASSWORD}
+      NEO_FARM_URL: ${FARM_URL}
+    ports:
+      - '5005:5005'
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2.0-alpine
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:10.0.3
+    volumes:
+      - ./volumes/grafana:/var/lib/grafana
+      - ./monitoring/cfg/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/cfg/grafana/dashboards:/dashboards
+    restart: unless-stopped
+    cpus: 2
+    mem_limit: 4gb
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-1234}
+      GF_AUTH_ANONYMOUS_ENABLED: false
+    ports:
+      - "3000:3000"
+
+  victoria:
+    image: victoriametrics/victoria-metrics:v1.92.1
+    volumes:
+      - ./monitoring/cfg/prometheus:/etc/prometheus
+      - ./volumes/victoria-metrics:/victoria-metrics-data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - "-storageDataPath=/victoria-metrics-data"
+      - "-promscrape.config=/etc/prometheus/config.yml"
+    restart: unless-stopped
+    cpus: 2
+    mem_limit: 4gb
+    ports:
+      - "8428:8428"

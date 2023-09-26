@@ -1,0 +1,9 @@
+datasources:
+  - access: 'proxy'
+    editable: true
+    is_default: true
+    name: 'victoria'
+    org_id: 1
+    type: 'prometheus'
+    url: 'http://victoria:8428'
+    version: 1

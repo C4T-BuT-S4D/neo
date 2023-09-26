@@ -3,11 +3,11 @@ package cmd
 import (
 	"runtime"
 
-	"neo/cmd/client/cli"
-	"neo/internal/client"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/c4t-but-s4d/neo/cmd/client/cli"
+	"github.com/c4t-but-s4d/neo/internal/client"
 )
 
 // runCmd represents the run command
@@ -30,5 +30,5 @@ func init() {
 	rootCmd.AddCommand(dryRunCmd)
 	dryRunCmd.Flags().StringP("team_ip", "p", "", "ip of team to run")
 	dryRunCmd.Flags().StringP("team_id", "d", "", "id of team to run")
-	dryRunCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "exploit jobs multiplier")
+	dryRunCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "number of workers to run")
 }

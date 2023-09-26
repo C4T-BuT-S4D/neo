@@ -2,73 +2,87 @@ package queue
 
 import (
 	"context"
-	"errors"
+	"sync"
 	"testing"
 	"time"
 
-	"neo/pkg/testutils"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
+
+	"github.com/c4t-but-s4d/neo/internal/logger"
+	"github.com/c4t-but-s4d/neo/internal/models"
+	"github.com/c4t-but-s4d/neo/pkg/testutils"
 )
+
+func TestMain(m *testing.M) {
+	logger.Init()
+	logrus.SetLevel(logrus.DebugLevel)
+	goleak.VerifyTestMain(m)
+}
 
 func Test_endlessQueue_Add(t *testing.T) {
 	makeQueue := func(s int) *endlessQueue {
 		q := NewEndlessQueue(1).(*endlessQueue)
-		q.c = make(chan Task, s)
+		q.c = make(chan *Job, s)
 		return q
 	}
 	for _, tc := range []struct {
 		q        *endlessQueue
-		t        *Task
-		wantTask *Task
+		t        *Job
+		wantTask *Job
 		wantErr  error
 	}{
-		{q: makeQueue(100), t: &Task{executable: "1"}, wantErr: nil},
-		{q: makeQueue(1), t: &Task{executable: "1"}, wantErr: nil},
-		{q: makeQueue(0), t: &Task{executable: "1"}, wantErr: ErrQueueFull},
+		{q: makeQueue(100), t: &Job{executable: "1"}, wantErr: nil},
+		{q: makeQueue(1), t: &Job{executable: "1"}, wantErr: nil},
+		{q: makeQueue(0), t: &Job{executable: "1"}, wantErr: ErrQueueFull},
 	} {
-		tc.t.logger = testutils.DummyTaskLogger("1", "127.0.0.1")
-		err := tc.q.Add(*tc.t)
-		if !errors.Is(err, tc.wantErr) {
-			t.Errorf("endlessQueue.Add(): got error = %v, want = %v", err, tc.wantErr)
-			continue
-		}
+		tc.t.logger = testutils.DummyJobLogger("1", "127.0.0.1")
+		err := tc.q.Add(tc.t)
+		require.ErrorIs(t, err, tc.wantErr)
 		if err != nil {
 			continue
 		}
-		if tk := <-tc.q.c; tk.executable != tc.t.executable {
-			t.Errorf("endlessQueue.Add(): got unexpected data = %v, want = %v", tk, tc.t)
-		}
+		require.Equal(t, tc.t.executable, (<-tc.q.c).executable)
 	}
 }
 
 func Test_endlessQueue_Start(t *testing.T) {
 	q := NewEndlessQueue(10)
-	task := Task{
-		name:       "kek",
+	task := &Job{
+		Exploit: &models.Exploit{ID: "kek"},
+		Target: &models.Target{
+			ID: "id",
+			IP: "ip",
+		},
 		executable: "echo",
 		dir:        "",
-		teamID:     "id",
-		teamIP:     "ip",
 		timeout:    time.Second * 2,
-		logger:     testutils.DummyTaskLogger("echo", "ip"),
+		logger:     testutils.DummyJobLogger("echo", "ip"),
 	}
-	if err := q.Add(task); err != nil {
-		t.Errorf("endlessQueue.Add(): got unexpected error = %v", err)
-	}
+	require.NoError(t, q.Add(task))
 
-	var out *Output
 	ctx, cancel := context.WithCancel(context.Background())
-	q.Start(ctx)
-	defer q.Stop()
-	out = <-q.Results()
-	cancel()
+	defer cancel()
 
-	if out.Name != task.name {
-		t.Errorf("endlessQueue.Start(): got unexpected result name: got = %v, want = %v", out.Name, task.name)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		q.Start(ctx)
+	}()
+
+	select {
+	case <-time.After(time.Second * 3):
+		t.Fatal("timeout")
+	case out := <-q.Results():
+		assert.Equal(t, task.Exploit, out.Exploit)
+		assert.Equal(t, task.Target, out.Target)
+		assert.Equal(t, task.Target.IP, string(out.Out))
+		break
 	}
-	if out.Team != task.teamID {
-		t.Errorf("endlessQueue.Start(): got unexpected result team: got = %v, want = %v", out.Team, task.teamID)
-	}
-	if string(out.Out) != task.teamIP {
-		t.Errorf("endlessQueue.Start(): got unexpected result: got = %v, want = %v", out.Out, task.teamIP)
-	}
+
+	cancel()
+	wg.Wait()
 }

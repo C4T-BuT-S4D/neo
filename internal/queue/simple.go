@@ -6,112 +6,146 @@ import (
 	"fmt"
 	"os/exec"
 	"sync"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
-const maxBufferSize = 10000
+const (
+	jobBufferSize    = 1000
+	resultBufferSize = 1000
+)
 
 // Compile-time type checks
-var _ Queue = (*simpleQueue)(nil)
-var _ Factory = NewSimpleQueue
+var (
+	_ Queue = (*simpleQueue)(nil)
+)
 
 type simpleQueue struct {
 	out     chan *Output
-	c       chan Task
+	c       chan *Job
 	maxJobs int
-	wg      sync.WaitGroup
-	done    chan struct{}
+	metrics *Metrics
+	logger  *logrus.Entry
 }
 
 func NewSimpleQueue(maxJobs int) Queue {
+	id := uuid.NewString()[:8]
+
 	return &simpleQueue{
-		out:     make(chan *Output, maxBufferSize),
-		c:       make(chan Task, maxBufferSize),
-		done:    make(chan struct{}),
+		out:     make(chan *Output, resultBufferSize),
+		c:       make(chan *Job, jobBufferSize),
 		maxJobs: maxJobs,
+		metrics: NewMetrics("neo", id, TypeSimple),
+		logger: logrus.WithFields(logrus.Fields{
+			"component": "simple_queue",
+			"id":        id,
+		}),
 	}
 }
 
-func (eq *simpleQueue) Start(ctx context.Context) {
-	logrus.Infof("Starting a queue with %d jobs", eq.maxJobs)
-	eq.wg.Add(eq.maxJobs)
-	for i := 0; i < eq.maxJobs; i++ {
-		go eq.worker(ctx)
+func (q *simpleQueue) Type() Type {
+	return TypeSimple
+}
+
+// Start is synchronous.
+// Cancel the start's context to stop the queue.
+func (q *simpleQueue) Start(ctx context.Context) {
+	q.logger.WithField("jobs", q.maxJobs).Info("Starting")
+
+	q.metrics.MaxJobs.Add(float64(q.maxJobs))
+	defer q.metrics.MaxJobs.Sub(float64(q.maxJobs))
+
+	wg := sync.WaitGroup{}
+	wg.Add(q.maxJobs)
+	for i := 0; i < q.maxJobs; i++ {
+		go func() {
+			defer wg.Done()
+			q.worker(ctx)
+		}()
 	}
+	wg.Wait()
+
+	q.logger.Info("Stopped")
 }
 
-func (eq *simpleQueue) Results() <-chan *Output {
-	return eq.out
+func (q *simpleQueue) Results() <-chan *Output {
+	return q.out
 }
 
-func (eq *simpleQueue) Add(et Task) error {
+func (q *simpleQueue) Add(task *Job) error {
 	select {
-	case eq.c <- et:
+	case q.c <- task:
 		return nil
 	default:
 		return ErrQueueFull
 	}
 }
 
-func (eq *simpleQueue) Stop() {
-	close(eq.done)
-	eq.wg.Wait()
-	close(eq.out)
+func (q *simpleQueue) String() string {
+	return "SimpleQueue"
 }
 
-func (eq *simpleQueue) worker(ctx context.Context) {
-	defer eq.wg.Done()
+func (q *simpleQueue) worker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-eq.done:
-			return
-		case job := <-eq.c:
-			res, err := eq.runExploit(ctx, job)
+		case task := <-q.c:
+			res, err := q.runExploit(ctx, task)
+
+			exploitLabels := task.Exploit.MetricLabels()
 
 			var exitErr *exec.ExitError
-			if err == nil {
-				job.logger.Infof("Successfully run")
-				job.logger.Debugf("Output: %s", res)
-			} else if errors.Is(err, context.Canceled) || errors.As(err, &exitErr) {
-				job.logger.Warningf("Task finished unsuccessfully: %v. Output: %s", err, res)
-			} else {
-				job.logger.Errorf("Failed to run: %v. Output: %s", err, res)
+			switch {
+			case err == nil:
+				task.logger.Infof("Successfully run")
+				task.logger.Debugf("Output: %s", res)
+				q.metrics.ExploitsFinished.With(exploitLabels).Inc()
+			case errors.Is(err, context.Canceled):
+				// Expected error on queue restart.
+				q.metrics.ExploitsFinished.With(exploitLabels).Inc()
+				return
+			case errors.As(err, &exitErr):
+				if exitErr.ExitCode() == -1 {
+					task.logger.Warningf("Exploit exited with signal: %v", exitErr)
+					task.logger.Debugf("Output: %s", res)
+				} else {
+					task.logger.Warningf("Unexpected error in exploit: %v", err)
+					task.logger.Debugf("Output: %s", res)
+				}
+				q.metrics.ExploitsFailed.With(exploitLabels).Inc()
+
+			default:
+				task.logger.Errorf("Failed to run: %v", err)
+				task.logger.Debugf("Output: %s", res)
+				q.metrics.ExploitsFailed.With(exploitLabels).Inc()
 			}
-			eq.out <- &Output{
-				Name: job.name,
-				Out:  res,
-				Team: job.teamID,
-			}
+			q.out <- NewOutput(task, res)
 		}
 	}
 }
 
-func (eq *simpleQueue) runExploit(ctx context.Context, et Task) ([]byte, error) {
-	cmdCtx, cancel := context.WithTimeout(ctx, et.timeout)
+func (q *simpleQueue) runExploit(ctx context.Context, task *Job) ([]byte, error) {
+	cmdCtx, cancel := context.WithTimeout(ctx, task.timeout)
 	defer cancel()
 
-	et.logger.Infof("Going to run: %s %s", et.executable, et.teamIP)
-	cmd := et.Command(cmdCtx)
+	cmd := task.Command(cmdCtx)
+	task.logger.Infof("Going to run: %v", cmd)
 
-	var out []byte
-	errC := make(chan error, 1)
-	go func() {
-		var err error
-		out, err = cmd.CombinedOutput()
-		errC <- err
+	start := time.Now()
+	exploitLabels := task.Exploit.MetricLabels()
+	q.metrics.ExploitInstancesRunning.With(exploitLabels).Inc()
+	defer func() {
+		q.metrics.ExploitInstancesRunning.With(exploitLabels).Dec()
+		q.metrics.ExploitRunTime.With(exploitLabels).Observe(time.Since(start).Seconds())
 	}()
-	select {
-	case <-eq.done:
-		cancel()
-		<-errC
-		return out, context.Canceled
-	case <-ctx.Done():
-		<-errC
-		return out, fmt.Errorf("context terminated: %w", ctx.Err())
-	case err := <-errC:
-		return out, err
+
+	// Will be terminated on context cancellation.
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		err = fmt.Errorf("error running command: %w", err)
 	}
+	return out, err
 }

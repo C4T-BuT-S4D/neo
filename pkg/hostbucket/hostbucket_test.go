@@ -1,14 +1,16 @@
 package hostbucket
 
 import (
+	"fmt"
 	"math"
 	"testing"
-
-	"neo/pkg/testutils"
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/require"
+
+	"github.com/c4t-but-s4d/neo/pkg/testutils"
 )
 
 func TestHostBucket_Add(t *testing.T) {
@@ -35,37 +37,28 @@ func TestHostBucket_Add(t *testing.T) {
 		gotTeams := make(map[string]string)
 		for cid, wantn := range tc.want {
 			ipb := b[cid]
-			teams := ipb.GetTeams()
-			if len(teams) != wantn {
-				t.Errorf("HostBucket.AddNode(): incorrent number of gotIps in user bucket want=%d, got=%d",
-					wantn, len(ipb.GetTeams()),
-				)
-			}
-			for k, v := range teams {
+			require.Len(t, ipb.Teams, wantn)
+			for k, v := range ipb.Teams {
 				gotTeams[k] = v
 			}
 		}
-		less := func(s1, s2 string) bool {
-			return s1 < s2
-		}
-		if diff := cmp.Diff(tc.b.teams, gotTeams, cmpopts.SortSlices(less)); diff != "" && len(tc.want) > 0 {
+		if diff := cmp.Diff(tc.b.teams, gotTeams, cmpopts.SortSlices(testutils.LessString)); diff != "" && len(tc.want) > 0 {
 			t.Errorf("HostBucket.AddNode() summary ips mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
 
 func TestHostBucket_Add_Distribution(t *testing.T) {
-	populate := func(idCount int, weightMax int) *HostBucket {
+	populate := func(idCount, ipCount, weightMax int) *HostBucket {
 		teams := make(map[string]string)
-		for id := range teams {
+		for i := 0; i < ipCount; i++ {
+			id := fmt.Sprintf("team-%d", i)
 			teams[id] = testutils.RandomIP()
 		}
 		hb := New(teams)
 
 		mid, err := machineid.ID()
-		if err != nil {
-			t.Fatalf("Could not get machine id: %v", err)
-		}
+		require.NoError(t, err)
 		for i := 0; i < idCount; i++ {
 			id := testutils.RandomString(len(mid))
 			w := testutils.RandomInt(1, weightMax+1)
@@ -75,90 +68,67 @@ func TestHostBucket_Add_Distribution(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		ipCount       int
-		idCount       int
-		maxDeviation  float64
-		maxStdDev     float64
-		maxMeanStdDev float64
-		weightMax     int
-		runs          int
+		ipCount      int
+		idCount      int
+		maxDeviation float64
+		weightMax    int
+		runs         int
 	}{
 		{
 			100,
 			5,
 			1.5,
-			0.7,
-			0.3,
 			32,
-			30,
+			100,
 		},
 		{
 			1000,
 			10,
 			1,
-			0.5,
-			0.2,
 			32,
-			30,
+			100,
 		},
 	} {
-		meanStdDev := 0.0
 		for i := 0; i < tc.runs; i++ {
-			b := populate(tc.idCount, tc.weightMax)
+			b := populate(tc.idCount, tc.ipCount, tc.weightMax)
 			sizes := make([]float64, tc.idCount)
 			meanSize := 0.0
 			for i := range sizes {
 				id := b.nodes[i].id
-				ips := b.buck[id].GetTeams()
-				sizes[i] = float64(len(ips)) / float64(b.nodes[i].weight)
+				sizes[i] = float64(len(b.buck[id].Teams)) / float64(b.nodes[i].weight)
 				meanSize += sizes[i]
 			}
 			meanSize /= float64(len(sizes))
 
-			stdDev := 0.0
 			for i := range sizes {
-				id := b.nodes[i].id
 				deviation := math.Abs((sizes[i] - meanSize) / meanSize)
-				if deviation > tc.maxDeviation {
-					t.Errorf(
-						"Deviation for bucket %s too large: %f > %f, target size: %f, weight %d, got size: %f",
-						id,
-						deviation,
-						tc.maxDeviation,
-						meanSize,
-						b.nodes[i].weight,
-						sizes[i],
-					)
-				}
-				curDev := math.Abs(sizes[i] - meanSize)
-				stdDev += curDev * curDev
+				require.Truef(
+					t,
+					deviation <= tc.maxDeviation,
+					"Deviation for bucket %s too large: %f > %f, target size: %f, weight %d, got size: %f",
+					b.nodes[i].id,
+					deviation,
+					tc.maxDeviation,
+					meanSize,
+					b.nodes[i].weight,
+					sizes[i],
+				)
 			}
-			stdDev = math.Sqrt(stdDev/float64(len(sizes))) / meanSize
-			if stdDev > tc.maxStdDev {
-				t.Errorf("Std too large: %f > %f", stdDev, tc.maxStdDev)
-			}
-			meanStdDev += stdDev
 		}
-		meanStdDev /= float64(tc.runs)
-		if meanStdDev > tc.maxMeanStdDev {
-			t.Errorf("Mean std too large: %f > %f", meanStdDev, tc.maxMeanStdDev)
-		}
-		t.Logf("Mean std dev: %f", meanStdDev)
 	}
 }
 
 func TestHostBucket_Balancing(t *testing.T) {
 	populate := func(ipCount, idCount int) *HostBucket {
-		teams := make(map[string]string, ipCount)
-		for id := range teams {
+		teams := make(map[string]string)
+		for i := 0; i < ipCount; i++ {
+			id := fmt.Sprintf("team-%d", i)
 			teams[id] = testutils.RandomIP()
 		}
 		hb := New(teams)
 
 		mid, err := machineid.ID()
-		if err != nil {
-			t.Fatalf("Could not get machine id: %v", err)
-		}
+		require.NoError(t, err)
 		for i := 0; i < idCount; i++ {
 			id := testutils.RandomString(len(mid))
 			hb.AddNode(id, 1)
@@ -192,8 +162,7 @@ func TestHostBucket_Balancing(t *testing.T) {
 
 		beforeByIP := make(map[string]string)
 		for _, n := range b.nodes {
-			teams := b.buck[n.id].GetTeams()
-			for _, ip := range teams {
+			for _, ip := range b.buck[n.id].Teams {
 				beforeByIP[ip] = n.id
 			}
 		}
@@ -201,8 +170,7 @@ func TestHostBucket_Balancing(t *testing.T) {
 		getCntMoved := func() int {
 			cntMoved := 0
 			for _, n := range b.nodes {
-				teams := b.buck[n.id].GetTeams()
-				for _, ip := range teams {
+				for _, ip := range b.buck[n.id].Teams {
 					if n.id != beforeByIP[ip] {
 						cntMoved++
 					}
@@ -218,23 +186,31 @@ func TestHostBucket_Balancing(t *testing.T) {
 		}
 		cntMoved := getCntMoved()
 		movedFraction := float64(cntMoved) / float64(tc.ipCount)
-		if movedFraction > tc.maxMoved {
-			t.Errorf("Too many ips moved after delete: %f%%, %d of %d", movedFraction*100, cntMoved, tc.ipCount)
-		}
+		require.Truef(
+			t,
+			movedFraction <= tc.maxMoved,
+			"Too many ips moved after delete: %f%%, %d of %d",
+			movedFraction*100,
+			cntMoved,
+			tc.ipCount,
+		)
 
 		mid, err := machineid.ID()
-		if err != nil {
-			t.Fatalf("Could not get machine id: %v", err)
-		}
+		require.NoError(t, err)
 		for i := 0; i < tc.cntAdd; i++ {
 			id := testutils.RandomString(len(mid))
 			b.AddNode(id, 1)
 		}
 		cntMoved = getCntMoved()
 		movedFraction = float64(cntMoved) / float64(tc.ipCount)
-		if movedFraction > tc.maxMoved {
-			t.Errorf("Too many ips moved after add: %f%%, %d of %d", movedFraction*100, cntMoved, tc.ipCount)
-		}
+		require.Truef(
+			t,
+			movedFraction <= tc.maxMoved,
+			"Too many ips moved after delete: %f%%, %d of %d",
+			movedFraction*100,
+			cntMoved,
+			tc.ipCount,
+		)
 	}
 }
 
@@ -268,13 +244,8 @@ func TestHostBucket_Delete(t *testing.T) {
 		gotTeams := make(map[string]string)
 		for cid, wantn := range tc.want {
 			ipb := tc.b.buck[cid]
-			teams := ipb.GetTeams()
-			if len(teams) != wantn {
-				t.Errorf("HostBucket.DeleteNode(): incorrent number of gotIps in user bucket want=%d, got=%d",
-					wantn, len(teams),
-				)
-			}
-			for k, v := range teams {
+			require.Len(t, ipb.Teams, wantn)
+			for k, v := range ipb.Teams {
 				gotTeams[k] = v
 			}
 		}

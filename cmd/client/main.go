@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 
-	"neo/cmd/client/cmd"
+	"github.com/c4t-but-s4d/neo/cmd/client/cmd"
 )
 
 func main() {

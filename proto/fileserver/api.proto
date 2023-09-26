@@ -1,0 +1,17 @@
+syntax = "proto3";
+package fileserver;
+
+option go_package = "fileserver";
+
+message FileInfo {
+    string uuid = 1;
+}
+
+message FileStream {
+    bytes chunk = 1;
+}
+
+service Service {
+    rpc UploadFile(stream FileStream) returns (FileInfo) {}
+    rpc DownloadFile(FileInfo) returns (stream FileStream) {}
+}

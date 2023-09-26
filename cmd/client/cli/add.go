@@ -13,13 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"neo/internal/client"
-	"neo/pkg/archive"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/types/known/durationpb"
 
-	neopb "neo/lib/genproto/neo"
+	"github.com/c4t-but-s4d/neo/internal/client"
+	"github.com/c4t-but-s4d/neo/pkg/archive"
+	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
 )
 
 type addCLI struct {
@@ -35,7 +35,7 @@ type addCLI struct {
 
 func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	c := &addCLI{
-		baseCLI: &baseCLI{cfg},
+		baseCLI: &baseCLI{cfg: cfg},
 		path:    args[0],
 	}
 
@@ -88,19 +88,12 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
+	state, err := c.GetServerState(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
-	exists := false
-	for _, v := range state.GetExploits() {
-		if v.GetExploitId() == ac.exploitID {
-			exists = true
-			break
-		}
-	}
 
-	if exists {
+	if getExploitFromState(state, ac.exploitID) != nil {
 		fmt.Println("The exploit with this id already exists. Do you want to override (add new version) y/N ?")
 		var tmp string
 		if _, err := fmt.Scanln(&tmp); err != nil {
@@ -144,17 +137,17 @@ func (ac *addCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to upload exploit file: %w", err)
 	}
 
-	exState := &neopb.ExploitState{
+	exState := &epb.ExploitState{
 		ExploitId: ac.exploitID,
 		File:      fileInfo,
-		Config: &neopb.ExploitConfiguration{
+		Config: &epb.ExploitConfiguration{
 			Entrypoint: file,
 			IsArchive:  ac.isArchive,
-			RunEvery:   ac.runEvery.String(),
-			Timeout:    ac.timeout.String(),
+			RunEvery:   durationpb.New(ac.runEvery),
+			Timeout:    durationpb.New(ac.timeout),
+			Endless:    ac.endless,
+			Disabled:   ac.disabled,
 		},
-		Endless:  ac.endless,
-		Disabled: ac.disabled,
 	}
 	newState, err := c.UpdateExploit(ctx, exState)
 	if err != nil {

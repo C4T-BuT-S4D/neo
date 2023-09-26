@@ -7,11 +7,13 @@ import (
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/sirupsen/logrus"
-
-	"neo/internal/client"
-	"neo/pkg/grpcauth"
-
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/encoding/gzip"
+
+	"github.com/c4t-but-s4d/neo/internal/client"
+	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
 )
 
 type NeoCLI interface {
@@ -19,18 +21,32 @@ type NeoCLI interface {
 }
 
 type baseCLI struct {
-	c *client.Config
+	cfg *client.Config
+
+	clientID string
 }
 
 func (cmd *baseCLI) client() (*client.Client, error) {
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
-	if cmd.c.GrpcAuthKey != "" {
-		interceptor := grpcauth.NewClientInterceptor(cmd.c.GrpcAuthKey)
-		opts = append(opts, grpc.WithUnaryInterceptor(interceptor.Unary()))
-		opts = append(opts, grpc.WithStreamInterceptor(interceptor.Stream()))
+	opts := []grpc.DialOption{
+		grpc.WithDefaultCallOptions(
+			grpc.UseCompressor(gzip.Name),
+		),
 	}
-	conn, err := grpc.Dial(cmd.c.Host, opts...)
+	if cmd.cfg.GrpcAuthKey != "" {
+		interceptor := grpcauth.NewClientInterceptor(cmd.cfg.GrpcAuthKey)
+		opts = append(
+			opts,
+			grpc.WithUnaryInterceptor(interceptor.Unary()),
+			grpc.WithStreamInterceptor(interceptor.Stream()),
+		)
+	}
+	if !cmd.cfg.UseTLS {
+		opts = append(
+			opts,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+	}
+	conn, err := grpc.Dial(cmd.cfg.Host, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing grpc: %w", err)
 	}
@@ -38,11 +54,19 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 }
 
 func (cmd *baseCLI) ClientID() string {
-	id, err := machineid.ID()
-	if err != nil {
-		logrus.Fatalf("Failed to get unique client name: %v", err)
+	if cmd.clientID != "" {
+		return cmd.clientID
 	}
-	return id
+
+	cmd.clientID = viper.GetString("client_id")
+	if cmd.clientID == "" {
+		var err error
+		if cmd.clientID, err = machineid.ID(); err != nil {
+			logrus.Fatalf("Failed to get unique client name: %v", err)
+		}
+	}
+	logrus.Infof("Detected client id: %s", cmd.clientID)
+	return cmd.clientID
 }
 
 func (cmd *baseCLI) Run(_ context.Context) error {

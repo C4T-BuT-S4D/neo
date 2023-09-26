@@ -5,12 +5,10 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
-
 	"github.com/spf13/cobra"
 
-	"neo/internal/client"
-
-	neopb "neo/lib/genproto/neo"
+	"github.com/c4t-but-s4d/neo/internal/client"
+	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
 )
 
 type tailCLI struct {
@@ -22,7 +20,7 @@ type tailCLI struct {
 
 func NewTail(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 	c := &tailCLI{
-		baseCLI:   &baseCLI{cfg},
+		baseCLI:   &baseCLI{cfg: cfg},
 		exploitID: args[0],
 	}
 
@@ -41,7 +39,7 @@ func (tc *tailCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	state, err := c.Ping(ctx, neopb.PingRequest_CONFIG_REQUEST)
+	state, err := c.GetServerState(ctx)
 	if err != nil {
 		return fmt.Errorf("making ping config request: %w", err)
 	}
@@ -65,7 +63,7 @@ func (tc *tailCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("making search request: %w", err)
 	}
-	var lines []*neopb.LogLine
+	var lines []*logspb.LogLine
 	for batch := range stream {
 		lines = append(lines, batch...)
 	}

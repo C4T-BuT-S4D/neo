@@ -1,4 +1,6 @@
 run:
+  timeout: 5m
+  tests: true
   skip-dirs:
     - pkg/apps/.*
 
@@ -8,18 +10,29 @@ linters:
     - bodyclose
     - dogsled
     - durationcheck
+    - errname
     - errorlint
     - exhaustive
+    - exportloopref
+    - gocritic
+    - gofmt
     - goimports
-    - ifshort
+    - gomoddirectives
+    - gosimple
+    - govet
+    - ineffassign
+    - importas
     - misspell
     - noctx
     - prealloc
     - predeclared
+    - revive
+    - staticcheck
     - thelper
     - tparallel
     - unconvert
     - unparam
+    - unused
     - whitespace
     - wrapcheck
 
@@ -33,6 +46,7 @@ linters-settings:
       - (context.Context).Err()
       - fmt.Errorf(
       - errors.New(
+      - WrapErrorf
 
 issues:
   exclude-use-default: false
@@ -41,3 +55,9 @@ issues:
     - source: "status\\.Errorf"
       linters:
         - wrapcheck
+    - linters:
+        - revive
+      text: "package-comments:"
+    - linters:
+        - revive
+      text: "exported:"

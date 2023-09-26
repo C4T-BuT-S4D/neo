@@ -8,15 +8,16 @@ Client + server for exploit distribution during Attack & Defence CTF competition
 
 ## Why
 
-Usually during large CTFs, where the regular laptop can't run the exploits on all participants, teams start some cloud
-servers to run these exploits on, but the administration and access management can be a pain and wastes time. **Neo**
-can solve this problem by doing 2 things:
+Usually during large CTFs, where the regular laptop can't run the exploits on all participants, teams rent cloud
+servers to run the exploits. However, uploading, managing and monitoring the exploits on a remote machine
+can be a pain and wastes time. **Neo** helps in two primary ways:
 
-1. Every player can start an instance of Neo client and attack a proportional part of the whole team pool automatically.
+1. Every player can start an instance of **Neo client** and attack a proportional part of the whole team pool
+   automatically.
 
-2. Exploit writers don't copy the newly-created exploits to the exploit server, or manage the distribution by hand, but
-   rather submit them to the **Neo server** using the same client, and the server does all the work, running the exploit
-   on available clients.
+2. Exploit writers don't upload the newly-created exploits to the exploit server, neither do they manage the
+   distribution manually, but rather submit them to the **Neo server** using the same client,
+   and the server does all the work, distributing the exploit among the available clients.
 
 ## Usage
 
@@ -33,13 +34,14 @@ Neo uses the exploit farm to acquire the team list and submit the flags. The pro
 - `POST /api/post_flags` will receive an array of mappings with keys `flag`, `sploit` and `team`. `sploit` is the
   exploit name for statistics, and `team` is the team name.
 
-Farm password will be passed in `Authorization` and `X-Token` headers, so the protocol is compatible with **
-DestructiveFarm**.
+Farm password will be passed in `Authorization` and `X-Token` headers, so the protocol is compatible with
+**DestructiveFarm**.
 
 ### Server
 
-Server coordinates the clients and distributes teams to attack among them. It must have access to the farm, and all
-clients must have access to the server, so you might want to start it somewhere with the public IP address.
+Server coordinates the clients and distributes targets among them. It must have access to the farm, and all
+clients must have access both to the server and the farm, so you might want to start it somewhere with the public IP
+address.
 
 To start the server:
 
@@ -47,7 +49,8 @@ To start the server:
    the [Releases](https://github.com/pomo-mondreganto/neo/releases)
    page for your platform (64-bit amd linux and macOS are supported).
 
-2. Edit the configuration in `server_config.yml` file. Edit the `grpc_auth_key` (as it's the password required to
+2. Edit the configuration in `configs/server/config.yml` file. Edit the `grpc_auth_key` (as it's the password required
+   to
    connect to the server), `farm.url` and `farm.password`. You can also add some environment variables for all exploits
    in the `env` section
 
@@ -59,7 +62,7 @@ Client has a full-featured CLI and the single binary performs all operations req
 distributed as a docker image with a lot of useful python packages preinstalled, see the full list in `requirements.txt`
 file (located at [client_env/requirements.txt](./client_env/requirements.txt) in the repository).
 
-Download the latest client release (named `neo_{version}.zip`) from the
+Download the latest client release (named `neo_client_env_{version}.zip`) from the
 [Releases](https://github.com/pomo-mondreganto/neo/releases) page. The `start.sh` file starts the docker container with
 the environment if one has not already been run and passes all arguments inside. For example, to get a shell inside the
 container, one can run
@@ -126,6 +129,9 @@ its newer version.
 
 Neo client only has access to the directory where the `start.sh` file is located, so to add a new exploit, you'll need
 to put it somewhere next to `start.sh` (`exploits` directory might be a good place).
+
+There are also `start_light.sh` and `start_sage.sh` scripts, which start the shallow alpine image
+(useful for exploit management without running) and the largest image with Sage installed respectively.
 
 ## Development notice
 

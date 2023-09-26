@@ -5,6 +5,7 @@ eventlet
 flask
 gevent
 gmpy2
+grequests
 hashpumpy
 lxml
 numpy
