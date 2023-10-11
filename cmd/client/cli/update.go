@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -14,7 +15,7 @@ import (
 	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
 )
 
-type updateConfigCLI struct {
+type updateCLI struct {
 	*baseCLI
 	exploitID string
 	runEvery  *time.Duration
@@ -23,8 +24,8 @@ type updateConfigCLI struct {
 	disabled  *bool
 }
 
-func NewUpdateConfig(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
-	c := &updateConfigCLI{
+func NewUpdateCLI(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+	c := &updateCLI{
 		baseCLI:   &baseCLI{cfg: cfg},
 		exploitID: args[0],
 	}
@@ -61,28 +62,28 @@ func NewUpdateConfig(cmd *cobra.Command, args []string, cfg *client.Config) NeoC
 	return c
 }
 
-func (ac *updateConfigCLI) Run(ctx context.Context) error {
-	logrus.Infof("Going to update config for exploit with id = %s", ac.exploitID)
+func (uc *updateCLI) Run(ctx context.Context) error {
+	logrus.Infof("Going to update config for exploit with id = %s", uc.exploitID)
 
-	c, err := ac.client()
+	c, err := uc.client()
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
-	resp, err := c.Exploit(ctx, ac.exploitID)
+	resp, err := c.Exploit(ctx, uc.exploitID)
 	if err != nil {
-		logrus.Fatalf("Exploit with id = %s does not exist", ac.exploitID)
+		logrus.Fatalf("Exploit with id = %s does not exist", uc.exploitID)
 	}
 	es := resp.GetState()
 	escfg := es.GetConfig()
 
 	runEvery := escfg.GetRunEvery()
-	if ac.runEvery != nil {
-		runEvery = durationpb.New(*ac.runEvery)
+	if uc.runEvery != nil {
+		runEvery = durationpb.New(*uc.runEvery)
 	}
 	timeout := escfg.GetTimeout()
-	if ac.timeout != nil {
-		timeout = durationpb.New(*ac.timeout)
+	if uc.timeout != nil {
+		timeout = durationpb.New(*uc.timeout)
 	}
 
 	newState := &epb.ExploitState{
@@ -94,8 +95,8 @@ func (ac *updateConfigCLI) Run(ctx context.Context) error {
 			IsArchive:  escfg.GetIsArchive(),
 			RunEvery:   runEvery,
 			Timeout:    timeout,
-			Endless:    updateIfSet(escfg.GetEndless(), ac.endless),
-			Disabled:   updateIfSet(escfg.GetEndless(), ac.disabled),
+			Endless:    lo.FromPtrOr(uc.endless, escfg.GetEndless()),
+			Disabled:   lo.FromPtrOr(uc.disabled, escfg.GetDisabled()),
 		},
 	}
 
@@ -105,11 +106,4 @@ func (ac *updateConfigCLI) Run(ctx context.Context) error {
 	}
 	logrus.Infof("Updated exploit state: %v", ns)
 	return nil
-}
-
-func updateIfSet[T any](e T, n *T) T {
-	if n != nil {
-		return *n
-	}
-	return e
 }

@@ -17,7 +17,7 @@ var updateCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewUpdateConfig(cmd, args, cfg)
+		cli := cli.NewUpdateCLI(cmd, args, cfg)
 		ctx := cmd.Context()
 		if err := cli.Run(ctx); err != nil {
 			logrus.Fatalf("Error updating exploit config: %v", err)
