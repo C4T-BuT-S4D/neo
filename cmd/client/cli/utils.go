@@ -5,7 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/c4t-but-s4d/neo/proto/go/exploits"
+	"github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
 )
 
 func isBinary(data []byte) bool {

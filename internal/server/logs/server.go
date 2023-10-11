@@ -7,10 +7,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/c4t-but-s4d/neo/internal/server/common"
-	"github.com/c4t-but-s4d/neo/internal/server/utils"
-	"github.com/c4t-but-s4d/neo/pkg/gstream"
-	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
+	"github.com/c4t-but-s4d/neo/v2/internal/server/common"
+	"github.com/c4t-but-s4d/neo/v2/internal/server/utils"
+	"github.com/c4t-but-s4d/neo/v2/pkg/gstream"
+	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
 )
 
 const (

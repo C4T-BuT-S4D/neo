@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
+	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
 )
 
 const (

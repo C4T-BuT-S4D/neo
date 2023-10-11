@@ -17,9 +17,9 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/c4t-but-s4d/neo/internal/client"
-	"github.com/c4t-but-s4d/neo/pkg/archive"
-	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
+	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/pkg/archive"
+	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
 )
 
 type addCLI struct {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
+	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
 )
 
 func NewLogLineFromValues(vals map[string]interface{}) (*LogLine, error) {

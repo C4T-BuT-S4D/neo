@@ -9,10 +9,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/c4t-but-s4d/neo/pkg/filestream"
-	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
-	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
-	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
+	"github.com/c4t-but-s4d/neo/v2/pkg/filestream"
+	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
+	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
+	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
 )
 
 func New(cc grpc.ClientConnInterface, id string) *Client {

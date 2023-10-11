@@ -7,8 +7,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/c4t-but-s4d/neo/internal/client"
-	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
+	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
 )
 
 type tailCLI struct {

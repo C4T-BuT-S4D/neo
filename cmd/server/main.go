@@ -19,16 +19,16 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/c4t-but-s4d/neo/internal/logger"
-	"github.com/c4t-but-s4d/neo/internal/server/config"
-	"github.com/c4t-but-s4d/neo/internal/server/exploits"
-	"github.com/c4t-but-s4d/neo/internal/server/fs"
-	logs "github.com/c4t-but-s4d/neo/internal/server/logs"
-	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
-	"github.com/c4t-but-s4d/neo/pkg/neosync"
-	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
-	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
-	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
+	"github.com/c4t-but-s4d/neo/v2/internal/logger"
+	"github.com/c4t-but-s4d/neo/v2/internal/server/config"
+	"github.com/c4t-but-s4d/neo/v2/internal/server/exploits"
+	"github.com/c4t-but-s4d/neo/v2/internal/server/fs"
+	logs "github.com/c4t-but-s4d/neo/v2/internal/server/logs"
+	"github.com/c4t-but-s4d/neo/v2/pkg/grpcauth"
+	"github.com/c4t-but-s4d/neo/v2/pkg/neosync"
+	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
+	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
+	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
 )
 
 func main() {

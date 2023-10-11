@@ -10,9 +10,9 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/c4t-but-s4d/neo/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/internal/client"
 
-	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
+	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
 )
 
 type updateCLI struct {

@@ -7,8 +7,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/c4t-but-s4d/neo/internal/logger"
-	logspb "github.com/c4t-but-s4d/neo/proto/go/logs"
+	"github.com/c4t-but-s4d/neo/v2/internal/logger"
+	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
 )
 
 // 1 MB.

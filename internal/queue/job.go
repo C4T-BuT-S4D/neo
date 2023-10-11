@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/c4t-but-s4d/neo/internal/models"
-	"github.com/c4t-but-s4d/neo/pkg/joblogger"
+	"github.com/c4t-but-s4d/neo/v2/internal/models"
+	"github.com/c4t-but-s4d/neo/v2/pkg/joblogger"
 )
 
 func NewJob(

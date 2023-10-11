@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
 
-	"github.com/c4t-but-s4d/neo/internal/client"
-	"github.com/c4t-but-s4d/neo/pkg/grpcauth"
+	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/pkg/grpcauth"
 )
 
 type NeoCLI interface {

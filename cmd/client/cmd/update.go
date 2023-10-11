@@ -3,10 +3,11 @@ package cmd
 import (
 	"time"
 
-	"github.com/c4t-but-s4d/neo/cmd/client/cli"
-	"github.com/c4t-but-s4d/neo/internal/client"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
+	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
 // tailCmd represents the tail command

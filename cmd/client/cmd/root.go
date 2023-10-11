@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/c4t-but-s4d/neo/internal/logger"
+	"github.com/c4t-but-s4d/neo/v2/internal/logger"
 )
 
 // rootCmd represents the base command when called without any subcommands

@@ -3,7 +3,7 @@ package queue
 import (
 	"fmt"
 
-	"github.com/c4t-but-s4d/neo/internal/models"
+	"github.com/c4t-but-s4d/neo/v2/internal/models"
 )
 
 type Output struct {
