@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	"github.com/c4t-but-s4d/neo/internal/logger"
-	"github.com/c4t-but-s4d/neo/internal/models"
-	"github.com/c4t-but-s4d/neo/pkg/testutils"
+	"github.com/c4t-but-s4d/neo/v2/internal/logger"
+	"github.com/c4t-but-s4d/neo/v2/internal/models"
+	"github.com/c4t-but-s4d/neo/v2/pkg/testutils"
 )
 
 func TestMain(m *testing.M) {

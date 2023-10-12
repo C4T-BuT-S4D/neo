@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
-	"github.com/c4t-but-s4d/neo/pkg/neosync"
+	"github.com/c4t-but-s4d/neo/v2/pkg/neosync"
 )
 
 const (

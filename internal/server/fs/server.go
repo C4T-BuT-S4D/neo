@@ -8,11 +8,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 
-	"github.com/c4t-but-s4d/neo/internal/server/common"
-	serverConfig "github.com/c4t-but-s4d/neo/internal/server/config"
-	"github.com/c4t-but-s4d/neo/internal/server/utils"
-	"github.com/c4t-but-s4d/neo/pkg/filestream"
-	fspb "github.com/c4t-but-s4d/neo/proto/go/fileserver"
+	"github.com/c4t-but-s4d/neo/v2/internal/server/common"
+	serverConfig "github.com/c4t-but-s4d/neo/v2/internal/server/config"
+	"github.com/c4t-but-s4d/neo/v2/internal/server/utils"
+	"github.com/c4t-but-s4d/neo/v2/pkg/filestream"
+	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
 )
 
 func New(cfg *serverConfig.Config) (*Server, error) {

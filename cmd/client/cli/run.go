@@ -7,9 +7,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/c4t-but-s4d/neo/internal/client"
-	"github.com/c4t-but-s4d/neo/internal/exploit"
-	"github.com/c4t-but-s4d/neo/pkg/joblogger"
+	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/internal/exploit"
+	"github.com/c4t-but-s4d/neo/v2/pkg/joblogger"
 )
 
 const JobsPerCPU = 5

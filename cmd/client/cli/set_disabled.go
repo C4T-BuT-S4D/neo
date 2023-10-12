@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/c4t-but-s4d/neo/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
 type setDisabledCli struct {

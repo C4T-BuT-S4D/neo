@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/c4t-but-s4d/neo/pkg/joblogger"
+	"github.com/c4t-but-s4d/neo/v2/pkg/joblogger"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

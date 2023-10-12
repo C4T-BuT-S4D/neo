@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	epb "github.com/c4t-but-s4d/neo/proto/go/exploits"
+	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
 )
 
 type ExploitsConfig struct {

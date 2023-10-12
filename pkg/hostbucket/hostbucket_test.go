@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
-	"github.com/c4t-but-s4d/neo/pkg/testutils"
+	"github.com/c4t-but-s4d/neo/v2/pkg/testutils"
 )
 
 func TestHostBucket_Add(t *testing.T) {

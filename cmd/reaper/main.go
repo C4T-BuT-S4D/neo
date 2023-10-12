@@ -8,8 +8,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/c4t-but-s4d/neo/internal/logger"
-	"github.com/c4t-but-s4d/neo/pkg/neoproc"
+	"github.com/c4t-but-s4d/neo/v2/internal/logger"
+	"github.com/c4t-but-s4d/neo/v2/pkg/neoproc"
 )
 
 func main() {

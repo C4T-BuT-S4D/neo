@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	"github.com/c4t-but-s4d/neo/pkg/neosync"
+	"github.com/c4t-but-s4d/neo/v2/pkg/neosync"
 )
 
 func TestMain(m *testing.M) {
