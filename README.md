@@ -1,6 +1,9 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/pomo-mondreganto/neo)](https://goreportcard.com/report/github.com/pomo-mondreganto/neo)
-[![tests](https://github.com/pomo-mondreganto/neo/actions/workflows/tests.yml/badge.svg)](https://github.com/pomo-mondreganto/neo/actions/workflows/tests.yml)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/pomo-mondreganto/neo)
+[![Go](https://img.shields.io/badge/--00ADD8?logo=go&logoColor=ffffff)](https://golang.org/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/c4t-but-s4d/neo/v2)](https://goreportcard.com/report/github.com/c4t-but-s4d/neo/v2)
+[![tests](https://github.com/c4t-but-s4d/neo/actions/workflows/tests.yml/badge.svg)](https://github.com/c4t-but-s4d/neo/actions/workflows/tests.yml)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/c4t-but-s4d/neo)
+[![Github all releases](https://img.shields.io/github/downloads/c4t-but-s4d/neo/total.svg)](https://GitHub.com/c4t-but-s4d/neo/releases/)
+
 
 # neo
 
