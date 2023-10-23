@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
 
@@ -45,6 +47,8 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 			opts,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	}
 	conn, err := grpc.Dial(cmd.cfg.Host, opts...)
 	if err != nil {
