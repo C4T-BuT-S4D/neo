@@ -31,8 +31,10 @@ RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
         apt-get update && \
         apt-get install -y \
             build-essential \
+            curl \
             dbus \
             dnsutils \
+            file \
             gcc \
             libblas-dev \
             libjpeg8-dev \
@@ -48,7 +50,8 @@ RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
             python3-dev \
             python3-pip \
             python3-venv \
-            vim && \
+            vim \
+            wget && \
         rm -rf /var/lib/apt/lists/*
 
 COPY client_env/requirements.txt /requirements.txt
