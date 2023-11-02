@@ -22,21 +22,36 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
             -o reaper \
             cmd/reaper/main.go
 
-FROM python:3.10 as image-full
+FROM ubuntu:jammy as image-full
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+ARG DEBIAN_FRONTEND=noninteractive
 RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
         apt-get update && \
         apt-get install -y \
+            build-essential \
+            curl \
+            dbus \
+            dnsutils \
+            file \
             gcc \
+            libblas-dev \
+            libjpeg8-dev \
+            liblapack-dev \
             libmpc-dev \
             libmpfr-dev \
-            dnsutils \
-            netcat-openbsd \
+            libpng-dev \
+            libssl-dev \
             net-tools \
-            dbus \
-            vim && \
+            netcat-openbsd \
+            python-is-python3 \
+            python3 \
+            python3-dev \
+            python3-pip \
+            python3-venv \
+            vim \
+            wget && \
         rm -rf /var/lib/apt/lists/*
 
 COPY client_env/requirements.txt /requirements.txt
