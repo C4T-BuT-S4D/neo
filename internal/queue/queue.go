@@ -31,6 +31,7 @@ type Queue interface {
 	Add(*Job) error
 	Results() <-chan *Output
 	Type() Type
+	Size() int
 
 	fmt.Stringer
 }

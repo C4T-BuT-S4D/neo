@@ -49,6 +49,10 @@ func (q *simpleQueue) Type() Type {
 	return TypeSimple
 }
 
+func (q *simpleQueue) Size() int {
+	return len(q.c)
+}
+
 // Start is synchronous.
 // Cancel the start's context to stop the queue.
 func (q *simpleQueue) Start(ctx context.Context) {
