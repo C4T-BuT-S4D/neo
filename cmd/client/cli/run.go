@@ -42,6 +42,10 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 
 	jobs := parseJobsFlag(cmd, "jobs")
 	endlessJobs := parseJobsFlag(cmd, "endless-jobs")
+	disableTimeoutScaling, err := cmd.Flags().GetBool("disable-timeout-scaling")
+	if err != nil {
+		logrus.Fatalf("Could not get disable-timeout-scaling flag: %v", err)
+	}
 
 	neocli.Weight = jobs
 	cli.sender = joblogger.NewRemoteSender(neocli)
@@ -49,6 +53,7 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 		cli.ClientID(),
 		jobs,
 		endlessJobs,
+		disableTimeoutScaling,
 		cfg,
 		neocli,
 		cli.sender,

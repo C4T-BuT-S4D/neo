@@ -29,4 +29,5 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 	runCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "workers to run")
 	runCmd.Flags().IntP("endless-jobs", "e", 0, "workers to run for endless mode. Default is 0 for no endless mode")
+	runCmd.Flags().Bool("disable-timeout-scaling", false, "disable scaling recurrent exploit timeouts to fit the workers count")
 }
