@@ -26,7 +26,7 @@ func parseJobsFlag(cmd *cobra.Command, name string) int {
 		logrus.Fatalf("Could not get jobs number: %v", err)
 	}
 	if jobs < 0 {
-		logrus.Fatal("run: job count should be non-negavtive")
+		logrus.Fatal("run: job count should be non-negative")
 	}
 	return jobs
 }
@@ -42,9 +42,12 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 
 	jobs := parseJobsFlag(cmd, "jobs")
 	endlessJobs := parseJobsFlag(cmd, "endless-jobs")
-	disableTimeoutScaling, err := cmd.Flags().GetBool("disable-timeout-scaling")
+	timeoutScaleTarget, err := cmd.Flags().GetFloat64("timeout-autoscale-target")
 	if err != nil {
-		logrus.Fatalf("Could not get disable-timeout-scaling flag: %v", err)
+		logrus.Fatalf("Could not get timeout-autoscale-target flag: %v", err)
+	}
+	if timeoutScaleTarget < 0 {
+		logrus.Fatalf("timeout-autoscale-target should be non-negative")
 	}
 
 	neocli.Weight = jobs
@@ -53,7 +56,7 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 		cli.ClientID(),
 		jobs,
 		endlessJobs,
-		disableTimeoutScaling,
+		timeoutScaleTarget,
 		cfg,
 		neocli,
 		cli.sender,
