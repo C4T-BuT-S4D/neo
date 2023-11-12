@@ -50,6 +50,10 @@ func (q *endlessQueue) Type() Type {
 	return TypeEndless
 }
 
+func (q *endlessQueue) Size() int {
+	return len(q.c)
+}
+
 // Start is synchronous.
 // Cancel the start's context to stop the queue.
 func (q *endlessQueue) Start(ctx context.Context) {
