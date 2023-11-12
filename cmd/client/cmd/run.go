@@ -31,7 +31,7 @@ func init() {
 	runCmd.Flags().IntP("endless-jobs", "e", 0, "workers to run for endless mode. Default is 0 for no endless mode")
 	runCmd.Flags().Float64(
 		"timeout-autoscale-target",
-		1.0,
+		1.5,
 		"target upper bound for recurrent exploit worker utilization by scaling timeouts."+
 			" Setting this to 0 disables scaling",
 	)
