@@ -44,7 +44,6 @@ archives:
       - cmd
       - internal
       - pkg
-      - proto/go
       - monitoring
 
   - id: "client_env"
