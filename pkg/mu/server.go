@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"nhooyr.io/websocket"
 )
 
 func NewHandler(grpcServer *grpc.Server, opts ...Option) http.Handler {
@@ -30,6 +31,7 @@ func NewHandler(grpcServer *grpc.Server, opts ...Option) http.Handler {
 				grpcweb.WithWebsocketOriginFunc(func(*http.Request) bool {
 					return true
 				}),
+				grpcweb.WithWebsocketCompressionMode(websocket.CompressionDisabled),
 			),
 			httpHandler: cfg.httpHandler,
 		},
