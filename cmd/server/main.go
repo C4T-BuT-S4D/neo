@@ -157,12 +157,18 @@ func setupConfig() error {
 	viper.MustBindEnv("grpc_auth_key")
 	viper.MustBindEnv("farm.password")
 	viper.MustBindEnv("farm.url")
+	viper.MustBindEnv("db_path")
+	viper.MustBindEnv("redis_url")
+	viper.MustBindEnv("base_dir")
 
 	viper.SetDefault("config", "server_config.yml")
 	viper.SetDefault("ping_every", time.Second*5)
 	viper.SetDefault("submit_every", time.Second*2)
 	viper.SetDefault("address", ":5005")
 	viper.SetDefault("static_dir", "front/dist")
+	viper.SetDefault("redis_url", "redis://127.0.0.1:6379/0")
+	viper.SetDefault("db_path", "data/db.db")
+	viper.SetDefault("base_dir", "data/exploits")
 
 	return nil
 }
