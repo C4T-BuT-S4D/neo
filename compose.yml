@@ -33,6 +33,7 @@ services:
 
   victoria:
     image: victoriametrics/victoria-metrics:v1.92.1
+    user: 0
     volumes:
       - ./monitoring/cfg/prometheus:/etc/prometheus
       - ./volumes/victoria-metrics:/victoria-metrics-data

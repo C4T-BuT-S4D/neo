@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"os/signal"
 	"strings"
@@ -25,6 +25,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/server/fs"
 	logs "github.com/c4t-but-s4d/neo/v2/internal/server/logs"
 	"github.com/c4t-but-s4d/neo/v2/pkg/grpcauth"
+	"github.com/c4t-but-s4d/neo/v2/pkg/mu"
 	"github.com/c4t-but-s4d/neo/v2/pkg/neosync"
 	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
 	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
@@ -73,11 +74,6 @@ func main() {
 	}
 	logsServer := logs.New(logStore)
 
-	lis, err := net.Listen("tcp", cfg.Addr)
-	if err != nil {
-		logrus.Fatalf("Failed to listen: %v", err)
-	}
-
 	var opts []grpc.ServerOption
 	if cfg.GrpcAuthKey != "" {
 		authInterceptor := grpcauth.NewServerInterceptor(cfg.GrpcAuthKey)
@@ -91,13 +87,13 @@ func main() {
 	logspb.RegisterServiceServer(s, logsServer)
 	reflection.Register(s)
 
-	http.Handle("/metrics", promhttp.Handler())
-	go func() {
-		logrus.Infof("Starting metrics server on %s", viper.GetString("metrics.address"))
-		if err := http.ListenAndServe(viper.GetString("metrics.address"), http.DefaultServeMux); err != nil {
-			logrus.Fatalf("Failed to serve metrics: %v", err)
-		}
-	}()
+	httpMux := http.NewServeMux()
+	httpMux.Handle("/metrics", promhttp.Handler())
+	muHandler := mu.NewHandler(s, mu.WithHTTPHandler(httpMux))
+	httpServer := &http.Server{
+		Handler: muHandler,
+		Addr:    cfg.Address,
+	}
 
 	runCtx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
@@ -117,11 +113,19 @@ func main() {
 		defer wg.Done()
 		<-runCtx.Done()
 		logrus.Info("Received shutdown signal, stopping server")
-		s.GracefulStop()
+
+		shutdownCtx, shutdownCancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+		defer shutdownCancel()
+		shutdownCtx, shutdownCancel = context.WithTimeout(shutdownCtx, 10*time.Second)
+		defer shutdownCancel()
+
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			logrus.Errorf("Failed to shutdown http server: %v", err)
+		}
 	}()
 
-	logrus.Infof("Starting server on %s", cfg.Addr)
-	if err := s.Serve(lis); err != nil {
+	logrus.Infof("Starting multiproto server on %s", cfg.Address)
+	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logrus.Fatalf("Failed to serve: %v", err)
 	}
 
@@ -153,8 +157,7 @@ func setupConfig() error {
 	viper.SetDefault("config", "server_config.yml")
 	viper.SetDefault("ping_every", time.Second*5)
 	viper.SetDefault("submit_every", time.Second*2)
-	viper.SetDefault("metrics.address", ":3000")
-	viper.SetDefault("addr", ":5005")
+	viper.SetDefault("address", ":5005")
 
 	return nil
 }
