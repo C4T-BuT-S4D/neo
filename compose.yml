@@ -18,6 +18,7 @@ services:
 
   grafana:
     image: grafana/grafana-oss:10.0.3
+    user: '0'
     volumes:
       - ./volumes/grafana:/var/lib/grafana
       - ./monitoring/cfg/grafana/provisioning:/etc/grafana/provisioning
@@ -33,7 +34,7 @@ services:
 
   victoria:
     image: victoriametrics/victoria-metrics:v1.92.1
-    user: 0
+    user: '0'
     volumes:
       - ./monitoring/cfg/prometheus:/etc/prometheus
       - ./volumes/victoria-metrics:/victoria-metrics-data
