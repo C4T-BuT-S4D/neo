@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Debug            bool              `mapstructure:"debug"`
 	Address          string            `mapstructure:"address"`
+	StaticDir        string            `mapstructure:"static_dir"`
 	DBPath           string            `mapstructure:"db_path"`
 	RedisURL         string            `mapstructure:"redis_url"`
 	BaseDir          string            `mapstructure:"base_dir"`

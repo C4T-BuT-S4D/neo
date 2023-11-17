@@ -89,6 +89,10 @@ func main() {
 
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/metrics", promhttp.Handler())
+
+	staticFS := http.FileServer(http.Dir(cfg.StaticDir))
+	httpMux.Handle("/", staticFS)
+
 	muHandler := mu.NewHandler(s, mu.WithHTTPHandler(httpMux))
 	httpServer := &http.Server{
 		Handler: muHandler,
@@ -158,6 +162,7 @@ func setupConfig() error {
 	viper.SetDefault("ping_every", time.Second*5)
 	viper.SetDefault("submit_every", time.Second*2)
 	viper.SetDefault("address", ":5005")
+	viper.SetDefault("static_dir", "front/dist")
 
 	return nil
 }

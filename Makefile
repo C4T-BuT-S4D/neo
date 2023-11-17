@@ -32,6 +32,7 @@ validate: lint test
 .PHONY: proto
 proto:
 	cd proto && buf generate
+	cd front && ./add_ts_ignore.sh
 
 .PHONY: test-cov
 test-cov:

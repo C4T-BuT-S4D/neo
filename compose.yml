@@ -8,6 +8,9 @@ services:
       NEO_GRPC_AUTH_KEY: ${GRPC_AUTH_KEY}
       NEO_FARM_PASSWORD: ${FARM_PASSWORD}
       NEO_FARM_URL: ${FARM_URL}
+      NEO_DB_PATH: /data/db.db
+      NEO_REDIS_URL: 'redis://redis:6379/0'
+      NEO_BASE_DIR: '/data/exploits'
     ports:
       - '5005:5005'
     restart: unless-stopped
