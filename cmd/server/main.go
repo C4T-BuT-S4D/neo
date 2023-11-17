@@ -28,9 +28,9 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/pkg/mu"
 	"github.com/c4t-but-s4d/neo/v2/pkg/neohttp"
 	"github.com/c4t-but-s4d/neo/v2/pkg/neosync"
-	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
-	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
-	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
+	epb "github.com/c4t-but-s4d/neo/v2/pkg/proto/exploits"
+	fspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/fileserver"
+	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
 )
 
 func main() {

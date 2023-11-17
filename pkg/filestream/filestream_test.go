@@ -11,7 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
-	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
+	fspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/fileserver"
 )
 
 type failedReadWriter struct {
