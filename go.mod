@@ -29,6 +29,7 @@ require (
 	github.com/samber/lo v1.38.1
 	golang.org/x/net v0.17.0
 	golang.org/x/sys v0.13.0
+	nhooyr.io/websocket v1.8.7
 )
 
 require (
@@ -60,5 +61,4 @@ require (
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231009173412-8bfb1ae86b6c // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	nhooyr.io/websocket v1.8.7 // indirect
 )
