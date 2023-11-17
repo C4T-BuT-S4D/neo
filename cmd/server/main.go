@@ -26,6 +26,7 @@ import (
 	logs "github.com/c4t-but-s4d/neo/v2/internal/server/logs"
 	"github.com/c4t-but-s4d/neo/v2/pkg/grpcauth"
 	"github.com/c4t-but-s4d/neo/v2/pkg/mu"
+	"github.com/c4t-but-s4d/neo/v2/pkg/neohttp"
 	"github.com/c4t-but-s4d/neo/v2/pkg/neosync"
 	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
 	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
@@ -89,9 +90,7 @@ func main() {
 
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/metrics", promhttp.Handler())
-
-	staticFS := http.FileServer(http.Dir(cfg.StaticDir))
-	httpMux.Handle("/", staticFS)
+	httpMux.Handle("/", neohttp.StaticHandler(cfg.StaticDir))
 
 	muHandler := mu.NewHandler(s, mu.WithHTTPHandler(httpMux))
 	httpServer := &http.Server{
