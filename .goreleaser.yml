@@ -45,6 +45,7 @@ archives:
       - internal
       - pkg
       - monitoring
+      - front
 
   - id: "client_env"
     format: zip
