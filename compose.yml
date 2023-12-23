@@ -4,6 +4,8 @@ services:
     volumes:
       - "./configs/server/config.yml:/config.yml:ro"
       - "./volumes/data:/data"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       NEO_GRPC_AUTH_KEY: ${GRPC_AUTH_KEY}
       NEO_FARM_PASSWORD: ${FARM_PASSWORD}
@@ -47,7 +49,15 @@ services:
       - "-storageDataPath=/victoria-metrics-data"
       - "-promscrape.config=/etc/prometheus/config.yml"
     restart: unless-stopped
-    cpus: 2
-    mem_limit: 4gb
+
+  victoria-proxy:
+    image: caddy:2.6.1-alpine
+    restart: unless-stopped
+    environment:
+      HTTP_BASIC_AUTH_USER: "${VICTORIA_USER:-admin}"
+      HTTP_BASIC_AUTH_PASSWORD: "${VICTORIA_PASSWORD:-1234}"
+    command: "/bin/sh -c 'export HTTP_BASIC_AUTH_PASSWORD_HASH=$(caddy hash-password --plaintext $$HTTP_BASIC_AUTH_PASSWORD) && caddy run --config /etc/caddy/Caddyfile'"
     ports:
       - "8428:8428"
+    volumes:
+      - "./monitoring/cfg/victoria-proxy:/etc/caddy"

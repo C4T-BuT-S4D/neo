@@ -89,7 +89,6 @@ func main() {
 	reflection.Register(s)
 
 	httpMux := http.NewServeMux()
-	httpMux.Handle("/metrics", promhttp.Handler())
 	httpMux.Handle("/", neohttp.StaticHandler(cfg.StaticDir))
 
 	muHandler := mu.NewHandler(s, mu.WithHTTPHandler(httpMux))
@@ -98,12 +97,20 @@ func main() {
 		Addr:    cfg.Address,
 	}
 
+	// Separate server to make it private.
+	metricsMux := http.NewServeMux()
+	metricsMux.Handle("/metrics", promhttp.Handler())
+	metricsServer := &http.Server{
+		Handler: metricsMux,
+		Addr:    cfg.MetricsAddress,
+	}
+
 	runCtx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
 	wg := sync.WaitGroup{}
 
-	wg.Add(3)
+	wg.Add(4)
 	go func() {
 		defer wg.Done()
 		exploitsServer.HeartBeat(runCtx)
@@ -119,11 +126,20 @@ func main() {
 
 		shutdownCtx, shutdownCancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 		defer shutdownCancel()
-		shutdownCtx, shutdownCancel = context.WithTimeout(shutdownCtx, 10*time.Second)
+		shutdownCtx, shutdownCancel = context.WithTimeout(shutdownCtx, 5*time.Second)
 		defer shutdownCancel()
 
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
 			logrus.Errorf("Failed to shutdown http server: %v", err)
+		}
+		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+			logrus.Errorf("Failed to shutdown metrics server: %v", err)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logrus.Fatalf("Failed to serve metrics: %v", err)
 		}
 	}()
 
@@ -164,6 +180,7 @@ func setupConfig() error {
 	viper.SetDefault("ping_every", time.Second*5)
 	viper.SetDefault("submit_every", time.Second*2)
 	viper.SetDefault("address", ":5005")
+	viper.SetDefault("metrics_address", ":3000")
 	viper.SetDefault("static_dir", "front/dist")
 	viper.SetDefault("redis_url", "redis://127.0.0.1:6379/0")
 	viper.SetDefault("db_path", "data/db.db")

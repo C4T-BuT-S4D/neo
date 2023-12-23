@@ -3,7 +3,7 @@ submit_every: "2s"
 grpc_auth_key: "s3cret_t0ken_pls_d0nt_leak"
 
 farm:
-  url: "http://127.0.0.1:5137"
+  url: "http://host.docker.internal:5137"
   password: "1234"
 
 env:
