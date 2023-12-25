@@ -35,15 +35,11 @@ func (s *RedisStorage) Add(ctx context.Context, lines ...*Line) error {
 	if _, err := s.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for _, line := range lines {
 			key := getRedisStream(line.Exploit, line.Version)
-			vals, err := line.ToRedis()
-			if err != nil {
-				return fmt.Errorf("serializing %v: %w", line, err)
-			}
 			args := redis.XAddArgs{
 				Stream: key,
 				MaxLen: maxRedisStreamLength,
 				Approx: true,
-				Values: vals,
+				Values: line.ToRedis(),
 			}
 			if err := pipe.XAdd(ctx, &args).Err(); err != nil {
 				return fmt.Errorf("adding %v: %w", line, err)

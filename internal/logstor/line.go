@@ -2,6 +2,8 @@ package logstor
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -10,9 +12,48 @@ import (
 	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
 )
 
+func LineDecodeHook(from, to reflect.Type, data any) (any, error) {
+	switch {
+	case from.Kind() == reflect.String && to == reflect.TypeOf(time.Time{}):
+		str, ok := data.(string)
+		if !ok {
+			return data, nil
+		}
+
+		res, err := time.Parse(time.RFC3339Nano, str)
+		if err != nil {
+			return nil, fmt.Errorf("parsing time: %w", err)
+		}
+		return res, nil
+
+	case from.Kind() == reflect.String && to.Kind() == reflect.Int64:
+		str, ok := data.(string)
+		if !ok {
+			return data, nil
+		}
+
+		res, err := strconv.ParseInt(str, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("parsing int64: %w", err)
+		}
+		return res, nil
+
+	default:
+		return data, nil
+	}
+}
+
 func NewLineFromRedis(vals map[string]any) (*Line, error) {
 	var line Line
-	if err := mapstructure.Decode(vals, &line); err != nil {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: LineDecodeHook,
+		Result:     &line,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating decoder: %w", err)
+	}
+
+	if err := decoder.Decode(vals); err != nil {
 		return nil, fmt.Errorf("decoding structure: %w", err)
 	}
 	return &line, nil
@@ -52,12 +93,15 @@ func (l *Line) EstimateSize() int {
 	return sizeEst * estNum / estDenom
 }
 
-func (l *Line) ToRedis() (map[string]any, error) {
-	res := make(map[string]any)
-	if err := mapstructure.Decode(l, &res); err != nil {
-		return nil, fmt.Errorf("encoding structure: %w", err)
+func (l *Line) ToRedis() map[string]any {
+	return map[string]any{
+		"timestamp": l.Timestamp.Format(time.RFC3339Nano),
+		"exploit":   l.Exploit,
+		"version":   strconv.FormatInt(l.Version, 10),
+		"message":   l.Message,
+		"level":     l.Level,
+		"team":      l.Team,
 	}
-	return res, nil
 }
 
 func (l *Line) ToProto() *logspb.LogLine {
