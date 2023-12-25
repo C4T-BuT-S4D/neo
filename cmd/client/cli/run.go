@@ -17,7 +17,7 @@ const JobsPerCPU = 5
 type runCLI struct {
 	*baseCLI
 	run    *exploit.Runner
-	sender *joblogger.RemoteSender
+	sender joblogger.Sender
 }
 
 func parseJobsFlag(cmd *cobra.Command, name string) int {

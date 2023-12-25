@@ -15,12 +15,16 @@ lint-go:
 lint-proto:
 	cd proto && buf lint
 
+.PHONY: lint-front
+lint-front:
+	cd front && pnpm lint
+
 .PHONY: lint
-lint: lint-go lint-proto
+lint: lint-go lint-proto lint-front
 
 .PHONY: goimports
 goimports:
-	gofancyimports fix --local github.com/c4t-but-s4d/neo -w $(shell find . -type f -name '*.go' -not -path "./proto/*")
+	gofancyimports fix --local github.com/c4t-but-s4d/neo/v2 -w $(shell find . -type f -name '*.go' -not -path "./pkg/proto/*")
 
 .PHONY: test
 test:
@@ -32,6 +36,7 @@ validate: lint test
 .PHONY: proto
 proto:
 	cd proto && buf generate
+	cd front && ./add_ts_ignore.sh
 
 .PHONY: test-cov
 test-cov:

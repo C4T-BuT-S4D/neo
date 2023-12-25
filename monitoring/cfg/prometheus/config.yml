@@ -3,18 +3,18 @@ scrape_configs:
     scrape_interval: 10s
     scrape_timeout: 3s
     static_configs:
-      - targets: ['server:3000']
+      - targets: [ 'server:3000' ]
 
   - job_name: 's4d_farm_api'
     scrape_interval: 10s
     scrape_timeout: 3s
     metrics_path: '/api/metrics'
     static_configs:
-      - targets: ['host.docker.internal:5137']
+      - targets: [ 'host.docker.internal:5137' ]
 
   - job_name: 's4d_farm_celery'
     scrape_interval: 10s
     scrape_timeout: 3s
     metrics_path: '/celery/metrics'
     static_configs:
-      - targets: ['host.docker.internal:5137']
+      - targets: [ 'host.docker.internal:5137' ]

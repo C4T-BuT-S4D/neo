@@ -6,8 +6,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
+	epb "github.com/c4t-but-s4d/neo/v2/pkg/proto/exploits"
 	"github.com/c4t-but-s4d/neo/v2/pkg/rendezvous"
-	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
 )
 
 func New(teams map[string]string) *HostBucket {

@@ -19,7 +19,7 @@ import (
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 	"github.com/c4t-but-s4d/neo/v2/pkg/archive"
-	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
+	epb "github.com/c4t-but-s4d/neo/v2/pkg/proto/exploits"
 )
 
 type addCLI struct {

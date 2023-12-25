@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
-	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
+	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
 )
 
 const (
@@ -17,6 +17,7 @@ const (
 )
 
 type Sender interface {
+	Start(ctx context.Context)
 	Add(lines ...*logspb.LogLine)
 }
 
@@ -25,6 +26,8 @@ func NewDummySender() *DummySender {
 }
 
 type DummySender struct{}
+
+func (s *DummySender) Start(context.Context) {}
 
 func (s *DummySender) Add(...*logspb.LogLine) {
 }

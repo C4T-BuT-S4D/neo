@@ -44,8 +44,8 @@ archives:
       - cmd
       - internal
       - pkg
-      - proto/go
       - monitoring
+      - front
 
   - id: "client_env"
     format: zip

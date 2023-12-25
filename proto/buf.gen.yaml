@@ -2,14 +2,29 @@ version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/c4t-but-s4d/neo/v2/proto/go
+    default: github.com/c4t-but-s4d/neo/v2/pkg/proto
 plugins:
   # Go
   - name: go
-    out: go
+    out: ../pkg/proto
     opt:
       - paths=source_relative
   - name: go-grpc
-    out: go
+    out: ../pkg/proto
     opt:
       - paths=source_relative
+
+  # Typescript
+  - plugin: buf.build/community/stephenh-ts-proto
+    out: ../front/src/proto
+    opt:
+      - enumsAsLiterals=true
+      - env=browser
+      - esModuleInterop=true
+      - forceLong=long
+      - oneof=unions
+      - outputServices=nice-grpc,outputServices=generic-definitions
+      - unrecognizedEnum=false
+      - removeEnumPrefix=true
+      - useDate=false
+      - useMapType=true

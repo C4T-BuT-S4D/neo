@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/logger"
-	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
+	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
 )
 
 // 1 MB.
@@ -56,11 +57,12 @@ func (l *JobLogger) Errorf(format string, args ...interface{}) {
 
 func (l *JobLogger) newLine(msg, level string) *logspb.LogLine {
 	return &logspb.LogLine{
-		Exploit: l.exploit,
-		Version: l.version,
-		Message: sanitizeMessage(msg),
-		Level:   level,
-		Team:    l.team,
+		Exploit:   l.exploit,
+		Version:   l.version,
+		Message:   sanitizeMessage(msg),
+		Level:     level,
+		Team:      l.team,
+		Timestamp: timestamppb.Now(),
 	}
 }
 
@@ -72,7 +74,7 @@ func (l *JobLogger) getLogger() *logrus.Entry {
 	})
 }
 
-func (l *JobLogger) logProxy(level logrus.Level, format string, args ...interface{}) {
+func (l *JobLogger) logProxy(level logrus.Level, format string, args ...any) {
 	if logrus.IsLevelEnabled(level) {
 		l.
 			getLogger().

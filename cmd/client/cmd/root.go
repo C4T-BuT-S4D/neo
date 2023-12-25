@@ -33,12 +33,10 @@ func init() {
 	rootCmd.PersistentFlags().StringP("config", "c", "client_config.yml", "config file")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", true, "enable debug logging")
 	rootCmd.PersistentFlags().String("host", "127.0.0.1:5005", "server host")
-	rootCmd.PersistentFlags().String("metrics_host", "127.0.0.1:9091", "pushgateway host")
 
 	mustBindPersistent(rootCmd, "config")
 	mustBindPersistent(rootCmd, "host")
 	mustBindPersistent(rootCmd, "verbose")
-	mustBindPersistent(rootCmd, "metrics_host")
 }
 
 func mustBindPersistent(c *cobra.Command, flag string) {

@@ -1,13 +1,9 @@
-db_path: "data/db.db"
-redis_url: 'redis://redis:6379/0'
-base_dir: "data/exploits"
 ping_every: "5s"
 submit_every: "2s"
 grpc_auth_key: "s3cret_t0ken_pls_d0nt_leak"
 
 farm:
-  #  url: "http://127.0.0.1:5137"
-  url: "http://192.168.82.252:5137"
+  url: "http://host.docker.internal:5137"
   password: "1234"
 
 env:

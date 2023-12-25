@@ -10,9 +10,9 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/c4t-but-s4d/neo/v2/pkg/filestream"
-	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
-	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
-	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
+	epb "github.com/c4t-but-s4d/neo/v2/pkg/proto/exploits"
+	fspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/fileserver"
+	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
 )
 
 func New(cc grpc.ClientConnInterface, id string) *Client {

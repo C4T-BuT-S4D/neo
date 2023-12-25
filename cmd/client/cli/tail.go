@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
-	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
+	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
 )
 
 type tailCLI struct {

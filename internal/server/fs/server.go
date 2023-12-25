@@ -12,7 +12,7 @@ import (
 	serverConfig "github.com/c4t-but-s4d/neo/v2/internal/server/config"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/utils"
 	"github.com/c4t-but-s4d/neo/v2/pkg/filestream"
-	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
+	fspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/fileserver"
 )
 
 func New(cfg *serverConfig.Config) (*Server, error) {
