@@ -5,7 +5,6 @@ import { useExploitServiceClient } from "@/services/exploits";
 import { useLogsServiceClient } from "@/services/logs";
 import { useWindowDimensions } from "@/utils/window";
 import {
-  CircularProgress,
   FormControl,
   Grid,
   InputLabel,
@@ -31,7 +30,12 @@ interface P {
 export default function LogsRootView(props: P) {
   const [state, setState] = useState<S>({ exploitID: "", exploitVersion: "" });
   const [lines, setLines] = useState<LogLine[]>([]);
+  const [linesToken, setLinesToken] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [hasMoreLines, setHasMoreLines] = useState<boolean>(true);
+  const [linesRequested, setLinesRequested] = useState<boolean>(false);
+
+  const prevStateRef = useRef<S>(state);
 
   const exploitServiceClient = useExploitServiceClient();
   const logsServiceClient = useLogsServiceClient();
@@ -62,27 +66,54 @@ export default function LogsRootView(props: P) {
   };
 
   useEffect(() => {
-    const tailLogs = async () => {
-      if (state.exploitID === "" || state.exploitVersion === "") {
-        return;
-      }
-      setLoading(true);
+    const prevState = prevStateRef.current;
+    if (
+      state.exploitID !== prevState.exploitID ||
+      state.exploitVersion !== prevState.exploitVersion
+    ) {
+      unstable_batchedUpdates(() => {
+        setLines([]);
+        setLinesToken("");
+        setLoading(false);
+        setHasMoreLines(true);
+      });
+      prevStateRef.current = state;
+    }
+
+    if (
+      !state.exploitID ||
+      !state.exploitVersion ||
+      loading ||
+      !linesRequested
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    const wrapper = async () => {
       const stream = logsServiceClient.searchLogLines({
         exploit: state.exploitID,
         version: state.exploitVersion,
+        lastToken: linesToken,
       });
+
       const lines: LogLine[] = [];
+      let nextToken = "";
       for await (const response of stream) {
         lines.push(...response.lines);
+        nextToken = response.lastToken;
       }
+
       unstable_batchedUpdates(() => {
+        setLines((prevLines) => [...prevLines, ...lines]);
+        setLinesToken(nextToken);
         setLoading(false);
-        setLines(lines);
+        setHasMoreLines(lines.length > 0);
+        setLinesRequested(false);
       });
     };
-
-    void tailLogs();
-  }, [state.exploitID, state.exploitVersion, logsServiceClient]);
+    void wrapper();
+  }, [state, logsServiceClient, loading, linesToken, linesRequested]);
 
   const streamFormRef = useRef<HTMLDivElement>(null);
   const { topbarRef } = useRootContext();
@@ -124,8 +155,15 @@ export default function LogsRootView(props: P) {
         </Stack>
       </Grid>
       <Grid item paddingX={2}>
-        {loading && <CircularProgress />}
-        {!loading && <LogsView lines={lines} viewHeight={viewSize} />}
+        <LogsView
+          lines={lines}
+          viewHeight={viewSize}
+          hasMoreLines={hasMoreLines}
+          isLoading={loading}
+          loadNext={() => {
+            setLinesRequested(true);
+          }}
+        />
       </Grid>
     </Grid>
   );

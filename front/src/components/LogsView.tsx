@@ -1,10 +1,14 @@
 import { LogLine } from "@/proto/logs/api";
 import { CSSProperties } from "react";
-import { VariableSizeList } from "react-window";
+import { ListOnItemsRenderedProps, VariableSizeList } from "react-window";
+import InfiniteLoader from "react-window-infinite-loader";
 
 interface P {
   lines: LogLine[];
   viewHeight: number;
+  hasMoreLines: boolean;
+  isLoading: boolean;
+  loadNext: () => void;
 }
 
 export default function LogsView(props: P) {
@@ -25,6 +29,15 @@ export default function LogsView(props: P) {
 
   const lineCounts = props.lines.map((line) => line.message.split("\n").length);
 
+  const isLineLoaded = (index: number) =>
+    !props.hasMoreLines || index < props.lines.length;
+
+  const lineCount = props.hasMoreLines
+    ? props.lines.length + 1
+    : props.lines.length;
+
+  const loadMoreLines = props.isLoading ? () => {} : props.loadNext;
+
   const LineRow = ({
     index,
     style,
@@ -32,6 +45,22 @@ export default function LogsView(props: P) {
     index: number;
     style: CSSProperties;
   }) => {
+    if (!isLineLoaded(index)) {
+      return (
+        <div
+          key={index}
+          style={{
+            ...style,
+            color: "grey",
+            fontSize: 12,
+            lineHeight: "16px",
+          }}
+        >
+          Loading...
+        </div>
+      );
+    }
+
     const line = props.lines[index];
 
     return (
@@ -49,15 +78,38 @@ export default function LogsView(props: P) {
     );
   };
 
+  const lineHeight = (index: number): number => {
+    if (!isLineLoaded(index)) {
+      return 16;
+    }
+    return lineCounts[index] * 16;
+  };
+
   return (
-    <VariableSizeList
-      height={props.viewHeight}
-      itemCount={props.lines.length}
-      overscanCount={10}
-      itemSize={(index) => lineCounts[index] * 16}
-      width="100%"
+    <InfiniteLoader
+      isItemLoaded={isLineLoaded}
+      itemCount={lineCount}
+      loadMoreItems={loadMoreLines}
     >
-      {LineRow}
-    </VariableSizeList>
+      {({
+        onItemsRendered,
+        ref,
+      }: {
+        onItemsRendered: (props: ListOnItemsRenderedProps) => unknown;
+        ref: (ref: unknown) => void;
+      }) => (
+        <VariableSizeList
+          height={props.viewHeight}
+          itemCount={lineCount}
+          overscanCount={10}
+          onItemsRendered={onItemsRendered}
+          itemSize={lineHeight}
+          ref={ref}
+          width="100%"
+        >
+          {LineRow}
+        </VariableSizeList>
+      )}
+    </InfiniteLoader>
   );
 }

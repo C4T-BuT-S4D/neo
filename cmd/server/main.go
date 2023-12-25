@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/logger"
+	"github.com/c4t-but-s4d/neo/v2/internal/logstor"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/config"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/exploits"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/fs"
@@ -58,7 +59,7 @@ func main() {
 		logrus.Fatalf("Failed to create bolt storage: %v", err)
 	}
 
-	logStore, err := logs.NewLogStorage(initCtx, cfg.RedisURL)
+	logStore, err := logstor.NewRedisStorage(initCtx, cfg.RedisURL)
 	if err != nil {
 		logrus.Fatalf("Failed to create log storage: %v", err)
 	}

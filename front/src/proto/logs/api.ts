@@ -4,6 +4,7 @@ import Long from "long";
 import type { CallContext, CallOptions } from "nice-grpc-common";
 import _m0 from "protobufjs/minimal";
 import { Empty } from "../google/protobuf/empty";
+import { Timestamp } from "../google/protobuf/timestamp";
 
 export const protobufPackage = "logs";
 
@@ -13,6 +14,7 @@ export interface LogLine {
   message: string;
   level: string;
   team: string;
+  timestamp: Timestamp | undefined;
 }
 
 export interface AddLogLinesRequest {
@@ -22,14 +24,17 @@ export interface AddLogLinesRequest {
 export interface SearchLogLinesRequest {
   exploit: string;
   version: Long;
+  limit: Long;
+  lastToken: string;
 }
 
 export interface SearchLogLinesResponse {
   lines: LogLine[];
+  lastToken: string;
 }
 
 function createBaseLogLine(): LogLine {
-  return { exploit: "", version: Long.ZERO, message: "", level: "", team: "" };
+  return { exploit: "", version: Long.ZERO, message: "", level: "", team: "", timestamp: undefined };
 }
 
 export const LogLine = {
@@ -48,6 +53,9 @@ export const LogLine = {
     }
     if (message.team !== "") {
       writer.uint32(42).string(message.team);
+    }
+    if (message.timestamp !== undefined) {
+      Timestamp.encode(message.timestamp, writer.uint32(50).fork()).ldelim();
     }
     return writer;
   },
@@ -94,6 +102,13 @@ export const LogLine = {
 
           message.team = reader.string();
           continue;
+        case 6:
+          if (tag !== 50) {
+            break;
+          }
+
+          message.timestamp = Timestamp.decode(reader, reader.uint32());
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -110,6 +125,7 @@ export const LogLine = {
       message: isSet(object.message) ? globalThis.String(object.message) : "",
       level: isSet(object.level) ? globalThis.String(object.level) : "",
       team: isSet(object.team) ? globalThis.String(object.team) : "",
+      timestamp: isSet(object.timestamp) ? fromJsonTimestamp(object.timestamp) : undefined,
     };
   },
 
@@ -130,6 +146,9 @@ export const LogLine = {
     if (message.team !== "") {
       obj.team = message.team;
     }
+    if (message.timestamp !== undefined) {
+      obj.timestamp = fromTimestamp(message.timestamp).toISOString();
+    }
     return obj;
   },
 
@@ -145,6 +164,9 @@ export const LogLine = {
     message.message = object.message ?? "";
     message.level = object.level ?? "";
     message.team = object.team ?? "";
+    message.timestamp = (object.timestamp !== undefined && object.timestamp !== null)
+      ? Timestamp.fromPartial(object.timestamp)
+      : undefined;
     return message;
   },
 };
@@ -207,7 +229,7 @@ export const AddLogLinesRequest = {
 };
 
 function createBaseSearchLogLinesRequest(): SearchLogLinesRequest {
-  return { exploit: "", version: Long.ZERO };
+  return { exploit: "", version: Long.ZERO, limit: Long.ZERO, lastToken: "" };
 }
 
 export const SearchLogLinesRequest = {
@@ -217,6 +239,12 @@ export const SearchLogLinesRequest = {
     }
     if (!message.version.isZero()) {
       writer.uint32(16).int64(message.version);
+    }
+    if (!message.limit.isZero()) {
+      writer.uint32(24).int64(message.limit);
+    }
+    if (message.lastToken !== "") {
+      writer.uint32(34).string(message.lastToken);
     }
     return writer;
   },
@@ -242,6 +270,20 @@ export const SearchLogLinesRequest = {
 
           message.version = reader.int64() as Long;
           continue;
+        case 3:
+          if (tag !== 24) {
+            break;
+          }
+
+          message.limit = reader.int64() as Long;
+          continue;
+        case 4:
+          if (tag !== 34) {
+            break;
+          }
+
+          message.lastToken = reader.string();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -255,6 +297,8 @@ export const SearchLogLinesRequest = {
     return {
       exploit: isSet(object.exploit) ? globalThis.String(object.exploit) : "",
       version: isSet(object.version) ? Long.fromValue(object.version) : Long.ZERO,
+      limit: isSet(object.limit) ? Long.fromValue(object.limit) : Long.ZERO,
+      lastToken: isSet(object.lastToken) ? globalThis.String(object.lastToken) : "",
     };
   },
 
@@ -265,6 +309,12 @@ export const SearchLogLinesRequest = {
     }
     if (!message.version.isZero()) {
       obj.version = (message.version || Long.ZERO).toString();
+    }
+    if (!message.limit.isZero()) {
+      obj.limit = (message.limit || Long.ZERO).toString();
+    }
+    if (message.lastToken !== "") {
+      obj.lastToken = message.lastToken;
     }
     return obj;
   },
@@ -278,18 +328,23 @@ export const SearchLogLinesRequest = {
     message.version = (object.version !== undefined && object.version !== null)
       ? Long.fromValue(object.version)
       : Long.ZERO;
+    message.limit = (object.limit !== undefined && object.limit !== null) ? Long.fromValue(object.limit) : Long.ZERO;
+    message.lastToken = object.lastToken ?? "";
     return message;
   },
 };
 
 function createBaseSearchLogLinesResponse(): SearchLogLinesResponse {
-  return { lines: [] };
+  return { lines: [], lastToken: "" };
 }
 
 export const SearchLogLinesResponse = {
   encode(message: SearchLogLinesResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     for (const v of message.lines) {
       LogLine.encode(v!, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.lastToken !== "") {
+      writer.uint32(18).string(message.lastToken);
     }
     return writer;
   },
@@ -308,6 +363,13 @@ export const SearchLogLinesResponse = {
 
           message.lines.push(LogLine.decode(reader, reader.uint32()));
           continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.lastToken = reader.string();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -318,13 +380,19 @@ export const SearchLogLinesResponse = {
   },
 
   fromJSON(object: any): SearchLogLinesResponse {
-    return { lines: globalThis.Array.isArray(object?.lines) ? object.lines.map((e: any) => LogLine.fromJSON(e)) : [] };
+    return {
+      lines: globalThis.Array.isArray(object?.lines) ? object.lines.map((e: any) => LogLine.fromJSON(e)) : [],
+      lastToken: isSet(object.lastToken) ? globalThis.String(object.lastToken) : "",
+    };
   },
 
   toJSON(message: SearchLogLinesResponse): unknown {
     const obj: any = {};
     if (message.lines?.length) {
       obj.lines = message.lines.map((e) => LogLine.toJSON(e));
+    }
+    if (message.lastToken !== "") {
+      obj.lastToken = message.lastToken;
     }
     return obj;
   },
@@ -335,6 +403,7 @@ export const SearchLogLinesResponse = {
   fromPartial<I extends Exact<DeepPartial<SearchLogLinesResponse>, I>>(object: I): SearchLogLinesResponse {
     const message = createBaseSearchLogLinesResponse();
     message.lines = object.lines?.map((e) => LogLine.fromPartial(e)) || [];
+    message.lastToken = object.lastToken ?? "";
     return message;
   },
 };
@@ -391,6 +460,32 @@ export type DeepPartial<T> = T extends Builtin ? T
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+
+function toTimestamp(date: Date): Timestamp {
+  const seconds = numberToLong(date.getTime() / 1_000);
+  const nanos = (date.getTime() % 1_000) * 1_000_000;
+  return { seconds, nanos };
+}
+
+function fromTimestamp(t: Timestamp): Date {
+  let millis = (t.seconds.toNumber() || 0) * 1_000;
+  millis += (t.nanos || 0) / 1_000_000;
+  return new globalThis.Date(millis);
+}
+
+function fromJsonTimestamp(o: any): Timestamp {
+  if (o instanceof globalThis.Date) {
+    return toTimestamp(o);
+  } else if (typeof o === "string") {
+    return toTimestamp(new globalThis.Date(o));
+  } else {
+    return Timestamp.fromJSON(o);
+  }
+}
+
+function numberToLong(number: number) {
+  return Long.fromNumber(number);
+}
 
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any;

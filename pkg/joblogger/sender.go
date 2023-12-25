@@ -17,6 +17,7 @@ const (
 )
 
 type Sender interface {
+	Start(ctx context.Context)
 	Add(lines ...*logspb.LogLine)
 }
 
@@ -25,6 +26,8 @@ func NewDummySender() *DummySender {
 }
 
 type DummySender struct{}
+
+func (s *DummySender) Start(context.Context) {}
 
 func (s *DummySender) Add(...*logspb.LogLine) {
 }
