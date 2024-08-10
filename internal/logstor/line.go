@@ -80,7 +80,7 @@ type Line struct {
 }
 
 func (l *Line) String() string {
-	return fmt.Sprintf("Line(%s.v%s)", l.Exploit, l.Version)
+	return fmt.Sprintf("Line(%s.v%d)", l.Exploit, l.Version)
 }
 
 func (l *Line) EstimateSize() int {
