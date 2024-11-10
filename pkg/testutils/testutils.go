@@ -46,9 +46,8 @@ func RandomString(length int) string {
 	return RandomStringWithCharset(length, charset)
 }
 
-func RandomInt(min, max int) int {
-	n := seededRand.Intn(max - min)
-	return min + n
+func RandomInt(mn, mx int) int {
+	return mn + seededRand.Intn(mx-mn)
 }
 
 func RandomIP() string {

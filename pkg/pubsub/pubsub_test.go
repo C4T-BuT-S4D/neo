@@ -113,7 +113,7 @@ func TestPubSub_slowpoke(t *testing.T) {
 		wgSlow.Wait()
 	}()
 
-	slowSub := p.Subscribe(func(msg string) error {
+	slowSub := p.Subscribe(func(string) error {
 		defer wgSlow.Done()
 
 		select {
@@ -153,7 +153,7 @@ func TestPubSub_slowpoke(t *testing.T) {
 func TestPubSub_unsubscribe(t *testing.T) {
 	p := NewPubSub[string]()
 
-	sub1 := p.Subscribe(func(msg string) error {
+	sub1 := p.Subscribe(func(string) error {
 		t.Error("first subscriber must not be called")
 		return nil
 	})

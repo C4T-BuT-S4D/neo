@@ -1,8 +1,6 @@
 run:
   timeout: 5m
   tests: true
-  skip-dirs:
-    - pkg/apps/.*
 
 linters:
   enable:
@@ -13,7 +11,6 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - exportloopref
     - gocritic
     - gofmt
     - goimports
