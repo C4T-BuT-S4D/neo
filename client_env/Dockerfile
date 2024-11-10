@@ -1,6 +1,8 @@
-FROM golang:1.21 as build
+FROM golang:1.23-alpine AS build
 
 ENV CGO_ENABLED=0
+
+RUN apk add upx
 
 WORKDIR /app
 COPY go.* ./
@@ -10,18 +12,19 @@ COPY pkg pkg
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
         go build \
+            -trimpath \
             -ldflags="-s -w" \
             -o client \
-            cmd/client/main.go
-
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg/mod \
+            cmd/client/main.go && \
         go build \
+            -trimpath \
             -ldflags="-s -w" \
             -o reaper \
-            cmd/reaper/main.go
+            cmd/reaper/main.go && \
+        upx --lzma -9 client && \
+        upx --lzma -9 reaper
 
-FROM ubuntu:jammy as image-full
+FROM ubuntu:24.04 AS image-full
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -66,7 +69,7 @@ RUN chmod +x /entrypoint.sh
 WORKDIR /work
 ENTRYPOINT ["/entrypoint.sh"]
 
-FROM image-full as image-full-sage
+FROM image-full AS image-full-sage
 
 RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
         apt-get update && \
@@ -74,7 +77,7 @@ RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
             sagemath && \
         rm -rf /var/lib/apt/lists/*
 
-FROM alpine:3.16 as image-light
+FROM alpine:3.20 AS image-light
 
 RUN apk add bash dbus
 
