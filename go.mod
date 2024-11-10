@@ -1,6 +1,6 @@
 module github.com/c4t-but-s4d/neo/v2
 
-go 1.21
+go 1.23
 
 require (
 	github.com/denisbrodbeck/machineid v1.0.1
