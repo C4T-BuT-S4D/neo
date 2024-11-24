@@ -50,7 +50,7 @@ build-image:
 test-image:
 	@for cmd in $(NEED_COMMANDS) ; do \
   		echo -n "checking for command $$cmd... "; \
-		if docker run --rm --entrypoint /bin/bash "${IMAGE}" which "$$cmd" >/dev/null; then \
+		if docker run --rm "${IMAGE}" which "$$cmd" >/dev/null; then \
 			echo "ok"; \
 		else \
 			echo "Command $$cmd not found in image"; \
@@ -60,10 +60,10 @@ test-image:
 
 	@for pkg in $(NEED_PACKAGES) ; do \
   		echo -n "checking for python package $$pkg... "; \
-		if docker run --rm --entrypoint /bin/bash "${IMAGE}" -c "python3 -c 'import $$pkg'" >/dev/null; then \
+		if docker run --rm --entrypoint bash "${IMAGE}" -c "python3 -c 'import $$pkg'" >/dev/null; then \
 			echo "ok"; \
 		else \
-			echo "Command $$cmd not found in image"; \
+			echo "Command $$pkg not found in image"; \
 			exit 1; \
 		fi \
 	done
