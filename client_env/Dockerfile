@@ -51,8 +51,9 @@ RUN --mount=type=cache,sharing=private,target=/var/cache/pacman \
             python-virtualenv \
             uv \
             vim \
-            wget && \
-        rm -rf /var/lib/pacman/*
+            wget
+
+RUN python -m pip config set global.break-system-packages true
 
 COPY client_env/requirements.txt /requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
@@ -71,8 +72,7 @@ FROM image-full AS image-full-sage
 
 RUN --mount=type=cache,sharing=private,target=/var/cache/pacman \
         pacman --noconfirm -Sy --overwrite '*' \
-            sagemath && \
-        rm -rf /var/lib/pacman/*
+            sagemath
 
 FROM alpine:3.20 AS image-light
 
