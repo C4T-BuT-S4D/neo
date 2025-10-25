@@ -21,7 +21,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM ubuntu:noble AS image-full
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    PIP_BREAK_SYSTEM_PACKAGES=1
+    PIP_BREAK_SYSTEM_PACKAGES=1 \
+    UV_SYSTEM_PYTHON=1
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
