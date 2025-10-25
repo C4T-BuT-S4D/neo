@@ -31,6 +31,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1 UV_BREAK_SYSTEM_PACKAGES=1
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN --mount=type=cache,sharing=private,target=/var/cache/pacman \
+        pacman-key --refresh-keys && \
         pacman --noconfirm -Sy \
             blas \
             curl \
