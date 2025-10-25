@@ -58,6 +58,9 @@ RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.5 /uv /uvx /bin/
 
+# Remove externally-managed marker to allow system-wide package installation in container
+RUN rm -f /usr/lib/python*/EXTERNALLY-MANAGED
+
 COPY client_env/requirements.txt /requirements.txt
 RUN --mount=type=cache,target=/root/.cache/uv \
         uv pip install -r /requirements.txt
