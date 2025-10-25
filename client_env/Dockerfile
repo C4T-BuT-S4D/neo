@@ -109,6 +109,7 @@ RUN cd /opt && \
     tar xzf sage-10.7.tar.gz && \
     rm sage-10.7.tar.gz && \
     cd sage-10.7 && \
+    make configure && \
     ./configure && \
     make -j$(nproc)
 
