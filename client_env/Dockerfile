@@ -57,7 +57,7 @@ RUN pacman-key --refresh-keys && \
 RUN python -m pip config set global.break-system-packages true
 
 COPY client_env/requirements.txt /requirements.txt
-RUN pip install --system -r /requirements.txt
+RUN pip install -r /requirements.txt
 
 COPY --from=build /app/client /usr/local/bin/neo
 COPY --from=build /app/reaper /usr/local/bin/reaper
