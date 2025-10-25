@@ -30,8 +30,8 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1 UV_BREAK_SYSTEM_PACKAGES=1
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN --mount=type=cache,sharing=private,target=/var/cache/pacman \
-        pacman-key --refresh-keys && \
+RUN pacman-key --refresh-keys && \
+        pacman --noconfirm -Syu && \
         pacman --noconfirm -Sy \
             blas \
             curl \
@@ -57,8 +57,7 @@ RUN --mount=type=cache,sharing=private,target=/var/cache/pacman \
 RUN python -m pip config set global.break-system-packages true
 
 COPY client_env/requirements.txt /requirements.txt
-RUN --mount=type=cache,target=/root/.cache/pip \
-        uv pip install --system -r /requirements.txt
+RUN pip install --system -r /requirements.txt
 
 COPY --from=build /app/client /usr/local/bin/neo
 COPY --from=build /app/reaper /usr/local/bin/reaper
@@ -71,7 +70,7 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 FROM image-full AS image-full-sage
 
-RUN --mount=type=cache,sharing=private,target=/var/cache/pacman \
+RUN \
         pacman --noconfirm -Sy --overwrite '*' \
             sagemath
 
