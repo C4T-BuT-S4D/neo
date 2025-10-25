@@ -103,20 +103,16 @@ RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
             xz-utils && \
         rm -rf /var/lib/apt/lists/*
 
-# Download and build the latest stable Sage from source
-RUN cd /tmp && \
-    git clone --depth 1 --branch master https://github.com/sagemath/sage.git && \
-    cd sage && \
-    git fetch --tags && \
-    LATEST_TAG=$(git tag -l | grep -E '^[0-9]+\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -n1) && \
-    git checkout "$LATEST_TAG" && \
+# Download and build Sage 10.7 from source
+RUN cd /opt && \
+    wget -O sage-10.7.tar.gz https://github.com/sagemath/sage/archive/refs/tags/10.7.tar.gz && \
+    tar xzf sage-10.7.tar.gz && \
+    rm sage-10.7.tar.gz && \
+    cd sage-10.7 && \
     ./configure && \
-    make -j$(nproc) && \
-    make install && \
-    cd / && \
-    rm -rf /tmp/sage
+    make -j$(nproc)
 
-ENV PATH="/usr/local/sage:${PATH}"
+ENV PATH="/opt/sage-10.7:${PATH}"
 
 FROM alpine:3.20 AS image-light
 
