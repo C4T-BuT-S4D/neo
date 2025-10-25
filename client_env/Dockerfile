@@ -110,7 +110,7 @@ RUN cd /opt && \
     rm sage-10.7.tar.gz && \
     cd sage-10.7 && \
     make configure && \
-    ./configure && \
+    ./configure --enable-build-as-root && \
     make -j$(nproc)
 
 ENV PATH="/opt/sage-10.7:${PATH}"
