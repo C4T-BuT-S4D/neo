@@ -44,6 +44,7 @@ RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
             libmpc-dev \
             libmpfr-dev \
             libpng-dev \
+            libssl-dev \
             netcat-openbsd \
             net-tools \
             openssl \
