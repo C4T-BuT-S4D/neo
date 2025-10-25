@@ -21,7 +21,6 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM ubuntu:noble AS image-full
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    PIP_BREAK_SYSTEM_PACKAGES=1 \
     UV_SYSTEM_PYTHON=1
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -59,11 +58,9 @@ RUN --mount=type=cache,sharing=private,target=/var/cache/apt \
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.5 /uv /uvx /bin/
 
-RUN python3 -m pip config set global.break-system-packages true
-
 COPY client_env/requirements.txt /requirements.txt
-RUN --mount=type=cache,target=/root/.cache/pip \
-        uv pip install --system -r /requirements.txt
+RUN --mount=type=cache,target=/root/.cache/uv \
+        uv pip install -r /requirements.txt
 
 COPY --from=build /app/client /usr/local/bin/neo
 
