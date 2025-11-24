@@ -12,22 +12,18 @@ COPY pkg pkg
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     go build \
-    -trimpath \
-    -ldflags="-s -w" \
-    -o client \
-    cmd/client/main.go && \
-    upx --lzma -9 client
+        -trimpath \
+        -ldflags="-s -w" \
+        -o client \
+        cmd/client/main.go && \
+    upx --lzma client
 
 FROM archlinux:base-devel-20251019.0.436919 AS image-full
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Setup uv.
-COPY --from=ghcr.io/astral-sh/uv:0.9.11 /uv /uvx /bin/
-ENV UV_LINK_MODE=copy
-ENV UV_SYSTEM_PYTHON=1
-
-RUN pacman-key --refresh-keys && \
+RUN --mount=type=cache,sharing=locked,target=/var/cache/pacman \
+    pacman-key --refresh-keys && \
     pacman --noconfirm -Syu && \
     pacman --noconfirm -Sy \
     blas \
@@ -50,12 +46,18 @@ RUN pacman-key --refresh-keys && \
     uv \
     vim \
     wget \
+    zig \
+    upx \
     cryptominisat
 
 ENV TINI_VERSION=v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/bin/tini
 RUN chmod +x /usr/bin/tini
 
+ENV UV_LINK_MODE=copy
+ENV UV_SYSTEM_PYTHON=1
+ENV UV_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 COPY client_env/requirements.txt /requirements.txt
 RUN --mount=type=cache,target=/root/.cache \
     uv pip install -r /requirements.txt
