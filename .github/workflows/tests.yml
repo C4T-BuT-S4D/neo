@@ -33,6 +33,7 @@ jobs:
       - uses: bufbuild/buf-action@v1
         with:
           input: proto
+          lint: true
 
   front:
     runs-on: ubuntu-latest
