@@ -50,8 +50,11 @@ RUN pacman-key --refresh-keys && \
     uv \
     vim \
     wget \
-    tini \
     cryptominisat
+
+ENV TINI_VERSION=v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/bin/tini
+RUN chmod +x /usr/bin/tini
 
 COPY client_env/requirements.txt /requirements.txt
 RUN --mount=type=cache,target=/root/.cache \
@@ -63,7 +66,7 @@ COPY client_env/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 WORKDIR /work
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "-s", "--", "/entrypoint.sh"]
 
 FROM image-full AS image-full-sage
 
