@@ -10,7 +10,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// runCmd represents the run command
+// runCmd represents the run command.
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Start Neo client",
@@ -25,6 +25,7 @@ var runCmd = &cobra.Command{
 	},
 }
 
+//nolint:gochecknoinits // cli init
 func init() {
 	rootCmd.AddCommand(runCmd)
 	runCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "workers to run")

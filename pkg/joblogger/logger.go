@@ -31,26 +31,26 @@ type JobLogger struct {
 	sender  Sender
 }
 
-func (l *JobLogger) Debugf(format string, args ...interface{}) {
-	l.logProxy(logrus.DebugLevel, format, args...)
+func (l *JobLogger) Debugf(format string, args ...any) {
+	l.logProxyf(logrus.DebugLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "debug"))
 }
 
-func (l *JobLogger) Infof(format string, args ...interface{}) {
-	l.logProxy(logrus.InfoLevel, format, args...)
+func (l *JobLogger) Infof(format string, args ...any) {
+	l.logProxyf(logrus.InfoLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "info"))
 }
 
-func (l *JobLogger) Warningf(format string, args ...interface{}) {
-	l.logProxy(logrus.WarnLevel, format, args...)
+func (l *JobLogger) Warningf(format string, args ...any) {
+	l.logProxyf(logrus.WarnLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "warning"))
 }
 
-func (l *JobLogger) Errorf(format string, args ...interface{}) {
-	l.logProxy(logrus.ErrorLevel, format, args...)
+func (l *JobLogger) Errorf(format string, args ...any) {
+	l.logProxyf(logrus.ErrorLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "error"))
 }
@@ -74,7 +74,7 @@ func (l *JobLogger) getLogger() *logrus.Entry {
 	})
 }
 
-func (l *JobLogger) logProxy(level logrus.Level, format string, args ...any) {
+func (l *JobLogger) logProxyf(level logrus.Level, format string, args ...any) {
 	if logrus.IsLevelEnabled(level) {
 		l.
 			getLogger().

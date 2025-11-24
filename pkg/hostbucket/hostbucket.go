@@ -27,7 +27,7 @@ type HostBucket struct {
 	r     *rendezvous.Rendezvous
 }
 
-// TODO: effective ip addition & deletion
+// TODO: effective ip addition & deletion.
 func (hb *HostBucket) UpdateTeams(teams map[string]string) {
 	lessFunc := func(s1, s2 string) bool {
 		return s1 < s2
@@ -55,7 +55,7 @@ func (hb *HostBucket) Exists(id string) (exists bool) {
 	hb.m.RLock()
 	defer hb.m.RUnlock()
 	_, exists = hb.buck[id]
-	return
+	return exists
 }
 
 func (hb *HostBucket) AddNode(id string, weight int) {

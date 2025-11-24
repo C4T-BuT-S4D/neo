@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -157,11 +155,11 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	return nil
 }
 
-func (ac *addCLI) validateEntry(f string) (errors []string) {
+func (ac *addCLI) validateEntry(f string) (errs []string) {
 	data, err := os.ReadFile(f)
 	if err != nil {
-		errors = append(errors, err.Error())
-		return
+		errs = append(errs, err.Error())
+		return errs
 	}
 	if !isBinary(data) {
 		if string(data[:2]) != "#!" {
@@ -169,17 +167,8 @@ func (ac *addCLI) validateEntry(f string) (errors []string) {
 				"Please use shebang (e.g. %s) as the first line of your script",
 				"#!/usr/bin/env python3",
 			)
-			errors = append(errors, desc)
-		}
-
-		// PYTHONUNBUFFERED=1 is set for python scripts, so no need to flush the buffer
-		if !bytes.Contains(data, []byte("#!/usr/bin/env python")) {
-			re := regexp.MustCompile(`(?m)flush[(=]`)
-			if !re.Match(data) {
-				desc := "Please flush the output, e.g. print(..., flush=True) in python"
-				errors = append(errors, desc)
-			}
+			errs = append(errs, desc)
 		}
 	}
-	return
+	return errs
 }

@@ -67,11 +67,9 @@ func Test_endlessQueue_Start(t *testing.T) {
 	defer cancel()
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		q.Start(ctx)
-	}()
+	})
 
 	select {
 	case <-time.After(time.Second * 3):
@@ -80,7 +78,6 @@ func Test_endlessQueue_Start(t *testing.T) {
 		assert.Equal(t, task.Exploit, out.Exploit)
 		assert.Equal(t, task.Target, out.Target)
 		assert.Equal(t, task.Target.IP, string(out.Out))
-		break
 	}
 
 	cancel()

@@ -8,7 +8,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// enableCmd represents the enable command
+// enableCmd represents the enable command.
 var enableCmd = &cobra.Command{
 	Use:   "enable",
 	Short: "Enable a disabled exploit by id",
@@ -24,6 +24,7 @@ var enableCmd = &cobra.Command{
 	},
 }
 
+//nolint:gochecknoinits // cli init
 func init() {
 	rootCmd.AddCommand(enableCmd)
 }

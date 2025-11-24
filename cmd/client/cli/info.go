@@ -27,19 +27,19 @@ func (ic *infoCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("making ping config request: %w", err)
 	}
-	cfg, err := config.FromProto(state.Config)
+	cfg, err := config.FromProto(state.GetConfig())
 	if err != nil {
 		return fmt.Errorf("unmarshalling config: %w", err)
 	}
 	fmt.Printf("config: %+v\n", cfg)
 	fmt.Println("IPs buckets: ")
-	for k, v := range state.ClientTeamMap {
+	for k, v := range state.GetClientTeamMap() {
 		fmt.Print(k, ": [")
-		fmt.Printf("%+v", v.Teams)
+		fmt.Printf("%+v", v.GetTeams())
 		fmt.Println("]")
 	}
 	fmt.Println("Exploits: ")
-	for _, e := range state.Exploits {
+	for _, e := range state.GetExploits() {
 		fmt.Printf("%+v\n", e)
 	}
 	return nil

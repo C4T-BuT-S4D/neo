@@ -44,14 +44,14 @@ func (tc *tailCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("making ping config request: %w", err)
 	}
 	found := false
-	for _, ex := range state.Exploits {
-		if ex.ExploitId == tc.exploitID {
+	for _, ex := range state.GetExploits() {
+		if ex.GetExploitId() == tc.exploitID {
 			found = true
 			if tc.version == 0 {
-				tc.version = ex.Version
+				tc.version = ex.GetVersion()
 			}
-			if ex.Version > tc.version {
-				return fmt.Errorf("too fresh version requested, current is %v", ex.Version)
+			if ex.GetVersion() > tc.version {
+				return fmt.Errorf("too fresh version requested, current is %v", ex.GetVersion())
 			}
 		}
 	}
@@ -75,22 +75,22 @@ func (tc *tailCLI) Run(ctx context.Context) error {
 	logrus.SetLevel(logrus.DebugLevel)
 	for _, line := range lines {
 		logger := logrus.WithFields(logrus.Fields{
-			"exploit": line.Exploit,
-			"version": line.Version,
-			"team":    line.Team,
+			"exploit": line.GetExploit(),
+			"version": line.GetVersion(),
+			"team":    line.GetTeam(),
 		})
-		switch line.Level {
+		switch line.GetLevel() {
 		case "debug":
-			logger.Debug(line.Message)
+			logger.Debug(line.GetMessage())
 		case "info":
-			logger.Info(line.Message)
+			logger.Info(line.GetMessage())
 		case "warning":
-			logger.Warning(line.Message)
+			logger.Warning(line.GetMessage())
 		case "error":
-			logger.Error(line.Message)
+			logger.Error(line.GetMessage())
 		default:
-			logger.Warningf("Unexpected log level: %v", line.Level)
-			logger.Warning(line.Message)
+			logger.Warningf("Unexpected log level: %v", line.GetLevel())
+			logger.Warning(line.GetMessage())
 		}
 	}
 	return nil

@@ -15,7 +15,6 @@ var once = sync.Once{}
 func Init() {
 	once.Do(func() {
 		logrus.SetFormatter(&CustomFormatter{
-			FullTimestamp:          true,
 			TimestampFormat:        "2006-01-02T15:04:05.000Z07:00",
 			DisableLevelTruncation: false,
 			CallerPrettyfier: func(f *runtime.Frame) (string, string) {

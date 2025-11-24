@@ -7,6 +7,7 @@ import (
 	"path"
 	"sync"
 
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -36,8 +37,8 @@ func NewDryRun(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 		exploitID: args[0],
 		jobs:      parseJobsFlag(cmd, "jobs"),
 	}
-	cli.teamID, _ = cmd.Flags().GetString("team_id")
-	cli.teamIP, _ = cmd.Flags().GetString("team_ip")
+	cli.teamID = lo.Must1(cmd.Flags().GetString("team_id"))
+	cli.teamIP = lo.Must1(cmd.Flags().GetString("team_ip"))
 	return cli
 }
 
@@ -50,7 +51,7 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
-	cfg, err := config.FromProto(state.Config)
+	cfg, err := config.FromProto(state.GetConfig())
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %w", err)
 	}
@@ -59,16 +60,16 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("exploit %s does not exist, add it first", rc.exploitID)
 	}
 
-	storage := exploit.NewStorage(exploit.NewCache(), rc.baseCLI.cfg.ExploitDir, c)
-	storage.UpdateExploits(ctx, state.Exploits)
+	storage := exploit.NewStorage(exploit.NewCache(), rc.cfg.ExploitDir, c)
+	storage.UpdateExploits(ctx, state.GetExploits())
 	ex, ok := storage.Exploit(rc.exploitID)
 	if !ok {
 		return fmt.Errorf("failed to find exploit '%s' in storage", rc.exploitID)
 	}
 
 	allTeams := make(map[string]string)
-	for _, tbuck := range state.ClientTeamMap {
-		for k, v := range tbuck.Teams {
+	for _, tbuck := range state.GetClientTeamMap() {
+		for k, v := range tbuck.GetTeams() {
 			allTeams[k] = v
 		}
 	}
@@ -101,12 +102,10 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		q.Start(runCtx)
 		logrus.Info("Queue finished")
-	}()
+	})
 
 	for _, t := range tasks {
 		if err := q.Add(t); err != nil {

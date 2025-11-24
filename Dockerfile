@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine as build
+FROM golang:1.25-alpine as build
 
 ENV CGO_ENABLED=0
 
@@ -32,4 +32,4 @@ WORKDIR /app
 COPY --from=build /app/neo_server neo_server
 COPY --from=front-build /app/dist front/dist
 
-CMD ["./neo_server", "--config", "/config.yml"]
+CMD ["/app/neo_server", "--config", "/config.yml"]

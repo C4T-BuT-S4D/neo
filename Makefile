@@ -4,8 +4,8 @@ IMAGE := ghcr.io/c4t-but-s4d/neo_env:latest
 TARGET := image-full
 CONTAINER_NAME := neo_env
 
-NEED_COMMANDS := curl wget dig nc file nslookup ifconfig python3 pip3 vim
-NEED_PACKAGES := pymongo pymysql psycopg2 redis z3 secrets checklib requests pwn numpy bs4 hashpumpy dnslib regex lxml gmpy2 sympy grequests websocket
+NEED_COMMANDS := curl wget dig nc file nslookup ifconfig python3 pip3 vim tini cryptominisat
+NEED_PACKAGES := pymongo pymysql psycopg2 redis z3 secrets checklib requests pwn numpy bs4 hashpumpy dnslib regex lxml gmpy2 sympy grequests websocket stego
 
 .PHONY: lint-go
 lint-go:

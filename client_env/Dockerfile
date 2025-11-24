@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS build
+FROM golang:1.25-alpine AS build
 
 ENV CGO_ENABLED=0
 
@@ -11,56 +11,53 @@ COPY internal internal
 COPY pkg pkg
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-        go build \
-            -trimpath \
-            -ldflags="-s -w" \
-            -o client \
-            cmd/client/main.go && \
-        go build \
-            -trimpath \
-            -ldflags="-s -w" \
-            -o reaper \
-            cmd/reaper/main.go && \
-        upx --lzma -9 client && \
-        upx --lzma -9 reaper
+    go build \
+    -trimpath \
+    -ldflags="-s -w" \
+    -o client \
+    cmd/client/main.go && \
+    upx --lzma -9 client
 
-FROM archlinux:base-devel-20241110.0.278197 AS image-full
-
-ENV PIP_BREAK_SYSTEM_PACKAGES=1 UV_BREAK_SYSTEM_PACKAGES=1
+FROM archlinux:base-devel-20251019.0.436919 AS image-full
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN pacman-key --refresh-keys && \
-        pacman --noconfirm -Syu && \
-        pacman --noconfirm -Sy \
-            blas \
-            curl \
-            dbus \
-            dnsutils \
-            file \
-            gcc \
-            lapack \
-            libjpeg-turbo \
-            libmpc \
-            libpng \
-            mpfr \
-            net-tools \
-            openbsd-netcat \
-            openssl \
-            python \
-            python-pip \
-            python-virtualenv \
-            uv \
-            vim \
-            wget
+# Setup uv.
+COPY --from=ghcr.io/astral-sh/uv:0.9.11 /uv /uvx /bin/
+ENV UV_LINK_MODE=copy
+ENV UV_SYSTEM_PYTHON=1
 
-RUN python -m pip config set global.break-system-packages true
+RUN pacman-key --refresh-keys && \
+    pacman --noconfirm -Syu && \
+    pacman --noconfirm -Sy \
+    blas \
+    curl \
+    dbus \
+    dnsutils \
+    file \
+    gcc \
+    lapack \
+    libjpeg-turbo \
+    libmpc \
+    libpng \
+    mpfr \
+    net-tools \
+    openbsd-netcat \
+    openssl \
+    python \
+    python-pip \
+    python-virtualenv \
+    uv \
+    vim \
+    wget \
+    tini \
+    cryptominisat
 
 COPY client_env/requirements.txt /requirements.txt
-RUN pip install -r /requirements.txt
+RUN --mount=type=cache,target=/root/.cache \
+    uv pip install -r /requirements.txt
 
 COPY --from=build /app/client /usr/local/bin/neo
-COPY --from=build /app/reaper /usr/local/bin/reaper
 
 COPY client_env/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -70,9 +67,7 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 FROM image-full AS image-full-sage
 
-RUN \
-        pacman --noconfirm -Sy --overwrite '*' \
-            sagemath
+RUN pacman --noconfirm -Sy --overwrite '*' sagemath
 
 FROM alpine:3.20 AS image-light
 
@@ -81,7 +76,6 @@ RUN apk add bash dbus
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 COPY --from=build /app/client /usr/local/bin/neo
-COPY --from=build /app/reaper /usr/local/bin/reaper
 
 COPY client_env/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

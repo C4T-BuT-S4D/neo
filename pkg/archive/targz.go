@@ -15,7 +15,7 @@ import (
 
 func Untar(dst string, r io.Reader) error {
 	if _, err := os.Stat(dst); os.IsNotExist(err) {
-		if err := os.Mkdir(dst, 0755); err != nil {
+		if err := os.Mkdir(dst, 0o755); err != nil {
 			return fmt.Errorf("creating directory %s: %w", dst, err)
 		}
 	}
@@ -60,7 +60,7 @@ func Untar(dst string, r io.Reader) error {
 		switch header.Typeflag {
 		// if it's a dir, and it doesn't exist create it
 		case tar.TypeDir:
-			if err := os.MkdirAll(target, 0755); err != nil {
+			if err := os.MkdirAll(target, 0o755); err != nil {
 				return fmt.Errorf("creating directory %s: %w", target, err)
 			}
 
@@ -87,7 +87,7 @@ func Untar(dst string, r io.Reader) error {
 }
 
 // Tar takes a source and variable writers and walks 'source' writing each file
-// found to the tar writer
+// found to the tar writer.
 func Tar(src string, w io.Writer) error {
 	// ensure the src actually exists before trying to tar it
 	if _, err := os.Stat(src); err != nil {

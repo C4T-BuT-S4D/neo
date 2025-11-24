@@ -11,9 +11,7 @@ const (
 	maxRedisStreamLength = 100000
 )
 
-var (
-	_ Storage = (*RedisStorage)(nil)
-)
+var _ Storage = (*RedisStorage)(nil)
 
 type RedisStorage struct {
 	rdb *redis.Client

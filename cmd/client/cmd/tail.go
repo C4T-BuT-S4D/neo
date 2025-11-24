@@ -8,7 +8,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// tailCmd represents the tail command
+// tailCmd represents the tail command.
 var tailCmd = &cobra.Command{
 	Use:   "tail",
 	Short: "Tail exploit logs by name",
@@ -24,6 +24,7 @@ var tailCmd = &cobra.Command{
 	},
 }
 
+//nolint:gochecknoinits // cli init
 func init() {
 	rootCmd.AddCommand(tailCmd)
 

@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func checkStreamError(tp string, err error, streamErr error) bool {
+func checkStreamError(tp string, err, streamErr error) bool {
 	if errors.Is(err, io.EOF) {
 		logrus.Errorf("%s stream closed", tp)
 		return false

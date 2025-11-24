@@ -10,7 +10,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// addCmd represents the add command
+// addCmd represents the add command.
 var addCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add an exploit",
@@ -26,6 +26,7 @@ var addCmd = &cobra.Command{
 	},
 }
 
+//nolint:gochecknoinits // cli init
 func init() {
 	rootCmd.AddCommand(addCmd)
 

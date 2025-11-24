@@ -39,10 +39,10 @@ func (ti *ServerTokenInterceptor) authorize(ctx context.Context, _ string) error
 func (ti *ServerTokenInterceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
-		req interface{},
+		req any,
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
-	) (interface{}, error) {
+	) (any, error) {
 		if err := ti.authorize(ctx, info.FullMethod); err != nil {
 			return nil, err
 		}
@@ -52,7 +52,7 @@ func (ti *ServerTokenInterceptor) Unary() grpc.UnaryServerInterceptor {
 
 func (ti *ServerTokenInterceptor) Stream() grpc.StreamServerInterceptor {
 	return func(
-		srv interface{},
+		srv any,
 		stream grpc.ServerStream,
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
@@ -80,7 +80,7 @@ func (interceptor *ClientTokenInterceptor) Unary() grpc.UnaryClientInterceptor {
 	return func(
 		ctx context.Context,
 		method string,
-		req, reply interface{},
+		req, reply any,
 		cc *grpc.ClientConn,
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption,

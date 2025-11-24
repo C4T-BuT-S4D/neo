@@ -25,8 +25,8 @@ type Config struct {
 }
 
 type FarmConfig struct {
-	URL        string            `mapstructure:"url"`
-	Password   string            `mapstructure:"password"`
+	URL        string            `json:"url" mapstructure:"url"`
+	Password   string            `json:"password" mapstructure:"password"`
 	FlagRegexp string            `json:"FLAG_FORMAT"`
 	Teams      map[string]string `json:"TEAMS"`
 }

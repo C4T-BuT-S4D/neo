@@ -16,15 +16,16 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
-	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/reflection"
+
+	_ "google.golang.org/grpc/encoding/gzip"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/logger"
 	"github.com/c4t-but-s4d/neo/v2/internal/logstor"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/config"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/exploits"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/fs"
-	logs "github.com/c4t-but-s4d/neo/v2/internal/server/logs"
+	"github.com/c4t-but-s4d/neo/v2/internal/server/logs"
 	"github.com/c4t-but-s4d/neo/v2/pkg/grpcauth"
 	"github.com/c4t-but-s4d/neo/v2/pkg/mu"
 	"github.com/c4t-but-s4d/neo/v2/pkg/neohttp"
@@ -111,17 +112,13 @@ func main() {
 
 	wg := sync.WaitGroup{}
 
-	wg.Add(4)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		exploitsServer.HeartBeat(runCtx)
-	}()
-	go func() {
-		defer wg.Done()
+	})
+	wg.Go(func() {
 		exploitsServer.UpdateMetrics(runCtx)
-	}()
-	go func() {
-		defer wg.Done()
+	})
+	wg.Go(func() {
 		<-runCtx.Done()
 		logrus.Info("Received shutdown signal, stopping server")
 
@@ -136,13 +133,12 @@ func main() {
 		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
 			logrus.Errorf("Failed to shutdown metrics server: %v", err)
 		}
-	}()
-	go func() {
-		defer wg.Done()
+	})
+	wg.Go(func() {
 		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logrus.Fatalf("Failed to serve metrics: %v", err)
 		}
-	}()
+	})
 
 	logrus.Infof("Starting multiproto server on %s", cfg.Address)
 	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

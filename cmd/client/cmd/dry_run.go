@@ -10,7 +10,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// runCmd represents the run command
+// runCmd represents the run command.
 var dryRunCmd = &cobra.Command{
 	Use:   "dry-run",
 	Short: "Start Neo client",
@@ -26,6 +26,7 @@ var dryRunCmd = &cobra.Command{
 	},
 }
 
+//nolint:gochecknoinits // cli init
 func init() {
 	rootCmd.AddCommand(dryRunCmd)
 	dryRunCmd.Flags().StringP("team_ip", "p", "", "ip of team to run")

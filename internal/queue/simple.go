@@ -17,7 +17,7 @@ const (
 	resultBufferSize = 1000
 )
 
-// Compile-time type checks
+// Compile-time type checks.
 var (
 	_ Queue = (*simpleQueue)(nil)
 )
@@ -63,7 +63,7 @@ func (q *simpleQueue) Start(ctx context.Context) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(q.maxJobs)
-	for i := 0; i < q.maxJobs; i++ {
+	for range q.maxJobs {
 		go func() {
 			defer wg.Done()
 			q.worker(ctx)

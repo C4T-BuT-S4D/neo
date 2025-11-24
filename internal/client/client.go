@@ -46,7 +46,7 @@ func (nc *Client) GetServerState(ctx context.Context) (*epb.ServerState, error) 
 	if err != nil {
 		return nil, fmt.Errorf("making ping request: %w", err)
 	}
-	return resp.State, nil
+	return resp.GetState(), nil
 }
 
 func (nc *Client) Heartbeat(ctx context.Context) (*epb.ServerState, error) {
@@ -64,7 +64,7 @@ func (nc *Client) Heartbeat(ctx context.Context) (*epb.ServerState, error) {
 	if err != nil {
 		return nil, fmt.Errorf("making ping request: %w", err)
 	}
-	return resp.State, nil
+	return resp.GetState(), nil
 }
 
 func (nc *Client) Leave(ctx context.Context) error {
@@ -99,7 +99,7 @@ func (nc *Client) UpdateExploit(ctx context.Context, state *epb.ExploitState) (*
 	if err != nil {
 		return nil, fmt.Errorf("aking update exploit request: %w", err)
 	}
-	return resp.State, nil
+	return resp.GetState(), nil
 }
 
 func (nc *Client) DownloadFile(ctx context.Context, info *fspb.FileInfo, out io.Writer) error {
@@ -153,7 +153,7 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 		return fmt.Errorf("fetching current exploit config: %w", err)
 	}
 
-	req := &epb.UpdateExploitRequest{State: resp.State}
+	req := &epb.UpdateExploitRequest{State: resp.GetState()}
 	req.State.Config.Disabled = disabled
 
 	if _, err := nc.exploits.UpdateExploit(ctx, req); err != nil {
@@ -244,7 +244,7 @@ func (nc *Client) SearchLogLines(ctx context.Context, exploit string, version in
 				return
 			}
 			select {
-			case results <- resp.Lines:
+			case results <- resp.GetLines():
 			case <-ctx.Done():
 				logrus.Debugf("Search logs context cancelled")
 				return

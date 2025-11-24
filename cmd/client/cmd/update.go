@@ -10,7 +10,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// tailCmd represents the tail command
+// tailCmd represents the tail command.
 var updateCmd = &cobra.Command{
 	Use:     "update",
 	Short:   "Update exploit configuration by name",
@@ -27,6 +27,7 @@ var updateCmd = &cobra.Command{
 	},
 }
 
+//nolint:gochecknoinits // cli init
 func init() {
 	rootCmd.AddCommand(updateCmd)
 	updateCmd.PersistentFlags().DurationP("interval", "i", time.Second*30, "run interval")

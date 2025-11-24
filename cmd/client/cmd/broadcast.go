@@ -8,7 +8,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// broadcastCmd represents the broadcast command
+// broadcastCmd represents the broadcast command.
 var broadcastCmd = &cobra.Command{
 	Use:   "broadcast",
 	Short: "Run a command on all connected clients",
@@ -23,6 +23,7 @@ var broadcastCmd = &cobra.Command{
 	},
 }
 
+//nolint:gochecknoinits // cli init
 func init() {
 	rootCmd.AddCommand(broadcastCmd)
 	broadcastCmd.Flags().StringP("command", "r", "", "command to run")

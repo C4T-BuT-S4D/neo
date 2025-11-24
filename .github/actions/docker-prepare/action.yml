@@ -1,0 +1,38 @@
+name: Docker build preparation
+description: Reusable steps to prepare the repo for Docker builds
+inputs:
+  version:
+    description: Version string to store in client_env/.version
+    required: true
+  registry:
+    description: Container registry URL
+    required: false
+    default: ghcr.io
+  username:
+    description: Registry username
+    required: true
+  password:
+    description: Registry password or token
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Prepare for release
+      shell: bash
+      run: |
+        echo "${{ inputs.version }}" > client_env/.version
+        make setup-release
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.username }}
+        password: ${{ inputs.password }}
+

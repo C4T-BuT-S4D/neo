@@ -61,12 +61,12 @@ func NewLineFromRedis(vals map[string]any) (*Line, error) {
 
 func NewLineFromProto(p *logspb.LogLine) *Line {
 	return &Line{
-		Timestamp: p.Timestamp.AsTime(),
-		Exploit:   p.Exploit,
-		Version:   p.Version,
-		Message:   p.Message,
-		Level:     p.Level,
-		Team:      p.Team,
+		Timestamp: p.GetTimestamp().AsTime(),
+		Exploit:   p.GetExploit(),
+		Version:   p.GetVersion(),
+		Message:   p.GetMessage(),
+		Level:     p.GetLevel(),
+		Team:      p.GetTeam(),
 	}
 }
 

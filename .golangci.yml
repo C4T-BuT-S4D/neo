@@ -1,60 +1,212 @@
+version: "2"
 run:
-  timeout: 5m
+  concurrency: 4
+  modules-download-mode: readonly
   tests: true
-
 linters:
+  default: none
   enable:
+    - asasalint
     - asciicheck
+    - bidichk
     - bodyclose
+    - canonicalheader
+    - containedctx
+    - copyloopvar
     - dogsled
     - durationcheck
+    - errcheck
     - errname
     - errorlint
     - exhaustive
+    - fatcontext
+    - forbidigo
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - goconst
     - gocritic
-    - gofmt
-    - goimports
+    - godot
     - gomoddirectives
-    - gosimple
+    - gomodguard
+    - goprintffuncname
+    - gosmopolitan
     - govet
+    - inamedparam
     - ineffassign
-    - importas
+    - intrange
+    - loggercheck
+    - makezero
+    - mirror
     - misspell
+    - musttag
+    - nilerr
+    - nilnil
     - noctx
+    - nolintlint
+    - nosprintfhostport
+    - perfsprint
     - prealloc
     - predeclared
+    - protogetter
+    - reassign
     - revive
+    - rowserrcheck
+    - spancheck
+    - sqlclosecheck
     - staticcheck
+    - testifylint
+    # - testpackage
     - thelper
     - tparallel
     - unconvert
     - unparam
     - unused
+    - usestdlibvars
+    - usetesting
+    - wastedassign
     - whitespace
     - wrapcheck
+  settings:
+    asasalint:
+      use-builtin-exclusions: false
+    copyloopvar:
+      check-alias: true
+    errcheck:
+      check-blank: true
+    exhaustive:
+      default-signifies-exhaustive: true
+    forbidigo:
+      forbid:
+        - pattern: self
+        - pattern: this
+      exclude-godoc-examples: false
+    godot:
+      capital: true
+    gomoddirectives:
+      exclude-forbidden: true
+    gomodguard:
+      blocked:
+        modules:
+          - github.com/golang/protobuf:
+              recommendations:
+                - google.golang.org/protobuf
+          - github.com/satori/go.uuid:
+              recommendations:
+                - github.com/google/uuid
+          - github.com/gofrs/uuid:
+              recommendations:
+                - github.com/gofrs/uuid/v5
+    govet:
+      disable:
+        - fieldalignment
+        - shadow
+      enable-all: true
+    inamedparam:
+      skip-single-param: true
+    loggercheck:
+      require-string-key: true
+    makezero:
+      always: false
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    perfsprint:
+      strconcat: false
+    rowserrcheck:
+      packages:
+        - github.com/jmoiron/sqlx
+    wrapcheck:
+      ignore-sigs:
+        - fmt.Errorf
+        - (context.Context).Err()
+        - (*google.golang.org/grpc/internal/status.Status).Err()
+        - google.golang.org/grpc/status.Error
+        - google.golang.org/grpc/status.Errorf
+        - statusext.Newf
+        - statusext.New
+        - errors.New(text string)
+        - WrapErrorf
+    revive:
+      enable-all-rules: true
+      rules:
+        - name: blank-imports
+          disabled: true
+        - name: add-constant
+          disabled: true
+        - name: cyclomatic
+          disabled: true
+        - name: cognitive-complexity
+          disabled: true
+        - name: line-length-limit
+          disabled: true
+        - name: nested-structs
+          disabled: true
+        - name: function-length
+          disabled: true
+        - name: max-public-structs
+          disabled: true
+        - name: unused-receiver
+          disabled: true
+        - name: unhandled-error
+          arguments:
+            - "fmt\\.Print.*"
+            - "strings.Builder.WriteString"
+            - "strings.Builder.WriteByte"
+            - "bytes.Buffer.WriteString"
+            - "bytes.Buffer.WriteByte"
+            - "bytes.Buffer.Write"
+            - "fmt.Fprintf"
+        - name: import-alias-naming
+          disabled: true
+        - name: unchecked-type-assertion
+          disabled: true
+        - name: flag-parameter
+          disabled: true
+        - name: enforce-switch-style
+          disabled: true
+        - name: confusing-results
+          disabled: true
+        - name: argument-limit
+          arguments:
+            - 10
+        - name: confusing-naming
+          disabled: true
 
-linters-settings:
-  unparam:
-    check-exported: false
-  unused:
-    check-exported: false
-  wrapcheck:
-    ignoreSigs:
-      - (context.Context).Err()
-      - fmt.Errorf(
-      - errors.New(
-      - WrapErrorf
-
-issues:
-  exclude-use-default: false
-  max-same-issues: 0
-  exclude-rules:
-    - source: "status\\.Errorf"
-      linters:
-        - wrapcheck
-    - linters:
-        - revive
-      text: "package-comments:"
-    - linters:
-        - revive
-      text: "exported:"
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - goconst
+        path: (.+)_test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - gci
+  settings:
+    gofmt:
+      simplify: true
+      rewrite-rules:
+        - pattern: 'interface{}'
+          replacement: 'any'
+    gofumpt:
+      extra-rules: true
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/c4t-but-s4d/neo/v2)
+        - blank
+        - localmodule
+      custom-order: true
+  exclusions:
+    generated: lax

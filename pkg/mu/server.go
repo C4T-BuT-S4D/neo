@@ -7,7 +7,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
-	"nhooyr.io/websocket"
+	"nhooyr.io/websocket" //nolint:staticcheck // No way to upgrade.
 )
 
 func NewHandler(grpcServer *grpc.Server, opts ...Option) http.Handler {

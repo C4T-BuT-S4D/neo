@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -69,12 +70,13 @@ func (rc *runCLI) Run(ctx context.Context) error {
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		rc.sender.Start(ctx)
 		logrus.Info("log sender finished")
-	}()
+	})
 
-	return rc.run.Run(ctx) // nolint:wrapcheck
+	if err := rc.run.Run(ctx); err != nil {
+		return fmt.Errorf("running exploit runner: %w", err)
+	}
+	return nil
 }

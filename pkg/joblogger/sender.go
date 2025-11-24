@@ -32,9 +32,9 @@ func (s *DummySender) Start(context.Context) {}
 func (s *DummySender) Add(...*logspb.LogLine) {
 }
 
-func NewRemoteSender(client *client.Client) *RemoteSender {
+func NewRemoteSender(c *client.Client) *RemoteSender {
 	return &RemoteSender{
-		client: client,
+		client: c,
 		queue:  make([]*logspb.LogLine, 0, 1000),
 	}
 }

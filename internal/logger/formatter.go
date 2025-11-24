@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 	"unicode/utf8"
 
 	"github.com/sirupsen/logrus"
@@ -28,19 +27,9 @@ const (
 	CustomKeyFunc = "@logger@func@"
 )
 
-var baseTimestamp time.Time
-
-func init() {
-	baseTimestamp = time.Now()
-}
-
 // CustomFormatter formats logs into text.
 // It's the default logrus formatter fine-tuned and adapted to our needs.
 type CustomFormatter struct {
-	// Enable logging the full timestamp when a TTY is attached instead of just
-	// the time passed since beginning of execution.
-	FullTimestamp bool
-
 	// TimestampFormat to use for display when a full timestamp is printed.
 	// The format to use is the same than for time.Format or time.Parse from the standard
 	// library.
@@ -58,7 +47,7 @@ type CustomFormatter struct {
 	// of the function and file keys in the data when ReportCaller is
 	// activated. If any of the returned value is the empty string the
 	// corresponding key will be removed from fields.
-	CallerPrettyfier func(*runtime.Frame) (function string, file string)
+	CallerPrettyfier func(*runtime.Frame) (function, file string)
 
 	terminalInitOnce sync.Once
 
@@ -69,14 +58,14 @@ type CustomFormatter struct {
 func (f *CustomFormatter) init() {
 	// Get the max length of the level text
 	for _, level := range logrus.AllLevels {
-		levelTextLength := utf8.RuneCount([]byte(level.String()))
+		levelTextLength := utf8.RuneCountInString(level.String())
 		if levelTextLength > f.levelTextMaxLength {
 			f.levelTextMaxLength = levelTextLength
 		}
 	}
 }
 
-// Format renders a single log entry
+// Format renders a single log entry.
 func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	data := make(logrus.Fields)
 	for k, v := range entry.Data {
@@ -120,8 +109,6 @@ func (f *CustomFormatter) printColored(b *bytes.Buffer, entry *logrus.Entry, key
 		levelColor = yellow
 	case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
 		levelColor = red
-	case logrus.InfoLevel:
-		levelColor = blue
 	default:
 		levelColor = blue
 	}
@@ -178,12 +165,7 @@ func (f *CustomFormatter) printColored(b *bytes.Buffer, entry *logrus.Entry, key
 		caller = b.String()
 	}
 
-	switch {
-	case !f.FullTimestamp:
-		_, _ = fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%04d]%s %-44s ", levelColor, levelText, int(entry.Time.Sub(baseTimestamp)/time.Second), caller, entry.Message)
-	default:
-		_, _ = fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s]%s %-44s ", levelColor, levelText, entry.Time.Format(timestampFormat), caller, entry.Message)
-	}
+	_, _ = fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s]%s %-44s ", levelColor, levelText, entry.Time.Format(timestampFormat), caller, entry.Message)
 	for _, k := range keys {
 		v := data[k]
 		_, _ = fmt.Fprintf(b, " \x1b[%dm%s\x1b[0m=", levelColor, k)
@@ -193,6 +175,7 @@ func (f *CustomFormatter) printColored(b *bytes.Buffer, entry *logrus.Entry, key
 
 func (f *CustomFormatter) needsQuoting(text string) bool {
 	for _, ch := range text {
+		//nolint:staticcheck // no De Morgan pls.
 		if !((ch >= 'a' && ch <= 'z') ||
 			(ch >= 'A' && ch <= 'Z') ||
 			(ch >= '0' && ch <= '9') ||
@@ -203,7 +186,7 @@ func (f *CustomFormatter) needsQuoting(text string) bool {
 	return false
 }
 
-func (f *CustomFormatter) appendValue(b *bytes.Buffer, value interface{}) {
+func (f *CustomFormatter) appendValue(b *bytes.Buffer, value any) {
 	stringVal, ok := value.(string)
 	if !ok {
 		stringVal = fmt.Sprint(value)
@@ -212,6 +195,6 @@ func (f *CustomFormatter) appendValue(b *bytes.Buffer, value interface{}) {
 	if !f.needsQuoting(stringVal) {
 		b.WriteString(stringVal)
 	} else {
-		b.WriteString(fmt.Sprintf("%q", stringVal))
+		fmt.Fprintf(b, "%q", stringVal)
 	}
 }

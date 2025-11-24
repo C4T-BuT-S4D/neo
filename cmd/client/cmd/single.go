@@ -8,7 +8,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// singleRunCmd represents the single command
+// singleRunCmd represents the single command.
 var singleRunCmd = &cobra.Command{
 	Use:   "single",
 	Short: "Run an exploit once on all teams immediately",
@@ -24,6 +24,7 @@ var singleRunCmd = &cobra.Command{
 	},
 }
 
+//nolint:gochecknoinits // cli init
 func init() {
 	rootCmd.AddCommand(singleRunCmd)
 }

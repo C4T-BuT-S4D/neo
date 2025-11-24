@@ -50,7 +50,7 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	}
-	conn, err := grpc.Dial(cmd.cfg.Host, opts...)
+	conn, err := grpc.NewClient(cmd.cfg.Host, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing grpc: %w", err)
 	}

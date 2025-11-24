@@ -35,7 +35,7 @@ func (sc *setDisabledCli) Run(ctx context.Context) error {
 
 	if spl := getExploitFromState(state, sc.exploitID); spl == nil {
 		return fmt.Errorf("exploit %s does not exist", sc.exploitID)
-	} else if err := c.SetExploitDisabled(ctx, spl.ExploitId, sc.disabled); err != nil {
+	} else if err := c.SetExploitDisabled(ctx, spl.GetExploitId(), sc.disabled); err != nil {
 		return fmt.Errorf("set disabled failed: %w", err)
 	}
 

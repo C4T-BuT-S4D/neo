@@ -8,7 +8,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// disableCmd represents the disable command
+// disableCmd represents the disable command.
 var disableCmd = &cobra.Command{
 	Use:   "disable",
 	Short: "Disable an exploit by id",
@@ -24,6 +24,7 @@ var disableCmd = &cobra.Command{
 	},
 }
 
+//nolint:gochecknoinits // cli init
 func init() {
 	rootCmd.AddCommand(disableCmd)
 }

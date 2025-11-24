@@ -6,9 +6,7 @@ import (
 	"fmt"
 )
 
-var (
-	ErrQueueFull = errors.New("queue channel is full")
-)
+var ErrQueueFull = errors.New("queue channel is full")
 
 type Type string
 
