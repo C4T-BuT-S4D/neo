@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
@@ -18,7 +18,7 @@ type tailCLI struct {
 	count     int
 }
 
-func NewTail(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+func NewTail(cmd *cobra.Command, args []string, cfg *client.Config) (NeoCLI, error) {
 	c := &tailCLI{
 		baseCLI:   &baseCLI{cfg: cfg},
 		exploitID: args[0],
@@ -26,12 +26,12 @@ func NewTail(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 
 	var err error
 	if c.version, err = cmd.Flags().GetInt64("version"); err != nil {
-		logrus.Fatalf("Could not get exploit version: %v", err)
+		return nil, fmt.Errorf("getting exploit version: %w", err)
 	}
 	if c.count, err = cmd.Flags().GetInt("count"); err != nil {
-		logrus.Fatalf("Could not get count: %v", err)
+		return nil, fmt.Errorf("getting count: %w", err)
 	}
-	return c
+	return c, nil
 }
 
 func (tc *tailCLI) Run(ctx context.Context) error {
@@ -67,30 +67,29 @@ func (tc *tailCLI) Run(ctx context.Context) error {
 	for batch := range stream {
 		lines = append(lines, batch...)
 	}
-	logrus.Debugf("Got %d log lines", len(lines))
+	zap.L().Debug("Got log lines", zap.Int("count", len(lines)))
 	if tc.count != -1 && len(lines) > tc.count {
 		lines = lines[len(lines)-tc.count:]
 	}
 
-	logrus.SetLevel(logrus.DebugLevel)
 	for _, line := range lines {
-		logger := logrus.WithFields(logrus.Fields{
-			"exploit": line.GetExploit(),
-			"version": line.GetVersion(),
-			"team":    line.GetTeam(),
-		})
+		logger := zap.L().With(
+			zap.String("exploit", line.GetExploit()),
+			zap.Int64("version", line.GetVersion()),
+			zap.String("team", line.GetTeam()),
+		)
 		switch line.GetLevel() {
 		case "debug":
 			logger.Debug(line.GetMessage())
 		case "info":
 			logger.Info(line.GetMessage())
 		case "warning":
-			logger.Warning(line.GetMessage())
+			logger.Warn(line.GetMessage())
 		case "error":
 			logger.Error(line.GetMessage())
 		default:
-			logger.Warningf("Unexpected log level: %v", line.GetLevel())
-			logger.Warning(line.GetMessage())
+			logger.Warn("Unexpected log level", zap.String("level", line.GetLevel()))
+			logger.Warn(line.GetMessage())
 		}
 	}
 	return nil

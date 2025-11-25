@@ -5,21 +5,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 
-	"github.com/c4t-but-s4d/neo/v2/internal/logger"
+	"github.com/c4t-but-s4d/neo/v2/pkg/logging"
 )
 
-// rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:   "client",
 	Short: "Neo client",
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute(ctx context.Context) error {
 	if err := rootCmd.ExecuteContext(ctx); err != nil {
 		return fmt.Errorf("executing root command: %w", err)
@@ -34,38 +32,24 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("verbose", "v", true, "enable debug logging")
 	rootCmd.PersistentFlags().String("host", "127.0.0.1:5005", "server host")
 
-	mustBindPersistent(rootCmd, "config")
-	mustBindPersistent(rootCmd, "host")
-	mustBindPersistent(rootCmd, "verbose")
+	lo.Must0(viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config")))
+	lo.Must0(viper.BindPFlag("host", rootCmd.PersistentFlags().Lookup("host")))
+	lo.Must0(viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose")))
 }
 
-func mustBindPersistent(c *cobra.Command, flag string) {
-	if err := viper.BindPFlag(flag, c.PersistentFlags().Lookup(flag)); err != nil {
-		logrus.Fatalf("Error binding flag %s: %v", flag, err)
-	}
-}
-
-// initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	logger.Init()
+	logging.Init(viper.GetBool("verbose"))
 
 	viper.SetConfigFile(viper.GetString("config"))
 	viper.SetConfigType("yaml")
 
 	viper.SetEnvPrefix("NEO")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv() // read in environment variables that match
+	viper.AutomaticEnv()
 
-	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		logrus.Info("Using config file:", viper.ConfigFileUsed())
+		zap.L().Info("Using config file", zap.String("config", viper.ConfigFileUsed()))
 	}
 
-	if viper.GetBool("verbose") {
-		logrus.SetLevel(logrus.DebugLevel)
-	} else {
-		logrus.SetLevel(logrus.InfoLevel)
-	}
-
-	logrus.Debugf("Got configuration: %+v", viper.AllSettings())
+	zap.L().Debug("Got configuration", zap.Any("settings", viper.AllSettings()))
 }

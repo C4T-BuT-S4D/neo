@@ -1,26 +1,33 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// tailCmd represents the tail command.
 var tailCmd = &cobra.Command{
 	Use:   "tail",
 	Short: "Tail exploit logs by name",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewTail(cmd, args, cfg)
-		ctx := cmd.Context()
-		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error tailing logs: %v", err)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := client.UnmarshalConfig()
+		if err != nil {
+			return fmt.Errorf("unmarshalling config: %w", err)
 		}
-		logrus.Debugf("Tail finished")
+		c, err := cli.NewTail(cmd, args, cfg)
+		if err != nil {
+			return fmt.Errorf("creating tail cli: %w", err)
+		}
+		if err := c.Run(cmd.Context()); err != nil {
+			return fmt.Errorf("tailing logs: %w", err)
+		}
+		zap.L().Debug("Tail finished")
+		return nil
 	},
 }
 

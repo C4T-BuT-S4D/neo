@@ -3,6 +3,7 @@ package logs
 import (
 	"context"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -33,7 +34,7 @@ type Server struct {
 }
 
 func (s *Server) AddLogLines(ctx context.Context, request *logspb.AddLogLinesRequest) (*emptypb.Empty, error) {
-	s.GetMethodLogger(ctx).Infof("New request with %d lines", len(request.GetLines()))
+	s.GetMethodLogger(ctx).Info("New request", zap.Int("line_count", len(request.GetLines())))
 
 	if err := s.storage.Add(ctx, request.GetLines()...); err != nil {
 		return nil, s.WrapErrorf(ctx, codes.Internal, "adding log lines: %v", err)
@@ -62,7 +63,7 @@ func (s *Server) SearchLogLines(req *logspb.SearchLogLinesRequest, stream logspb
 		if err != nil {
 			// Flush any remaining lines before returning error
 			if flushErr := cache.Flush(); flushErr != nil {
-				s.GetMethodLogger(stream.Context()).Errorf("flushing cache before error: %v", flushErr)
+				s.GetMethodLogger(stream.Context()).Error("Flushing cache before error", zap.Error(flushErr))
 			}
 			return s.WrapErrorf(stream.Context(), codes.Internal, "iterating log lines: %v", err)
 		}

@@ -6,19 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	"github.com/c4t-but-s4d/neo/v2/internal/logger"
 	"github.com/c4t-but-s4d/neo/v2/internal/models"
+	"github.com/c4t-but-s4d/neo/v2/pkg/logging"
 	"github.com/c4t-but-s4d/neo/v2/pkg/testutils"
 )
 
 func TestMain(m *testing.M) {
-	logger.Init()
-	logrus.SetLevel(logrus.DebugLevel)
+	logging.Init(true)
 	goleak.VerifyTestMain(m)
 }
 

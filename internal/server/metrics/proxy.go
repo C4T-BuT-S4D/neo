@@ -5,18 +5,18 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 func NewProxyHandler(victoriaURL, authKey string) http.HandlerFunc {
 	client := &http.Client{}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		rl := logrus.WithFields(logrus.Fields{
-			"method":      r.Method,
-			"remote_addr": r.RemoteAddr,
-			"path":        r.URL.Path,
-		})
+		rl := zap.L().With(
+			zap.String("method", r.Method),
+			zap.String("remote_addr", r.RemoteAddr),
+			zap.String("path", r.URL.Path),
+		)
 		rl.Info("Received metrics push request")
 
 		if authKey != "" && r.Header.Get("Authorization") != authKey {
@@ -36,7 +36,7 @@ func NewProxyHandler(victoriaURL, authKey string) http.HandlerFunc {
 
 		proxyReq, err := http.NewRequestWithContext(r.Context(), r.Method, targetURL, r.Body)
 		if err != nil {
-			rl.WithError(err).Error("Failed to create proxy request")
+			rl.Error("Failed to create proxy request", zap.Error(err))
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -46,7 +46,7 @@ func NewProxyHandler(victoriaURL, authKey string) http.HandlerFunc {
 
 		resp, err := client.Do(proxyReq)
 		if err != nil {
-			rl.WithError(err).Error("Failed to proxy metrics to VictoriaMetrics")
+			rl.Error("Failed to proxy metrics to VictoriaMetrics", zap.Error(err))
 			http.Error(w, "Failed to forward metrics", http.StatusBadGateway)
 			return
 		}
@@ -54,7 +54,7 @@ func NewProxyHandler(victoriaURL, authKey string) http.HandlerFunc {
 
 		w.WriteHeader(resp.StatusCode)
 		if _, err := io.Copy(w, resp.Body); err != nil {
-			rl.WithError(err).Error("Failed to copy response from VictoriaMetrics")
+			rl.Error("Failed to copy response from VictoriaMetrics", zap.Error(err))
 		}
 	}
 }

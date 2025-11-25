@@ -5,10 +5,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/c4t-but-s4d/neo/v2/internal/logger"
 	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
 )
 
@@ -32,25 +32,25 @@ type JobLogger struct {
 }
 
 func (l *JobLogger) Debugf(format string, args ...any) {
-	l.logProxyf(logrus.DebugLevel, format, args...)
+	l.logProxy(zapcore.DebugLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "debug"))
 }
 
 func (l *JobLogger) Infof(format string, args ...any) {
-	l.logProxyf(logrus.InfoLevel, format, args...)
+	l.logProxy(zapcore.InfoLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "info"))
 }
 
 func (l *JobLogger) Warningf(format string, args ...any) {
-	l.logProxyf(logrus.WarnLevel, format, args...)
+	l.logProxy(zapcore.WarnLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "warning"))
 }
 
 func (l *JobLogger) Errorf(format string, args ...any) {
-	l.logProxyf(logrus.ErrorLevel, format, args...)
+	l.logProxy(zapcore.ErrorLevel, format, args...)
 	msg := fmt.Sprintf(format, args...)
 	l.sender.Add(l.newLine(msg, "error"))
 }
@@ -66,20 +66,18 @@ func (l *JobLogger) newLine(msg, level string) *logspb.LogLine {
 	}
 }
 
-func (l *JobLogger) getLogger() *logrus.Entry {
-	return logrus.WithFields(logrus.Fields{
-		"exploit": l.exploit,
-		"version": l.version,
-		"team":    l.team,
-	})
+func (l *JobLogger) getLogger() *zap.Logger {
+	return zap.L().With(
+		zap.String("exploit", l.exploit),
+		zap.Int64("version", l.version),
+		zap.String("team", l.team),
+	)
 }
 
-func (l *JobLogger) logProxyf(level logrus.Level, format string, args ...any) {
-	if logrus.IsLevelEnabled(level) {
-		l.
-			getLogger().
-			WithField(logger.CustomKeyFile, fileInfo(3)).
-			Logf(level, format, args...)
+func (l *JobLogger) logProxy(level zapcore.Level, format string, args ...any) {
+	if ce := l.getLogger().Check(level, fmt.Sprintf(format, args...)); ce != nil {
+		ce.Caller = zapcore.NewEntryCaller(fileInfo(3))
+		ce.Write()
 	}
 }
 
@@ -90,16 +88,14 @@ func sanitizeMessage(msg string) string {
 	return msg
 }
 
-func fileInfo(skip int) string {
-	_, file, line, ok := runtime.Caller(skip)
+func fileInfo(skip int) (uintptr, string, int, bool) {
+	pc, file, line, ok := runtime.Caller(skip)
 	if !ok {
-		file = "<???>"
-		line = 1
-	} else {
+		return 0, "<???>", 1, false
+	}
 		slash := strings.LastIndex(file, "/")
 		if slash >= 0 {
 			file = file[slash+1:]
 		}
-	}
-	return fmt.Sprintf("%s:%d", file, line)
+	return pc, file, line, true
 }

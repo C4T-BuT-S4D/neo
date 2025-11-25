@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"github.com/c4t-but-s4d/neo/v2/pkg/filestream"
@@ -179,7 +179,7 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *epb.BroadcastSu
 			select {
 			case results <- cmd:
 			case <-ctx.Done():
-				logrus.Debugf("Broadcast context cancelled")
+				zap.L().Debug("Broadcast context cancelled")
 				return
 			}
 		}
@@ -205,7 +205,7 @@ func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *epb.SingleRunSu
 			select {
 			case results <- er:
 			case <-ctx.Done():
-				logrus.Warningf("Single runs context cancelled")
+				zap.L().Warn("Single runs context cancelled")
 				return
 			}
 		}
@@ -239,14 +239,14 @@ func (nc *Client) SearchLogLines(ctx context.Context, exploit string, version in
 			resp, err := stream.Recv()
 			if err != nil {
 				if !errors.Is(err, io.EOF) {
-					logrus.Errorf("Unexpected error reading log lines: %v", err)
+					zap.L().Error("Unexpected error reading log lines", zap.Error(err))
 				}
 				return
 			}
 			select {
 			case results <- resp.GetLines():
 			case <-ctx.Done():
-				logrus.Debugf("Search logs context cancelled")
+				zap.L().Debug("Search logs context cancelled")
 				return
 			}
 		}

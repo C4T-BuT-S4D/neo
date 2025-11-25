@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
@@ -31,7 +31,7 @@ type addCLI struct {
 	disabled  bool
 }
 
-func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) (NeoCLI, error) {
 	c := &addCLI{
 		baseCLI: &baseCLI{cfg: cfg},
 		path:    args[0],
@@ -39,24 +39,24 @@ func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
 
 	var err error
 	if c.exploitID, err = cmd.Flags().GetString("id"); err != nil {
-		logrus.Fatalf("Could not get exploit id: %v", err)
+		return nil, fmt.Errorf("getting exploit id: %w", err)
 	}
 	if c.isArchive, err = cmd.Flags().GetBool("dir"); err != nil {
-		logrus.Fatalf("Could not get parse directory: %v", err)
+		return nil, fmt.Errorf("parsing directory flag: %w", err)
 	}
 	if c.runEvery, err = cmd.Flags().GetDuration("interval"); err != nil {
-		logrus.Fatalf("Could not parse run interval: %v", err)
+		return nil, fmt.Errorf("parsing run interval: %w", err)
 	}
 	if c.timeout, err = cmd.Flags().GetDuration("timeout"); err != nil {
-		logrus.Fatalf("Could not parse run timeout: %v", err)
+		return nil, fmt.Errorf("parsing run timeout: %w", err)
 	}
 	if c.endless, err = cmd.Flags().GetBool("endless"); err != nil {
-		logrus.Fatalf("Could not parse endless: %v", err)
+		return nil, fmt.Errorf("parsing endless flag: %w", err)
 	}
 	if c.disabled, err = cmd.Flags().GetBool("disabled"); err != nil {
-		logrus.Fatalf("Could not parse disabled: %v", err)
+		return nil, fmt.Errorf("parsing disabled flag: %w", err)
 	}
-	return c
+	return c, nil
 }
 
 func (ac *addCLI) Run(ctx context.Context) error {
@@ -64,14 +64,13 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to stat file %s: %w", ac.path, err)
 	}
-	// Replace path with abs path.
 	if ac.path, err = filepath.Abs(ac.path); err != nil {
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
 	if errs := ac.validateEntry(ac.path); len(errs) > 0 {
 		for _, v := range errs {
-			logrus.Errorf("%v", v)
+			zap.L().Error(v)
 		}
 		return errors.New("invalid exploit")
 	}
@@ -80,7 +79,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	if ac.exploitID == "" {
 		ac.exploitID = file
 	}
-	logrus.Infof("Going to add exploit with id = %s", ac.exploitID)
+	zap.L().Info("Going to add exploit", zap.String("exploit_id", ac.exploitID))
 
 	c, err := ac.client()
 	if err != nil {
@@ -98,7 +97,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			return fmt.Errorf("failed to read user input: %w", err)
 		}
 		if !strings.Contains(strings.ToLower(tmp), "y") {
-			logrus.Fatalf("Aborted.")
+			return errors.New("aborted")
 		}
 	}
 
@@ -116,7 +115,6 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			return fmt.Errorf("failed to create tar.zstd archive: %w", err)
 		}
 
-		// Seek file to start to correctly use it for reading.
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return fmt.Errorf("failed to seek archive file: %w", err)
 		}
@@ -151,7 +149,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to update exploit: %w", err)
 	}
-	logrus.Infof("Updated exploit state: %v", newState)
+	zap.L().Info("Updated exploit state", zap.Any("state", newState))
 	return nil
 }
 

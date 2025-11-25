@@ -7,9 +7,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 	"github.com/c4t-but-s4d/neo/v2/internal/config"
@@ -26,20 +25,33 @@ type dryRunCLI struct {
 	teamIP    string
 }
 
-func NewDryRun(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+func NewDryRun(cmd *cobra.Command, args []string, cfg *client.Config) (NeoCLI, error) {
 	cfg.ExploitDir = path.Join(cfg.ExploitDir, "dry")
 	if err := os.MkdirAll(cfg.ExploitDir, os.ModePerm); err != nil {
-		logrus.Fatalf("failed to create dry dir (%v): %v", cfg.ExploitDir, err)
+		return nil, fmt.Errorf("creating dry dir %s: %w", cfg.ExploitDir, err)
 	}
 
-	cli := &dryRunCLI{
+	jobs, err := parseJobsFlagE(cmd, "jobs")
+	if err != nil {
+		return nil, err
+	}
+
+	teamID, err := cmd.Flags().GetString("team_id")
+	if err != nil {
+		return nil, fmt.Errorf("parsing team_id flag: %w", err)
+	}
+	teamIP, err := cmd.Flags().GetString("team_ip")
+	if err != nil {
+		return nil, fmt.Errorf("parsing team_ip flag: %w", err)
+	}
+
+	return &dryRunCLI{
 		baseCLI:   &baseCLI{cfg: cfg},
 		exploitID: args[0],
-		jobs:      parseJobsFlag(cmd, "jobs"),
-	}
-	cli.teamID = lo.Must1(cmd.Flags().GetString("team_id"))
-	cli.teamIP = lo.Must1(cmd.Flags().GetString("team_ip"))
-	return cli
+		jobs:      jobs,
+		teamID:    teamID,
+		teamIP:    teamIP,
+	}, nil
 }
 
 func (rc *dryRunCLI) Run(ctx context.Context) error {
@@ -104,12 +116,12 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 
 	wg.Go(func() {
 		q.Start(runCtx)
-		logrus.Info("Queue finished")
+		zap.L().Info("Queue finished")
 	})
 
 	for _, t := range tasks {
 		if err := q.Add(t); err != nil {
-			logrus.Errorf("Failed to add task (%+v) to queue: %v", t, err)
+			zap.L().Error("Failed to add task to queue", zap.Any("task", t), zap.Error(err))
 		}
 	}
 
@@ -119,15 +131,26 @@ loop:
 		select {
 		case res, ok := <-q.Results():
 			if !ok || tasksDone+1 == len(tasks) && !ex.Endless {
-				logrus.Info("Finished running sploits, waiting for queue to finish")
+				zap.L().Info("Finished running sploits, waiting for queue to finish")
 				break loop
 			}
 			tasksDone++
-			logrus.Infof("Target = %v, Out = %v", res.Target, string(res.Out))
+			zap.L().Info("Result", zap.Any("target", res.Target), zap.String("output", string(res.Out)))
 		case <-ctx.Done():
-			logrus.Info("Got interrupt")
+			zap.L().Info("Got interrupt")
 			return nil
 		}
 	}
 	return nil
+}
+
+func parseJobsFlagE(cmd *cobra.Command, name string) (int, error) {
+	jobs, err := cmd.Flags().GetInt(name)
+	if err != nil {
+		return 0, fmt.Errorf("getting %s flag: %w", name, err)
+	}
+	if jobs < 0 {
+		return 0, fmt.Errorf("%s should be non-negative", name)
+	}
+	return jobs, nil
 }

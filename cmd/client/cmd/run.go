@@ -1,27 +1,33 @@
 package cmd
 
 import (
+	"fmt"
 	"runtime"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// runCmd represents the run command.
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Start Neo client",
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewRun(cmd, args, cfg)
-		ctx := cmd.Context()
-		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error: %v", err)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := client.UnmarshalConfig()
+		if err != nil {
+			return fmt.Errorf("unmarshalling config: %w", err)
 		}
-		logrus.Debugf("Run finished")
+		c, err := cli.NewRun(cmd, args, cfg)
+		if err != nil {
+			return fmt.Errorf("creating run cli: %w", err)
+		}
+		if err := c.Run(cmd.Context()); err != nil {
+			return fmt.Errorf("running client: %w", err)
+		}
+		zap.L().Debug("Run finished")
+		return nil
 	},
 }
 

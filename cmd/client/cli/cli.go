@@ -7,8 +7,8 @@ import (
 	"fmt"
 
 	"github.com/denisbrodbeck/machineid"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -29,6 +29,11 @@ type baseCLI struct {
 }
 
 func (cmd *baseCLI) client() (*client.Client, error) {
+	clientID, err := cmd.ClientID()
+	if err != nil {
+		return nil, fmt.Errorf("getting client id: %w", err)
+	}
+
 	opts := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(
 			grpc.UseCompressor(gzip.Name),
@@ -54,23 +59,23 @@ func (cmd *baseCLI) client() (*client.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dialing grpc: %w", err)
 	}
-	return client.New(conn, cmd.ClientID()), nil
+	return client.New(conn, clientID), nil
 }
 
-func (cmd *baseCLI) ClientID() string {
+func (cmd *baseCLI) ClientID() (string, error) {
 	if cmd.clientID != "" {
-		return cmd.clientID
+		return cmd.clientID, nil
 	}
 
 	cmd.clientID = viper.GetString("client_id")
 	if cmd.clientID == "" {
 		var err error
 		if cmd.clientID, err = machineid.ID(); err != nil {
-			logrus.Fatalf("Failed to get unique client name: %v", err)
+			return "", fmt.Errorf("getting unique client name: %w", err)
 		}
 	}
-	logrus.Infof("Detected client id: %s", cmd.clientID)
-	return cmd.clientID
+	zap.L().Info("Detected client id", zap.String("client_id", cmd.clientID))
+	return cmd.clientID, nil
 }
 
 func (cmd *baseCLI) Run(_ context.Context) error {

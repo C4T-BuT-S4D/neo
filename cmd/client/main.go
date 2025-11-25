@@ -5,27 +5,34 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cmd"
+	"github.com/c4t-but-s4d/neo/v2/pkg/logging"
 )
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan any, 1)
+	done := make(chan error, 1)
 	go func() {
-		if err := cmd.Execute(ctx); err != nil {
-			logrus.Fatalf("Error: %v", err)
-		}
-		done <- nil
+		done <- cmd.Execute(ctx)
 	}()
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 
+	var err error
 	select {
 	case <-c:
 		cancel()
-		<-done
-	case <-done:
+		err = <-done
+	case err = <-done:
 	}
+
+	if err != nil {
+		zap.L().Error("Command failed", zap.Error(err))
+		logging.Sync()
+		os.Exit(1)
+	}
+	logging.Sync()
 }

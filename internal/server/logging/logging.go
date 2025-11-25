@@ -3,33 +3,33 @@ package logging
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type Server struct {
-	Logger *logrus.Entry
+	Logger *zap.Logger
 }
 
 func NewServer(serverName string) Server {
-	return Server{Logger: logrus.WithField("server", serverName)}
+	return Server{Logger: zap.L().Named(serverName)}
 }
 
 func (s *Server) WrapErrorf(ctx context.Context, code codes.Code, fmt string, values ...any) error {
 	err := status.Errorf(code, fmt, values...)
-	s.GetMethodLogger(ctx).Errorf("%v", err)
+	s.GetMethodLogger(ctx).Error(err.Error())
 	return err
 }
 
 func (s *Server) LogRequest(ctx context.Context, r any) {
-	s.GetMethodLogger(ctx).Infof("Request: %v", r)
+	s.GetMethodLogger(ctx).Info("Request", zap.Any("payload", r))
 }
 
-func (s *Server) GetMethodLogger(ctx context.Context) *logrus.Entry {
+func (s *Server) GetMethodLogger(ctx context.Context) *zap.Logger {
 	if method, ok := grpc.Method(ctx); ok {
-		return s.Logger.WithField("method", method)
+		return s.Logger.With(zap.String("method", method))
 	}
 	return s.Logger
 }

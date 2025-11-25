@@ -1,17 +1,19 @@
 package client
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
-func MustUnmarshalConfig() *Config {
+func UnmarshalConfig() (*Config, error) {
 	cfg := new(Config)
 	if err := viper.Unmarshal(&cfg); err != nil {
-		logrus.Fatalf("Could not parse config structure: %v", err)
+		return nil, fmt.Errorf("parsing config structure: %w", err)
 	}
-	logrus.Debugf("Unmarshalled config %+v", cfg)
-	return cfg
+	zap.L().Debug("Unmarshalled config", zap.Any("config", cfg))
+	return cfg, nil
 }
 
 type Config struct {

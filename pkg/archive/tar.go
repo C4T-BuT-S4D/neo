@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/klauspost/compress/zstd"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 func Untar(dst string, r io.Reader) error {
@@ -81,14 +81,14 @@ func Tar(src string, w io.Writer) error {
 	}
 	defer func() {
 		if err := zw.Close(); err != nil {
-			logrus.WithError(err).Error("closing zstd writer")
+			zap.L().Error("Error closing zstd writer", zap.Error(err))
 		}
 	}()
 
 	tw := tar.NewWriter(zw)
 	defer func() {
 		if err := tw.Close(); err != nil {
-			logrus.WithError(err).Error("closing tar writer")
+			zap.L().Error("Error closing tar writer", zap.Error(err))
 		}
 	}()
 

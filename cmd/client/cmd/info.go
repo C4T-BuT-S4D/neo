@@ -1,25 +1,29 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// infoCmd represents the info command.
 var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "Print current state",
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewInfo(cmd, args, cfg)
-		ctx := cmd.Context()
-		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error: %v", err)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := client.UnmarshalConfig()
+		if err != nil {
+			return fmt.Errorf("unmarshalling config: %w", err)
 		}
-		logrus.Debugf("Info finished")
+		c := cli.NewInfo(cmd, args, cfg)
+		if err := c.Run(cmd.Context()); err != nil {
+			return fmt.Errorf("getting info: %w", err)
+		}
+		zap.L().Debug("Info finished")
+		return nil
 	},
 }
 

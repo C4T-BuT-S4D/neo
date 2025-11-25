@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
@@ -59,7 +59,7 @@ func (s *RemoteSender) Start(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			if err := s.send(ctx); err != nil {
-				logrus.Errorf("Error sending logs: %v", err)
+				zap.L().Error("Error sending logs", zap.Error(err))
 			}
 		case <-ctx.Done():
 			return
@@ -75,11 +75,11 @@ func (s *RemoteSender) send(ctx context.Context) error {
 	s.mu.Unlock()
 
 	if len(batch) == 0 {
-		logrus.Debugf("%d logs to send", len(batch))
+		zap.L().Debug("Logs to send", zap.Int("count", len(batch)))
 		return nil
 	}
 
-	logrus.Infof("%d logs to send", len(batch))
+	zap.L().Info("Logs to send", zap.Int("count", len(batch)))
 	if err := s.client.AddLogLines(ctx, batch...); err != nil {
 		return fmt.Errorf("sending batch to server: %w", err)
 	}

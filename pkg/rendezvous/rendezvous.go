@@ -4,8 +4,8 @@ import (
 	"hash"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spaolacci/murmur3"
+	"go.uber.org/zap"
 )
 
 type Rendezvous struct {
@@ -34,7 +34,7 @@ func (r *Rendezvous) calcHash(key string) uint64 {
 
 	r.h.Reset()
 	if _, err := r.h.Write([]byte(key)); err != nil {
-		logrus.Fatalf("Error calculating hash: %v", err)
+		zap.L().Fatal("Error calculating hash", zap.Error(err))
 	}
 	rawVal := r.h.Sum64()
 	r.hcache[key] = rawVal

@@ -12,15 +12,14 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
 	_ "google.golang.org/grpc/encoding/gzip"
 
-	"github.com/c4t-but-s4d/neo/v2/internal/logger"
 	"github.com/c4t-but-s4d/neo/v2/internal/logstor"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/config"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/exploits"
@@ -28,6 +27,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/server/logs"
 	serverMetrics "github.com/c4t-but-s4d/neo/v2/internal/server/metrics"
 	"github.com/c4t-but-s4d/neo/v2/pkg/grpcauth"
+	"github.com/c4t-but-s4d/neo/v2/pkg/logging"
 	"github.com/c4t-but-s4d/neo/v2/pkg/mu"
 	"github.com/c4t-but-s4d/neo/v2/pkg/neohttp"
 	"github.com/c4t-but-s4d/neo/v2/pkg/neosync"
@@ -37,45 +37,46 @@ import (
 )
 
 func main() {
-	logger.Init()
 	if err := setupConfig(); err != nil {
-		logrus.Fatalf("Error setting up config: %v", err)
+		// Can't use zap yet, not initialized.
+		panic(fmt.Sprintf("Error setting up config: %v", err))
 	}
 
 	cfg, err := readConfig()
 	if err != nil {
-		logrus.Fatalf("Error reading config: %v", err)
+		panic(fmt.Sprintf("Error reading config: %v", err))
 	}
 
-	setLogLevel(cfg)
+	logging.Init(cfg.Debug)
+	defer logging.Sync()
 
 	initCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	fc := exploits.NewFarmClient(cfg.FarmConfig)
 	if err := fc.FillConfig(initCtx, &cfg.FarmConfig); err != nil {
-		logrus.Fatalf("Failed to fetch config from farm: %v", err)
+		zap.L().Fatal("Failed to fetch config from farm", zap.Error(err))
 	}
 
 	st, err := exploits.NewBoltStorage(cfg.DBPath)
 	if err != nil {
-		logrus.Fatalf("Failed to create bolt storage: %v", err)
+		zap.L().Fatal("Failed to create bolt storage", zap.Error(err))
 	}
 
-	logrus.Infof("Using VictoriaLogs storage at %s", cfg.VictoriaLogsURL)
+	zap.L().Info("Using VictoriaLogs storage", zap.String("url", cfg.VictoriaLogsURL))
 	logStore, err := logstor.NewVictoriaLogsStorage(initCtx, cfg.VictoriaLogsURL)
 	if err != nil {
-		logrus.Fatalf("Failed to create victorialogs storage: %v", err)
+		zap.L().Fatal("Failed to create victorialogs storage", zap.Error(err))
 	}
 
 	if cfg.PingEvery <= 0 {
-		logrus.Fatalf("ping_every should be positive")
+		zap.L().Fatal("ping_every should be positive")
 	}
-	logrus.Infof("Config: %+v", cfg)
+	zap.L().Info("Config loaded", zap.Any("config", cfg))
 
 	exploitsServer := exploits.New(cfg, st)
 	fsServer, err := fs.New(cfg)
 	if err != nil {
-		logrus.Fatalf("Failed to create file server: %v", err)
+		zap.L().Fatal("Failed to create file server", zap.Error(err))
 	}
 	logsServer := logs.New(logStore)
 
@@ -123,7 +124,7 @@ func main() {
 	})
 	wg.Go(func() {
 		<-runCtx.Done()
-		logrus.Info("Received shutdown signal, stopping server")
+		zap.L().Info("Received shutdown signal, stopping server")
 
 		shutdownCtx, shutdownCancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 		defer shutdownCancel()
@@ -131,28 +132,28 @@ func main() {
 		defer shutdownCancel()
 
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
-			logrus.Errorf("Failed to shutdown http server: %v", err)
+			zap.L().Error("Failed to shutdown http server", zap.Error(err))
 		}
 		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
-			logrus.Errorf("Failed to shutdown metrics server: %v", err)
+			zap.L().Error("Failed to shutdown metrics server", zap.Error(err))
 		}
 	})
 	wg.Go(func() {
 		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logrus.Fatalf("Failed to serve metrics: %v", err)
+			zap.L().Fatal("Failed to serve metrics", zap.Error(err))
 		}
 	})
 
-	logrus.Infof("Starting multiproto server on %s", cfg.Address)
+	zap.L().Info("Starting multiproto server", zap.String("address", cfg.Address))
 	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		logrus.Fatalf("Failed to serve: %v", err)
+		zap.L().Fatal("Failed to serve", zap.Error(err))
 	}
 
 	select {
 	case <-neosync.AwaitWG(&wg):
-		logrus.Info("Shutdown finished")
+		zap.L().Info("Shutdown finished")
 	case <-time.After(10 * time.Second):
-		logrus.Warn("Shutdown timeout")
+		zap.L().Warn("Shutdown timeout")
 	}
 }
 
@@ -202,15 +203,5 @@ func readConfig() (*config.Config, error) {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
-	logrus.Infof("Parsed config: %+v", cfg)
-
 	return cfg, nil
-}
-
-func setLogLevel(cfg *config.Config) {
-	if cfg.Debug {
-		logrus.SetLevel(logrus.DebugLevel)
-	} else {
-		logrus.SetLevel(logrus.InfoLevel)
-	}
 }

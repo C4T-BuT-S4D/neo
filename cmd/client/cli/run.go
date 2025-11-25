@@ -2,11 +2,12 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 	"github.com/c4t-but-s4d/neo/v2/internal/exploit"
@@ -21,40 +22,40 @@ type runCLI struct {
 	sender joblogger.Sender
 }
 
-func parseJobsFlag(cmd *cobra.Command, name string) int {
-	jobs, err := cmd.Flags().GetInt(name)
-	if err != nil {
-		logrus.Fatalf("Could not get jobs number: %v", err)
-	}
-	if jobs < 0 {
-		logrus.Fatal("run: job count should be non-negative")
-	}
-	return jobs
-}
-
-func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
+func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) (NeoCLI, error) {
 	cli := &runCLI{
 		baseCLI: &baseCLI{cfg: cfg},
 	}
 	neocli, err := cli.client()
 	if err != nil {
-		logrus.Fatalf("run: failed to create client: %v", err)
+		return nil, fmt.Errorf("creating client: %w", err)
 	}
 
-	jobs := parseJobsFlag(cmd, "jobs")
-	endlessJobs := parseJobsFlag(cmd, "endless-jobs")
+	jobs, err := parseJobsFlagE(cmd, "jobs")
+	if err != nil {
+		return nil, err
+	}
+	endlessJobs, err := parseJobsFlagE(cmd, "endless-jobs")
+	if err != nil {
+		return nil, err
+	}
 	timeoutScaleTarget, err := cmd.Flags().GetFloat64("timeout-autoscale-target")
 	if err != nil {
-		logrus.Fatalf("Could not get timeout-autoscale-target flag: %v", err)
+		return nil, fmt.Errorf("getting timeout-autoscale-target flag: %w", err)
 	}
 	if timeoutScaleTarget < 0 {
-		logrus.Fatalf("timeout-autoscale-target should be non-negative")
+		return nil, errors.New("timeout-autoscale-target should be non-negative")
+	}
+
+	clientID, err := cli.ClientID()
+	if err != nil {
+		return nil, err
 	}
 
 	neocli.Weight = jobs
 	cli.sender = joblogger.NewRemoteSender(neocli)
 	cli.run = exploit.NewRunner(
-		cli.ClientID(),
+		clientID,
 		jobs,
 		endlessJobs,
 		timeoutScaleTarget,
@@ -63,7 +64,7 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 		cli.sender,
 	)
 
-	return cli
+	return cli, nil
 }
 
 func (rc *runCLI) Run(ctx context.Context) error {
@@ -72,7 +73,7 @@ func (rc *runCLI) Run(ctx context.Context) error {
 
 	wg.Go(func() {
 		rc.sender.Start(ctx)
-		logrus.Info("log sender finished")
+		zap.L().Info("log sender finished")
 	})
 
 	if err := rc.run.Run(ctx); err != nil {

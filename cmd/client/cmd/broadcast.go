@@ -1,25 +1,32 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// broadcastCmd represents the broadcast command.
 var broadcastCmd = &cobra.Command{
 	Use:   "broadcast",
 	Short: "Run a command on all connected clients",
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewBroadcast(cmd, args, cfg)
-		ctx := cmd.Context()
-		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error broadcasting command: %v", err)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := client.UnmarshalConfig()
+		if err != nil {
+			return fmt.Errorf("unmarshalling config: %w", err)
 		}
-		logrus.Debugf("Broadcast finished")
+		c, err := cli.NewBroadcast(cmd, args, cfg)
+		if err != nil {
+			return fmt.Errorf("creating broadcast cli: %w", err)
+		}
+		if err := c.Run(cmd.Context()); err != nil {
+			return fmt.Errorf("broadcasting command: %w", err)
+		}
+		zap.L().Debug("Broadcast finished")
+		return nil
 	},
 }
 

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
@@ -23,7 +23,7 @@ type updateCLI struct {
 	disabled  *bool
 }
 
-func NewUpdateCLI(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+func NewUpdateCLI(cmd *cobra.Command, args []string, cfg *client.Config) (NeoCLI, error) {
 	c := &updateCLI{
 		baseCLI:   &baseCLI{cfg: cfg},
 		exploitID: args[0],
@@ -32,37 +32,37 @@ func NewUpdateCLI(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI 
 	if cmd.Flags().Changed("interval") {
 		runEvery, err := cmd.Flags().GetDuration("interval")
 		if err != nil {
-			logrus.Fatalf("Could not parse run interval: %v", err)
+			return nil, fmt.Errorf("parsing run interval: %w", err)
 		}
 		c.runEvery = &runEvery
 	}
 	if cmd.Flags().Changed("timeout") {
 		timeout, err := cmd.Flags().GetDuration("timeout")
 		if err != nil {
-			logrus.Fatalf("Could not parse run timeout: %v", err)
+			return nil, fmt.Errorf("parsing run timeout: %w", err)
 		}
 		c.timeout = &timeout
 	}
 	if cmd.Flags().Changed("endless") {
 		endless, err := cmd.Flags().GetBool("endless")
 		if err != nil {
-			logrus.Fatalf("Could not parse endless: %v", err)
+			return nil, fmt.Errorf("parsing endless flag: %w", err)
 		}
 		c.endless = &endless
 	}
 	if cmd.Flags().Changed("disabled") {
 		disabled, err := cmd.Flags().GetBool("disabled")
 		if err != nil {
-			logrus.Fatalf("Could not parse disabled: %v", err)
+			return nil, fmt.Errorf("parsing disabled flag: %w", err)
 		}
 		c.disabled = &disabled
 	}
 
-	return c
+	return c, nil
 }
 
 func (uc *updateCLI) Run(ctx context.Context) error {
-	logrus.Infof("Going to update config for exploit with id = %s", uc.exploitID)
+	zap.L().Info("Going to update config for exploit", zap.String("exploit_id", uc.exploitID))
 
 	c, err := uc.client()
 	if err != nil {
@@ -71,7 +71,7 @@ func (uc *updateCLI) Run(ctx context.Context) error {
 
 	resp, err := c.Exploit(ctx, uc.exploitID)
 	if err != nil {
-		logrus.Fatalf("Exploit with id = %s does not exist", uc.exploitID)
+		return fmt.Errorf("exploit %s does not exist: %w", uc.exploitID, err)
 	}
 	es := resp.GetState()
 	escfg := es.GetConfig()
@@ -103,6 +103,6 @@ func (uc *updateCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to update exploit: %w", err)
 	}
-	logrus.Infof("Updated exploit state: %v", ns)
+	zap.L().Info("Updated exploit state", zap.Any("state", ns))
 	return nil
 }

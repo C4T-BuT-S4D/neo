@@ -1,29 +1,35 @@
 package cmd
 
 import (
+	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
-// tailCmd represents the tail command.
 var updateCmd = &cobra.Command{
 	Use:     "update",
 	Short:   "Update exploit configuration by name",
 	Example: "neo update exploit_name -i 2m -t 2m",
 	Args:    cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewUpdateCLI(cmd, args, cfg)
-		ctx := cmd.Context()
-		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error updating exploit config: %v", err)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := client.UnmarshalConfig()
+		if err != nil {
+			return fmt.Errorf("unmarshalling config: %w", err)
 		}
-		logrus.Debugf("Update finished")
+		c, err := cli.NewUpdateCLI(cmd, args, cfg)
+		if err != nil {
+			return fmt.Errorf("creating update cli: %w", err)
+		}
+		if err := c.Run(cmd.Context()); err != nil {
+			return fmt.Errorf("updating exploit: %w", err)
+		}
+		zap.L().Debug("Update finished")
+		return nil
 	},
 }
 

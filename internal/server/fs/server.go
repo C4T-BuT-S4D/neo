@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 
 	serverConfig "github.com/c4t-but-s4d/neo/v2/internal/server/config"
@@ -35,7 +36,7 @@ type Server struct {
 
 func (s *Server) UploadFile(stream fspb.Service_UploadFileServer) error {
 	info := &fspb.FileInfo{Uuid: uuid.NewString()}
-	s.GetMethodLogger(stream.Context()).Infof("New file upload: %v", info)
+	s.GetMethodLogger(stream.Context()).Info("New file upload", zap.Any("info", info))
 
 	of, err := s.fs.Create(info.GetUuid())
 	if err != nil {
@@ -46,7 +47,7 @@ func (s *Server) UploadFile(stream fspb.Service_UploadFileServer) error {
 			err = s.WrapErrorf(stream.Context(), codes.Internal, "closing output file: %v", cerr)
 
 			if rerr := os.Remove(of.Name()); rerr != nil {
-				s.GetMethodLogger(stream.Context()).Errorf("removing the file on error: %v", rerr)
+				s.GetMethodLogger(stream.Context()).Error("Removing the file on error", zap.Error(rerr))
 			}
 		}
 	}()
@@ -69,7 +70,7 @@ func (s *Server) DownloadFile(fi *fspb.FileInfo, stream fspb.Service_DownloadFil
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			s.GetMethodLogger(stream.Context()).Errorf("closing downloaded file: %v", err)
+			s.GetMethodLogger(stream.Context()).Error("Closing downloaded file", zap.Error(err))
 		}
 	}()
 	if err := filestream.Load(f, stream); err != nil {
