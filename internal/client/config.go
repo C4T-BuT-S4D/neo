@@ -14,17 +14,9 @@ func MustUnmarshalConfig() *Config {
 	return cfg
 }
 
-type Metrics struct {
-	URL      string `mapstructure:"url"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-}
-
 type Config struct {
 	Host        string `mapstructure:"host"`
 	ExploitDir  string `mapstructure:"exploit_dir"`
 	GrpcAuthKey string `mapstructure:"grpc_auth_key"`
 	UseTLS      bool   `mapstructure:"use_tls"`
-
-	Metrics *Metrics `mapstructure:"metrics"`
 }

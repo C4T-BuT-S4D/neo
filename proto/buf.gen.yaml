@@ -13,6 +13,11 @@ plugins:
     out: ../pkg/proto
     opt:
       - paths=source_relative
+  - name: go-vtproto
+    out: ../pkg/proto
+    opt:
+      - paths=source_relative
+      - features=size
 
   # Typescript
   - plugin: buf.build/community/stephenh-ts-proto

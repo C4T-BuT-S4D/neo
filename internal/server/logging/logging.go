@@ -33,9 +33,3 @@ func (s *Server) GetMethodLogger(ctx context.Context) *logrus.Entry {
 	}
 	return s.Logger
 }
-
-func WrapErrorf(code codes.Code, fmt string, values ...any) error {
-	err := status.Errorf(code, fmt, values...)
-	logrus.Errorf("%v", err)
-	return err
-}

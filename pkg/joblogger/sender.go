@@ -75,10 +75,11 @@ func (s *RemoteSender) send(ctx context.Context) error {
 	s.mu.Unlock()
 
 	if len(batch) == 0 {
-		logrus.Debugf("Sending %d logs", len(batch))
-	} else {
-		logrus.Infof("Sending %d logs", len(batch))
+		logrus.Debugf("%d logs to send", len(batch))
+		return nil
 	}
+
+	logrus.Infof("%d logs to send", len(batch))
 	if err := s.client.AddLogLines(ctx, batch...); err != nil {
 		return fmt.Errorf("sending batch to server: %w", err)
 	}

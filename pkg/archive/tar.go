@@ -2,7 +2,6 @@ package archive
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,66 +19,47 @@ func Untar(dst string, r io.Reader) error {
 			return fmt.Errorf("creating directory %s: %w", dst, err)
 		}
 	}
-	gzr, err := gzip.NewReader(r)
+	zr, err := zstd.NewReader(r)
 	if err != nil {
-		return fmt.Errorf("creating gzip reader: %w", err)
+		return fmt.Errorf("creating zstd reader: %w", err)
 	}
-	defer func(gzr *gzip.Reader) {
-		err := gzr.Close()
-		if err != nil {
-			logrus.Errorf("Error closing gzip reader: %v", err)
-		}
-	}(gzr)
+	defer zr.Close()
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(zr)
 
 	for {
 		header, err := tr.Next()
 
 		switch {
-		// if no more files are found return
 		case errors.Is(err, io.EOF):
 			return nil
 
-		// return any other error
 		case err != nil:
-			return fmt.Errorf("parsing gzip header: %w", err)
+			return fmt.Errorf("parsing tar header: %w", err)
 
-		// if the header is nil, just skip it (not sure how this happens)
 		case header == nil:
 			continue
 		}
 
-		// the target location where the dir/file should be created
 		target := filepath.Join(dst, header.Name)
 
-		// the following switch could also be done using fi.Mode(), not sure if there's
-		// a benefit of using one vs. the other.
-		// fi := header.FileInfo()
-
-		// check the file type
 		switch header.Typeflag {
-		// if it's a dir, and it doesn't exist create it
 		case tar.TypeDir:
 			if err := os.MkdirAll(target, 0o755); err != nil {
 				return fmt.Errorf("creating directory %s: %w", target, err)
 			}
 
-		// if it's a file create it
 		case tar.TypeReg:
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 			if err != nil {
 				return fmt.Errorf("opening file %s: %w", target, err)
 			}
 
-			// copy over contents
 			if _, err := io.Copy(f, tr); err != nil {
 				_ = f.Close()
 				return fmt.Errorf("copying file content: %w", err)
 			}
 
-			// manually close here after each file operation; deferring would cause each file close
-			// to wait until all operations have completed.
 			if err := f.Close(); err != nil {
 				return fmt.Errorf("closing file %s: %w", target, err)
 			}
@@ -94,37 +75,35 @@ func Tar(src string, w io.Writer) error {
 		return fmt.Errorf("unable to tar files: %w", err)
 	}
 
-	gzw := gzip.NewWriter(w)
-	defer func(gzw *gzip.Writer) {
-		if err := gzw.Close(); err != nil {
-			logrus.Errorf("Error closing gzip writer: %v", err)
+	zw, err := zstd.NewWriter(w)
+	if err != nil {
+		return fmt.Errorf("creating zstd writer: %w", err)
+	}
+	defer func() {
+		if err := zw.Close(); err != nil {
+			logrus.WithError(err).Error("closing zstd writer")
 		}
-	}(gzw)
+	}()
 
-	tw := tar.NewWriter(gzw)
-	defer func(tw *tar.Writer) {
+	tw := tar.NewWriter(zw)
+	defer func() {
 		if err := tw.Close(); err != nil {
-			logrus.Errorf("Error closing tar writer: %v", err)
+			logrus.WithError(err).Error("closing tar writer")
 		}
-	}(tw)
+	}()
 
-	// walk path
 	if err := filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
-		// return on any error
 		if err != nil {
 			return err
 		}
 
-		// create a new dir/file header
 		header, err := tar.FileInfoHeader(fi, fi.Name())
 		if err != nil {
 			return fmt.Errorf("creating tar file header: %w", err)
 		}
 
-		// update the name to correctly reflect the desired destination when untaring
 		header.Name = strings.TrimPrefix(strings.ReplaceAll(file, src, ""), string(filepath.Separator))
 
-		// write the header
 		if err := tw.WriteHeader(header); err != nil {
 			return fmt.Errorf("writing tar heeader: %w", err)
 		}
@@ -133,27 +112,23 @@ func Tar(src string, w io.Writer) error {
 			return nil
 		}
 
-		// open files for taring
 		f, err := os.Open(file)
 		if err != nil {
 			return fmt.Errorf("opening file %s: %w", file, err)
 		}
 
-		// copy file data into tar writer
 		if _, err := io.Copy(tw, f); err != nil {
 			_ = f.Close()
 			return fmt.Errorf("copying file content: %w", err)
 		}
 
-		// manually close here after each file operation; defering would cause each file close
-		// to wait until all operations have completed.
 		if err := f.Close(); err != nil {
 			return fmt.Errorf("closing file: %w", err)
 		}
 
 		return nil
 	}); err != nil {
-		return fmt.Errorf("walking path %s: %w", src, err)
+		return fmt.Errorf("walking directory %s: %w", src, err)
 	}
 	return nil
 }

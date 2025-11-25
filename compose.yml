@@ -11,18 +11,14 @@ services:
       NEO_FARM_PASSWORD: ${FARM_PASSWORD}
       NEO_FARM_URL: ${FARM_URL}
       NEO_DB_PATH: /data/db.db
-      NEO_REDIS_URL: 'redis://redis:6379/0'
+      NEO_VICTORIALOGS_URL: 'http://victoria-logs:9428'
       NEO_BASE_DIR: '/data/exploits'
     ports:
       - '5005:5005'
     restart: unless-stopped
 
-  redis:
-    image: redis:7.2.0-alpine
-    restart: unless-stopped
-
   grafana:
-    image: grafana/grafana-oss:10.0.3
+    image: grafana/grafana-oss:12.2.0-17142428006-ubuntu
     user: '0'
     volumes:
       - ./volumes/grafana:/var/lib/grafana
@@ -34,11 +30,13 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-1234}
       GF_AUTH_ANONYMOUS_ENABLED: false
+      GF_INSTALL_PLUGINS: victoriametrics-logs-datasource
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /dashboards/Home.json
     ports:
       - "3000:3000"
 
   victoria:
-    image: victoriametrics/victoria-metrics:v1.92.1
+    image: victoriametrics/victoria-metrics:v1.130.0
     user: '0'
     volumes:
       - ./monitoring/cfg/prometheus:/etc/prometheus
@@ -49,15 +47,17 @@ services:
       - "-storageDataPath=/victoria-metrics-data"
       - "-promscrape.config=/etc/prometheus/config.yml"
     restart: unless-stopped
-
-  victoria-proxy:
-    image: caddy:2.6.1-alpine
-    restart: unless-stopped
-    environment:
-      HTTP_BASIC_AUTH_USER: "${VICTORIA_USER:-admin}"
-      HTTP_BASIC_AUTH_PASSWORD: "${VICTORIA_PASSWORD:-1234}"
-    command: "/bin/sh -c 'export HTTP_BASIC_AUTH_PASSWORD_HASH=$(caddy hash-password --plaintext $$HTTP_BASIC_AUTH_PASSWORD) && caddy run --config /etc/caddy/Caddyfile'"
     ports:
       - "8428:8428"
+
+  victoria-logs:
+    image: docker.io/victoriametrics/victoria-logs:v1.38.0
+    user: '0'
     volumes:
-      - "./monitoring/cfg/victoria-proxy:/etc/caddy"
+      - ./volumes/victoria-logs:/victoria-logs-data
+    command:
+      - "-storageDataPath=/victoria-logs-data"
+      - "-httpListenAddr=:9428"
+    restart: unless-stopped
+    ports:
+      - "9428:9428"

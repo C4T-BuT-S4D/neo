@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 
 	serverConfig "github.com/c4t-but-s4d/neo/v2/internal/server/config"
@@ -40,24 +39,23 @@ func (s *Server) UploadFile(stream fspb.Service_UploadFileServer) error {
 
 	of, err := s.fs.Create(info.GetUuid())
 	if err != nil {
-		return logging.WrapErrorf(codes.Internal, "Failed to create file: %v", err)
+		return s.WrapErrorf(stream.Context(), codes.Internal, "creating file: %v", err)
 	}
 	defer func() {
 		if cerr := of.Close(); cerr != nil {
-			err = logging.WrapErrorf(codes.Internal, "Failed to close output file")
-		}
-		if err != nil {
+			err = s.WrapErrorf(stream.Context(), codes.Internal, "closing output file: %v", cerr)
+
 			if rerr := os.Remove(of.Name()); rerr != nil {
-				logrus.Errorf("Error removing the file on error: %v", err)
+				s.GetMethodLogger(stream.Context()).Errorf("removing the file on error: %v", rerr)
 			}
 		}
 	}()
 
 	if err := filestream.Save(stream, of); err != nil {
-		return logging.WrapErrorf(codes.Internal, "Failed to upload file from stream: %v", err)
+		return s.WrapErrorf(stream.Context(), codes.Internal, "uploading file from stream: %v", err)
 	}
 	if err := stream.SendAndClose(info); err != nil {
-		return logging.WrapErrorf(codes.Internal, "Failed to send response & close connection: %v", err)
+		return s.WrapErrorf(stream.Context(), codes.Internal, "sending response & closing connection: %v", err)
 	}
 	return nil
 }
@@ -67,15 +65,15 @@ func (s *Server) DownloadFile(fi *fspb.FileInfo, stream fspb.Service_DownloadFil
 
 	f, err := s.fs.Open(fi.GetUuid())
 	if err != nil {
-		return logging.WrapErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
+		return s.WrapErrorf(stream.Context(), codes.NotFound, "finding file by uuid(%s): %v", fi.GetUuid(), err)
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			logrus.Errorf("Error closing downloaded file: %v", err)
+			s.GetMethodLogger(stream.Context()).Errorf("closing downloaded file: %v", err)
 		}
 	}()
 	if err := filestream.Load(f, stream); err != nil {
-		return logging.WrapErrorf(codes.NotFound, "Failed to find file by uuid(%s): %v", fi.GetUuid(), err)
+		return s.WrapErrorf(stream.Context(), codes.NotFound, "loading file: %v", err)
 	}
 	return nil
 }

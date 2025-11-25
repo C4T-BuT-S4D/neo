@@ -113,7 +113,7 @@ func (ac *addCLI) Run(ctx context.Context) error {
 			_ = os.Remove(f.Name())
 		}()
 		if err := archive.Tar(dir, f); err != nil {
-			return fmt.Errorf("failed to create TarGz archive: %w", err)
+			return fmt.Errorf("failed to create tar.zstd archive: %w", err)
 		}
 
 		// Seek file to start to correctly use it for reading.

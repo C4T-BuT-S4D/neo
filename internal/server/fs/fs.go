@@ -5,17 +5,22 @@ import (
 	"io"
 	"os"
 	"path"
+
+	"io/fs"
 )
 
-type fileInterface interface {
-	io.ReadWriteCloser
+type filesystem interface {
+	fs.FS
+
+	Create(string) (NamedFile, error)
+}
+
+type NamedFile interface {
+	io.WriteCloser
 	Name() string
 }
 
-type filesystem interface {
-	Create(string) (fileInterface, error)
-	Open(string) (fileInterface, error)
-}
+var _ filesystem = (*osFs)(nil)
 
 type osFs struct {
 	baseDir string
@@ -28,7 +33,7 @@ func newOsFs(dir string) (*osFs, error) {
 	return &osFs{baseDir: dir}, nil
 }
 
-func (o osFs) Create(f string) (fileInterface, error) {
+func (o osFs) Create(f string) (NamedFile, error) {
 	fi, err := os.Create(path.Join(o.baseDir, f))
 	if err != nil {
 		return nil, fmt.Errorf("creating file %s in %s: %w", f, o.baseDir, err)
@@ -36,7 +41,7 @@ func (o osFs) Create(f string) (fileInterface, error) {
 	return fi, nil
 }
 
-func (o osFs) Open(f string) (fileInterface, error) {
+func (o osFs) Open(f string) (fs.File, error) {
 	fi, err := os.Open(path.Join(o.baseDir, f))
 	if err != nil {
 		return nil, fmt.Errorf("opening file %s in %s: %w", f, o.baseDir, err)

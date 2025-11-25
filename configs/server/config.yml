@@ -6,5 +6,5 @@ farm:
   url: "http://host.docker.internal:5137"
   password: "1234"
 
-env:
-  REDIS_HOST: 127.0.0.1
+# Logs storage configuration
+# victorialogs_url: "http://127.0.0.1:9428"

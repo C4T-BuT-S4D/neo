@@ -26,6 +26,7 @@ import (
 	"github.com/c4t-but-s4d/neo/v2/internal/server/exploits"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/fs"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/logs"
+	serverMetrics "github.com/c4t-but-s4d/neo/v2/internal/server/metrics"
 	"github.com/c4t-but-s4d/neo/v2/pkg/grpcauth"
 	"github.com/c4t-but-s4d/neo/v2/pkg/mu"
 	"github.com/c4t-but-s4d/neo/v2/pkg/neohttp"
@@ -60,9 +61,10 @@ func main() {
 		logrus.Fatalf("Failed to create bolt storage: %v", err)
 	}
 
-	logStore, err := logstor.NewRedisStorage(initCtx, cfg.RedisURL)
+	logrus.Infof("Using VictoriaLogs storage at %s", cfg.VictoriaLogsURL)
+	logStore, err := logstor.NewVictoriaLogsStorage(initCtx, cfg.VictoriaLogsURL)
 	if err != nil {
-		logrus.Fatalf("Failed to create log storage: %v", err)
+		logrus.Fatalf("Failed to create victorialogs storage: %v", err)
 	}
 
 	if cfg.PingEvery <= 0 {
@@ -92,6 +94,7 @@ func main() {
 
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/", neohttp.StaticHandler(cfg.StaticDir))
+	httpMux.Handle("/api/metrics/", serverMetrics.NewProxyHandler("http://victoria:8428", cfg.GrpcAuthKey))
 
 	muHandler := mu.NewHandler(s, mu.WithHTTPHandler(httpMux))
 	httpServer := &http.Server{
@@ -170,7 +173,7 @@ func setupConfig() error {
 	viper.MustBindEnv("farm.password")
 	viper.MustBindEnv("farm.url")
 	viper.MustBindEnv("db_path")
-	viper.MustBindEnv("redis_url")
+	viper.MustBindEnv("victorialogs_url")
 	viper.MustBindEnv("base_dir")
 
 	viper.SetDefault("config", "server_config.yml")
@@ -179,7 +182,7 @@ func setupConfig() error {
 	viper.SetDefault("address", ":5005")
 	viper.SetDefault("metrics_address", ":3000")
 	viper.SetDefault("static_dir", "front/dist")
-	viper.SetDefault("redis_url", "redis://127.0.0.1:6379/0")
+	viper.SetDefault("victorialogs_url", "http://127.0.0.1:9428")
 	viper.SetDefault("db_path", "data/db.db")
 	viper.SetDefault("base_dir", "data/exploits")
 

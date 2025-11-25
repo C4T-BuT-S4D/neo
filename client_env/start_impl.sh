@@ -21,8 +21,8 @@ if [[ ! $OUT ]]; then
         --network host \
         --name "${NEO_CONTAINER_NAME}" \
         --hostname "${NEO_CONTAINER_NAME}" \
-        "sleep infinity" \
-        "${NEO_IMAGE}"
+        "${NEO_IMAGE}" \
+        sleep infinity
 else
     echo "Container already exists"
 fi

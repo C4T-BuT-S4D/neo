@@ -6,27 +6,37 @@ import (
 	"sync"
 )
 
-type Sizable interface {
-	EstimateSize() int
-}
+type SizerFunc[T any] func(T) int
 
 type BatcherFunc[S, D any] func(t []S) (D, error)
 
-func NewDynamicSizeCache[T Sizable, M any](s WStream[M], maxSize int, bf BatcherFunc[T, *M]) *DynamicSizeCache[T, M] {
-	return &DynamicSizeCache[T, M]{
-		stream:  s,
-		batcher: bf,
-		maxSize: maxSize,
+// VTProtoSizer returns a sizer function for types that implement the SizeVT() method from vtproto.
+// The size is overestimated by 25% to account for protobuf encoding overhead.
+func VTProtoSizer[T interface{ SizeVT() int }]() SizerFunc[T] {
+	return func(t T) int {
+		return t.SizeVT() * 5 / 4
 	}
 }
 
-type DynamicSizeCache[T Sizable, M any] struct {
-	stream  WStream[M]
-	batcher BatcherFunc[T, *M]
-	maxSize int
-	curSize int
-	queue   []T
-	mu      sync.Mutex
+func NewDynamicSizeCache[T any, M any](s WStream[M], maxSize int, maxCount int, sizer SizerFunc[T], bf BatcherFunc[T, *M]) *DynamicSizeCache[T, M] {
+	return &DynamicSizeCache[T, M]{
+		stream:   s,
+		batcher:  bf,
+		sizer:    sizer,
+		maxSize:  maxSize,
+		maxCount: maxCount,
+	}
+}
+
+type DynamicSizeCache[T any, M any] struct {
+	stream   WStream[M]
+	batcher  BatcherFunc[T, *M]
+	sizer    SizerFunc[T]
+	maxSize  int
+	maxCount int
+	curSize  int
+	queue    []T
+	mu       sync.Mutex
 }
 
 func (d *DynamicSizeCache[T, M]) Queue(ts ...T) error {
@@ -34,9 +44,9 @@ func (d *DynamicSizeCache[T, M]) Queue(ts ...T) error {
 	defer d.mu.Unlock()
 
 	for _, t := range ts {
-		d.curSize += t.EstimateSize()
+		d.curSize += d.sizer(t)
 		d.queue = append(d.queue, t)
-		if d.curSize >= d.maxSize {
+		if d.curSize >= d.maxSize || len(d.queue) >= d.maxCount {
 			if err := d.flushUnlocked(); err != nil {
 				return fmt.Errorf("flushing batch: %w", err)
 			}

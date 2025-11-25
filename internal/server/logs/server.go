@@ -3,7 +3,6 @@ package logs
 import (
 	"context"
 
-	"github.com/samber/lo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -14,8 +13,8 @@ import (
 )
 
 const (
-	logLinesBatchSize = 100
-	maxMsgSize        = 4 * 1024 * 1024
+	maxMsgSize  = 4 * 1024 * 1024
+	maxLogLines = 100
 )
 
 func New(storage logstor.Storage) *Server {
@@ -36,11 +35,8 @@ type Server struct {
 func (s *Server) AddLogLines(ctx context.Context, request *logspb.AddLogLinesRequest) (*emptypb.Empty, error) {
 	s.GetMethodLogger(ctx).Infof("New request with %d lines", len(request.GetLines()))
 
-	decoded := lo.Map(request.GetLines(), func(line *logspb.LogLine, _ int) *logstor.Line {
-		return logstor.NewLineFromProto(line)
-	})
-	if err := s.storage.Add(ctx, decoded...); err != nil {
-		return nil, logging.WrapErrorf(codes.Internal, "adding log lines: %v", err)
+	if err := s.storage.Add(ctx, request.GetLines()...); err != nil {
+		return nil, s.WrapErrorf(ctx, codes.Internal, "adding log lines: %v", err)
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -48,43 +44,36 @@ func (s *Server) AddLogLines(ctx context.Context, request *logspb.AddLogLinesReq
 func (s *Server) SearchLogLines(req *logspb.SearchLogLinesRequest, stream logspb.Service_SearchLogLinesServer) error {
 	s.LogRequest(stream.Context(), req)
 
-	var opts []logstor.SearchOption
-	if req.GetLimit() != 0 {
-		opts = append(opts, logstor.SearchWithLimit(int(req.GetLimit())))
-	}
-	if req.GetLastToken() != "" {
-		opts = append(opts, logstor.SearchWithLastToken(req.GetLastToken()))
-	}
+	linesIter := s.storage.Search(stream.Context(), req)
 
-	lines, err := s.storage.Search(stream.Context(), req.GetExploit(), req.GetVersion(), opts...)
-	if err != nil {
-		return logging.WrapErrorf(codes.Internal, "searching log lines: %v", err)
-	}
-
-	cache := gstream.NewDynamicSizeCache[*logstor.Line, logspb.SearchLogLinesResponse](
+	cache := gstream.NewDynamicSizeCache(
 		stream,
 		maxMsgSize,
-		func(lines []*logstor.Line) (*logspb.SearchLogLinesResponse, error) {
+		maxLogLines,
+		gstream.VTProtoSizer[*logspb.LogLine](),
+		func(lines []*logspb.LogLine) (*logspb.SearchLogLinesResponse, error) {
 			return &logspb.SearchLogLinesResponse{
-				Lines: lo.Map(lines, func(line *logstor.Line, _ int) *logspb.LogLine {
-					return line.ToProto()
-				}),
+				Lines: lines,
 			}, nil
 		},
 	)
 
-	for i, line := range lines {
-		if err := cache.Queue(line); err != nil {
-			return logging.WrapErrorf(codes.Internal, "queueing log line: %v", err)
-		}
-		if (i-1+logLinesBatchSize)%logLinesBatchSize == 0 {
-			if err := cache.Flush(); err != nil {
-				return logging.WrapErrorf(codes.Internal, "flushing batch: %v", err)
+	for line, err := range linesIter {
+		if err != nil {
+			// Flush any remaining lines before returning error
+			if flushErr := cache.Flush(); flushErr != nil {
+				s.GetMethodLogger(stream.Context()).Errorf("flushing cache before error: %v", flushErr)
 			}
+			return s.WrapErrorf(stream.Context(), codes.Internal, "iterating log lines: %v", err)
+		}
+
+		if err := cache.Queue(line); err != nil {
+			return s.WrapErrorf(stream.Context(), codes.Internal, "queueing log line: %v", err)
 		}
 	}
+
 	if err := cache.Flush(); err != nil {
-		return logging.WrapErrorf(codes.Internal, "flushing last batch: %v", err)
+		return s.WrapErrorf(stream.Context(), codes.Internal, "flushing last batch: %v", err)
 	}
 	return nil
 }
