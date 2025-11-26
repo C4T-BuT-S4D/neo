@@ -129,7 +129,7 @@ func TestVictoriaLogsDocument(t *testing.T) {
 		Team:      line.GetTeam(),
 	}
 
-	require.Equal(t, "2024-01-01T12:00:00.000000000Z", doc.Timestamp)
+	require.Equal(t, "2024-01-01T12:00:00Z", doc.Timestamp)
 	require.Equal(t, "test-exploit", doc.Exploit)
 	require.Equal(t, "1", doc.Version)
 	require.Equal(t, "test message", doc.Message)
