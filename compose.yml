@@ -48,7 +48,7 @@ services:
       - "-promscrape.config=/etc/prometheus/config.yml"
     restart: unless-stopped
     ports:
-      - "8428:8428"
+      - "127.0.0.1:8428:8428"
 
   victoria-logs:
     image: docker.io/victoriametrics/victoria-logs:v1.38.0
@@ -60,4 +60,4 @@ services:
       - "-httpListenAddr=:9428"
     restart: unless-stopped
     ports:
-      - "9428:9428"
+      - "127.0.0.1:9428:9428"
