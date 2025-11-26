@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type MessageHandler[T any] func(T) error
@@ -45,9 +45,11 @@ func (s *Subscription[T]) Run(ctx context.Context) {
 				s.queue = s.queue[1:]
 				s.mu.Unlock()
 
-				logrus.Debugf("Handling message %v in subscription %s", cmd, s.id)
+				zap.L().Debug("Handling message in subscription",
+					zap.Any("message", cmd),
+					zap.String("subscription_id", s.id))
 				if err := s.h(cmd); err != nil {
-					logrus.Errorf("Error in subscription message handler: %v", err)
+					zap.L().Error("Error in subscription message handler", zap.Error(err))
 					continue
 				}
 			}

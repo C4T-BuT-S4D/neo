@@ -66,6 +66,7 @@ func TestSimpleQueue_Add(t *testing.T) {
 }
 
 func TestSimpleQueue_runExploit(t *testing.T) {
+	//nolint:containedctx // test context
 	for _, tc := range []struct {
 		q        *simpleQueue
 		t        *Job

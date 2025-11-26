@@ -1,9 +1,17 @@
 datasources:
-  - access: 'proxy'
-    editable: true
+  - name: "All metrics"
+    access: 'proxy'
+    editable: false
     is_default: true
-    name: 'victoria'
     org_id: 1
     type: 'prometheus'
     url: 'http://victoria:8428'
     version: 1
+
+  - name: "Exploit logs"
+    editable: false
+    is_default: false
+    access: proxy
+    org_id: 1
+    type: 'victoriametrics-logs-datasource'
+    url: 'http://victoria-logs:9428'

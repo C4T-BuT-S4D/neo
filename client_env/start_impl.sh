@@ -21,11 +21,11 @@ if [[ ! $OUT ]]; then
         --network host \
         --name "${NEO_CONTAINER_NAME}" \
         --hostname "${NEO_CONTAINER_NAME}" \
-        --entrypoint "/usr/local/bin/reaper" \
-        "${NEO_IMAGE}"
+        "${NEO_IMAGE}" \
+        sleep infinity
 else
     echo "Container already exists"
 fi
 
 # shellcheck disable=SC2068
-docker exec -it "${NEO_CONTAINER_NAME}" "/entrypoint.sh" "$@"
+docker exec -it "${NEO_CONTAINER_NAME}" "$@"

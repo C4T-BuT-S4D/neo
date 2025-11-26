@@ -5,20 +5,20 @@ import (
 	"errors"
 	"io"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
-func checkStreamError(tp string, err error, streamErr error) bool {
+func checkStreamError(tp string, err, streamErr error) bool {
 	if errors.Is(err, io.EOF) {
-		logrus.Errorf("%s stream closed", tp)
+		zap.L().Error("Stream closed", zap.String("type", tp))
 		return false
 	}
 	if errors.Is(streamErr, context.Canceled) {
-		logrus.Debugf("%s context cancelled", tp)
+		zap.L().Debug("Context cancelled", zap.String("type", tp))
 		return false
 	}
 	if err != nil {
-		logrus.Errorf("Error reading from %s stream: %v", tp, err)
+		zap.L().Error("Error reading from stream", zap.String("type", tp), zap.Error(err))
 		return false
 	}
 	return true

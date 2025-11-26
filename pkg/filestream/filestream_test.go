@@ -11,11 +11,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
-	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
+	fspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/fileserver"
 )
 
-type failedReadWriter struct {
-}
+type failedReadWriter struct{}
 
 var errTestWrite = errors.New("test read write error")
 
@@ -33,7 +32,7 @@ type mockUploadStream struct {
 }
 
 func (ms *mockUploadStream) Send(s *fspb.FileStream) error {
-	ms.buf.Write(s.Chunk)
+	ms.buf.Write(s.GetChunk())
 	if ms.withError {
 		return errTestWrite
 	}

@@ -1,29 +1,32 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/pkg/viperext"
 )
 
-// enableCmd represents the enable command
-var enableCmd = &cobra.Command{
-	Use:   "enable",
-	Short: "Enable a disabled exploit by id",
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewSetDisabled(cmd, args, cfg, false)
-		ctx := cmd.Context()
-		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error enabling exploit: %v", err)
-		}
-		logrus.Debugf("Enable finished")
-	},
-}
+func NewEnableCommand(cc *cli.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "enable",
+		Short: "Enable a disabled exploit by id",
+		Args:  cobra.ExactArgs(1),
+	}
 
-func init() {
-	rootCmd.AddCommand(enableCmd)
+	viperext.MustBindCommandFlags(cc.Viper, cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cfg, err := viperext.GetConfig(cc.Viper, &client.Config{})
+		if err != nil {
+			return fmt.Errorf("unmarshalling config: %w", err)
+		}
+		c := cli.NewSetDisabled(cc, args, cfg, false)
+		return c.Run(cmd.Context())
+	}
+
+	return cmd
 }

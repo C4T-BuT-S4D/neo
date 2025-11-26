@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
@@ -15,9 +13,9 @@ type setDisabledCli struct {
 	disabled  bool
 }
 
-func NewSetDisabled(_ *cobra.Command, args []string, cfg *client.Config, disabled bool) NeoCLI {
+func NewSetDisabled(cc *Context, args []string, cfg *client.Config, disabled bool) NeoCLI {
 	return &setDisabledCli{
-		baseCLI:   &baseCLI{cfg: cfg},
+		baseCLI:   &baseCLI{cc: cc, cfg: cfg},
 		exploitID: args[0],
 		disabled:  disabled,
 	}
@@ -35,7 +33,7 @@ func (sc *setDisabledCli) Run(ctx context.Context) error {
 
 	if spl := getExploitFromState(state, sc.exploitID); spl == nil {
 		return fmt.Errorf("exploit %s does not exist", sc.exploitID)
-	} else if err := c.SetExploitDisabled(ctx, spl.ExploitId, sc.disabled); err != nil {
+	} else if err := c.SetExploitDisabled(ctx, spl.GetExploitId(), sc.disabled); err != nil {
 		return fmt.Errorf("set disabled failed: %w", err)
 	}
 

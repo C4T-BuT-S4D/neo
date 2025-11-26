@@ -32,7 +32,7 @@ func TestRendezvous_Calculate(t *testing.T) {
 			rhash, ok := r.checkCache(k)
 			require.True(t, ok)
 			needHash := weightHash(rhash, tt.nodeWeight)
-			require.Equal(t, needHash, hash)
+			require.InEpsilon(t, needHash, hash, 1e-5)
 		})
 	}
 }

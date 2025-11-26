@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
-	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
+	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
 )
 
 type tailCLI struct {
@@ -18,20 +17,13 @@ type tailCLI struct {
 	count     int
 }
 
-func NewTail(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
-	c := &tailCLI{
-		baseCLI:   &baseCLI{cfg: cfg},
+func NewTail(cc *Context, args []string, cfg *client.Config) (NeoCLI, error) {
+	return &tailCLI{
+		baseCLI:   &baseCLI{cc: cc, cfg: cfg},
 		exploitID: args[0],
-	}
-
-	var err error
-	if c.version, err = cmd.Flags().GetInt64("version"); err != nil {
-		logrus.Fatalf("Could not get exploit version: %v", err)
-	}
-	if c.count, err = cmd.Flags().GetInt("count"); err != nil {
-		logrus.Fatalf("Could not get count: %v", err)
-	}
-	return c
+		version:   cc.Viper.GetInt64("version"),
+		count:     cc.Viper.GetInt("count"),
+	}, nil
 }
 
 func (tc *tailCLI) Run(ctx context.Context) error {
@@ -44,14 +36,14 @@ func (tc *tailCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("making ping config request: %w", err)
 	}
 	found := false
-	for _, ex := range state.Exploits {
-		if ex.ExploitId == tc.exploitID {
+	for _, ex := range state.GetExploits() {
+		if ex.GetExploitId() == tc.exploitID {
 			found = true
 			if tc.version == 0 {
-				tc.version = ex.Version
+				tc.version = ex.GetVersion()
 			}
-			if ex.Version > tc.version {
-				return fmt.Errorf("too fresh version requested, current is %v", ex.Version)
+			if ex.GetVersion() > tc.version {
+				return fmt.Errorf("too fresh version requested, current is %v", ex.GetVersion())
 			}
 		}
 	}
@@ -67,30 +59,29 @@ func (tc *tailCLI) Run(ctx context.Context) error {
 	for batch := range stream {
 		lines = append(lines, batch...)
 	}
-	logrus.Debugf("Got %d log lines", len(lines))
+	zap.L().Debug("Got log lines", zap.Int("count", len(lines)))
 	if tc.count != -1 && len(lines) > tc.count {
 		lines = lines[len(lines)-tc.count:]
 	}
 
-	logrus.SetLevel(logrus.DebugLevel)
 	for _, line := range lines {
-		logger := logrus.WithFields(logrus.Fields{
-			"exploit": line.Exploit,
-			"version": line.Version,
-			"team":    line.Team,
-		})
-		switch line.Level {
+		logger := zap.L().With(
+			zap.String("exploit", line.GetExploit()),
+			zap.Int64("version", line.GetVersion()),
+			zap.String("team", line.GetTeam()),
+		)
+		switch line.GetLevel() {
 		case "debug":
-			logger.Debug(line.Message)
+			logger.Debug(line.GetMessage())
 		case "info":
-			logger.Info(line.Message)
+			logger.Info(line.GetMessage())
 		case "warning":
-			logger.Warning(line.Message)
+			logger.Warn(line.GetMessage())
 		case "error":
-			logger.Error(line.Message)
+			logger.Error(line.GetMessage())
 		default:
-			logger.Warningf("Unexpected log level: %v", line.Level)
-			logger.Warning(line.Message)
+			logger.Warn("Unexpected log level", zap.String("level", line.GetLevel()))
+			logger.Warn(line.GetMessage())
 		}
 	}
 	return nil

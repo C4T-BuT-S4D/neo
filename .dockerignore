@@ -1,3 +1,4 @@
 dist
 data
 volumes
+/front/node_modules

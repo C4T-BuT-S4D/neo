@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"github.com/c4t-but-s4d/neo/v2/pkg/filestream"
-	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
-	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
-	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
+	epb "github.com/c4t-but-s4d/neo/v2/pkg/proto/exploits"
+	fspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/fileserver"
+	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
 )
 
 func New(cc grpc.ClientConnInterface, id string) *Client {
@@ -46,7 +46,7 @@ func (nc *Client) GetServerState(ctx context.Context) (*epb.ServerState, error) 
 	if err != nil {
 		return nil, fmt.Errorf("making ping request: %w", err)
 	}
-	return resp.State, nil
+	return resp.GetState(), nil
 }
 
 func (nc *Client) Heartbeat(ctx context.Context) (*epb.ServerState, error) {
@@ -64,7 +64,7 @@ func (nc *Client) Heartbeat(ctx context.Context) (*epb.ServerState, error) {
 	if err != nil {
 		return nil, fmt.Errorf("making ping request: %w", err)
 	}
-	return resp.State, nil
+	return resp.GetState(), nil
 }
 
 func (nc *Client) Leave(ctx context.Context) error {
@@ -99,7 +99,7 @@ func (nc *Client) UpdateExploit(ctx context.Context, state *epb.ExploitState) (*
 	if err != nil {
 		return nil, fmt.Errorf("aking update exploit request: %w", err)
 	}
-	return resp.State, nil
+	return resp.GetState(), nil
 }
 
 func (nc *Client) DownloadFile(ctx context.Context, info *fspb.FileInfo, out io.Writer) error {
@@ -153,7 +153,7 @@ func (nc *Client) SetExploitDisabled(ctx context.Context, id string, disabled bo
 		return fmt.Errorf("fetching current exploit config: %w", err)
 	}
 
-	req := &epb.UpdateExploitRequest{State: resp.State}
+	req := &epb.UpdateExploitRequest{State: resp.GetState()}
 	req.State.Config.Disabled = disabled
 
 	if _, err := nc.exploits.UpdateExploit(ctx, req); err != nil {
@@ -179,7 +179,7 @@ func (nc *Client) ListenBroadcasts(ctx context.Context) (<-chan *epb.BroadcastSu
 			select {
 			case results <- cmd:
 			case <-ctx.Done():
-				logrus.Debugf("Broadcast context cancelled")
+				zap.L().Debug("Broadcast context cancelled")
 				return
 			}
 		}
@@ -205,7 +205,7 @@ func (nc *Client) ListenSingleRuns(ctx context.Context) (<-chan *epb.SingleRunSu
 			select {
 			case results <- er:
 			case <-ctx.Done():
-				logrus.Warningf("Single runs context cancelled")
+				zap.L().Warn("Single runs context cancelled")
 				return
 			}
 		}
@@ -239,14 +239,14 @@ func (nc *Client) SearchLogLines(ctx context.Context, exploit string, version in
 			resp, err := stream.Recv()
 			if err != nil {
 				if !errors.Is(err, io.EOF) {
-					logrus.Errorf("Unexpected error reading log lines: %v", err)
+					zap.L().Error("Unexpected error reading log lines", zap.Error(err))
 				}
 				return
 			}
 			select {
-			case results <- resp.Lines:
+			case results <- resp.GetLines():
 			case <-ctx.Done():
-				logrus.Debugf("Search logs context cancelled")
+				zap.L().Debug("Search logs context cancelled")
 				return
 			}
 		}

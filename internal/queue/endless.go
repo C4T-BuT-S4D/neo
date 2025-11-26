@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/pkg/neosync"
 )
@@ -19,7 +19,7 @@ const (
 	endlessDebounce = 3 * time.Second
 )
 
-// Compile-time type checks
+// Compile-time type checks.
 var (
 	_ Queue = (*endlessQueue)(nil)
 )
@@ -29,7 +29,7 @@ type endlessQueue struct {
 	c       chan *Job
 	maxJobs int
 	metrics *Metrics
-	logger  *logrus.Entry
+	logger  *zap.Logger
 }
 
 func NewEndlessQueue(maxJobs int) Queue {
@@ -39,10 +39,7 @@ func NewEndlessQueue(maxJobs int) Queue {
 		c:       make(chan *Job, jobBufferSize),
 		maxJobs: maxJobs,
 		metrics: NewMetrics("neo", queueID, TypeEndless),
-		logger: logrus.WithFields(logrus.Fields{
-			"component": "endless_queue",
-			"id":        queueID,
-		}),
+		logger:  zap.L().Named("endless_queue").With(zap.String("id", queueID)),
 	}
 }
 
@@ -57,18 +54,16 @@ func (q *endlessQueue) Size() int {
 // Start is synchronous.
 // Cancel the start's context to stop the queue.
 func (q *endlessQueue) Start(ctx context.Context) {
-	q.logger.WithField("jobs", q.maxJobs).Info("Starting")
+	q.logger.Info("Starting", zap.Int("jobs", q.maxJobs))
 
 	q.metrics.MaxJobs.Add(float64(q.maxJobs))
 	defer q.metrics.MaxJobs.Sub(float64(q.maxJobs))
 
-	wg := sync.WaitGroup{}
-	wg.Add(q.maxJobs)
-	for i := 0; i < q.maxJobs; i++ {
-		go func() {
-			defer wg.Done()
+	var wg sync.WaitGroup
+	for range q.maxJobs {
+		wg.Go(func() {
 			q.worker(ctx)
-		}()
+		})
 	}
 	wg.Wait()
 

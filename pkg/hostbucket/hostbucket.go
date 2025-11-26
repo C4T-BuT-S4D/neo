@@ -6,8 +6,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
+	epb "github.com/c4t-but-s4d/neo/v2/pkg/proto/exploits"
 	"github.com/c4t-but-s4d/neo/v2/pkg/rendezvous"
-	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
 )
 
 func New(teams map[string]string) *HostBucket {
@@ -27,7 +27,7 @@ type HostBucket struct {
 	r     *rendezvous.Rendezvous
 }
 
-// TODO: effective ip addition & deletion
+// TODO: effective ip addition & deletion.
 func (hb *HostBucket) UpdateTeams(teams map[string]string) {
 	lessFunc := func(s1, s2 string) bool {
 		return s1 < s2
@@ -55,7 +55,7 @@ func (hb *HostBucket) Exists(id string) (exists bool) {
 	hb.m.RLock()
 	defer hb.m.RUnlock()
 	_, exists = hb.buck[id]
-	return
+	return exists
 }
 
 func (hb *HostBucket) AddNode(id string, weight int) {

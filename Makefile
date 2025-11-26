@@ -4,8 +4,8 @@ IMAGE := ghcr.io/c4t-but-s4d/neo_env:latest
 TARGET := image-full
 CONTAINER_NAME := neo_env
 
-NEED_COMMANDS := curl wget dig nc file nslookup ifconfig python3 pip3 vim
-NEED_PACKAGES := pymongo pymysql psycopg2 redis z3 secrets checklib requests pwn numpy bs4 hashpumpy dnslib regex lxml gmpy2 sympy grequests websocket
+NEED_COMMANDS := curl wget dig nc file nslookup ifconfig python3 pip3 vim tini cryptominisat5
+NEED_PACKAGES := pymongo pymysql psycopg2 redis z3 secrets checklib requests pwn numpy bs4 hashpumpy dnslib regex lxml gmpy2 sympy grequests websocket stego
 
 .PHONY: lint-go
 lint-go:
@@ -15,12 +15,16 @@ lint-go:
 lint-proto:
 	cd proto && buf lint
 
+.PHONY: lint-front
+lint-front:
+	cd front && pnpm lint
+
 .PHONY: lint
-lint: lint-go lint-proto
+lint: lint-go lint-proto lint-front
 
 .PHONY: goimports
 goimports:
-	gofancyimports fix --local github.com/c4t-but-s4d/neo -w $(shell find . -type f -name '*.go' -not -path "./proto/*")
+	gofancyimports fix --local github.com/c4t-but-s4d/neo/v2 -w $(shell find . -type f -name '*.go' -not -path "./pkg/proto/*")
 
 .PHONY: test
 test:
@@ -32,10 +36,11 @@ validate: lint test
 .PHONY: proto
 proto:
 	cd proto && buf generate
+	cd front && ./add_ts_ignore.sh
 
 .PHONY: test-cov
 test-cov:
-	go test -race -timeout 1m -coverprofile=coverage.txt -covermode=atomic ./...
+	go test -race -timeout 1m -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
 
 .PHONY: build-image
 build-image:
@@ -45,7 +50,7 @@ build-image:
 test-image:
 	@for cmd in $(NEED_COMMANDS) ; do \
   		echo -n "checking for command $$cmd... "; \
-		if docker run --rm --entrypoint /bin/bash "${IMAGE}" which "$$cmd" >/dev/null; then \
+		if docker run --rm "${IMAGE}" which "$$cmd" >/dev/null; then \
 			echo "ok"; \
 		else \
 			echo "Command $$cmd not found in image"; \
@@ -55,10 +60,10 @@ test-image:
 
 	@for pkg in $(NEED_PACKAGES) ; do \
   		echo -n "checking for python package $$pkg... "; \
-		if docker run --rm --entrypoint /bin/bash "${IMAGE}" -c "python3 -c 'import $$pkg'" >/dev/null; then \
+		if docker run --rm --entrypoint bash "${IMAGE}" -c "python3 -c 'import $$pkg'" >/dev/null; then \
 			echo "ok"; \
 		else \
-			echo "Command $$cmd not found in image"; \
+			echo "Command $$pkg not found in image"; \
 			exit 1; \
 		fi \
 	done
@@ -91,7 +96,7 @@ setup-release: cleanup-release-all
 
 .PHONY: release-dry-run
 release-dry-run:
-	goreleaser --snapshot --skip-publish --clean
+	goreleaser --snapshot --skip=publish --clean
 
 .PHONY: test-release
 test-release: setup-release release-dry-run cleanup-release

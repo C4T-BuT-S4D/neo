@@ -17,6 +17,7 @@ PyMySQL
 pyopenssl
 python-socketio[asyncio_client]
 python-socketio[client]
+stegotools
 sympy
 redis
 regex

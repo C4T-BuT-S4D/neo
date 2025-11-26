@@ -6,19 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	"github.com/c4t-but-s4d/neo/v2/internal/logger"
 	"github.com/c4t-but-s4d/neo/v2/internal/models"
+	"github.com/c4t-but-s4d/neo/v2/pkg/logging"
 	"github.com/c4t-but-s4d/neo/v2/pkg/testutils"
 )
 
 func TestMain(m *testing.M) {
-	logger.Init()
-	logrus.SetLevel(logrus.DebugLevel)
+	logging.Init("debug")
 	goleak.VerifyTestMain(m)
 }
 
@@ -67,11 +65,9 @@ func Test_endlessQueue_Start(t *testing.T) {
 	defer cancel()
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		q.Start(ctx)
-	}()
+	})
 
 	select {
 	case <-time.After(time.Second * 3):
@@ -80,7 +76,6 @@ func Test_endlessQueue_Start(t *testing.T) {
 		assert.Equal(t, task.Exploit, out.Exploit)
 		assert.Equal(t, task.Target, out.Target)
 		assert.Equal(t, task.Target.IP, string(out.Out))
-		break
 	}
 
 	cancel()

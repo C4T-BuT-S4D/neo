@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
@@ -15,9 +12,9 @@ type singleRunCLI struct {
 	exploitID string
 }
 
-func NewSingleRun(_ *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+func NewSingleRun(cc *Context, args []string, cfg *client.Config) NeoCLI {
 	return &singleRunCLI{
-		baseCLI:   &baseCLI{cfg: cfg},
+		baseCLI:   &baseCLI{cc: cc, cfg: cfg},
 		exploitID: args[0],
 	}
 }
@@ -33,7 +30,7 @@ func (sc *singleRunCLI) Run(ctx context.Context) error {
 	}
 
 	if getExploitFromState(state, sc.exploitID) == nil {
-		logrus.Fatalf("Exploit %s does not exist. Please, add it first.", sc.exploitID)
+		return fmt.Errorf("exploit %s does not exist, add it first", sc.exploitID)
 	}
 	if err := c.SingleRun(ctx, sc.exploitID); err != nil {
 		return fmt.Errorf("single run failed: %w", err)

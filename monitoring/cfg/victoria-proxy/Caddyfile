@@ -1,0 +1,9 @@
+http://:8428 {
+        handle {
+                basicauth {
+                        {$HTTP_BASIC_AUTH_USER} {$HTTP_BASIC_AUTH_PASSWORD_HASH}
+                }
+
+                reverse_proxy victoria:8428
+        }
+}

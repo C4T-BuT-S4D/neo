@@ -53,7 +53,7 @@ func TestPubSub_nonBlockPublish(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		for i := 0; i < 11; i++ {
+		for range 11 {
 			p.Publish("pew-pew")
 		}
 		close(done)
@@ -113,7 +113,7 @@ func TestPubSub_slowpoke(t *testing.T) {
 		wgSlow.Wait()
 	}()
 
-	slowSub := p.Subscribe(func(msg string) error {
+	slowSub := p.Subscribe(func(string) error {
 		defer wgSlow.Done()
 
 		select {
@@ -138,7 +138,7 @@ func TestPubSub_slowpoke(t *testing.T) {
 	defer cancel()
 	go fastSub.Run(fastCtx)
 
-	for i := 0; i < samples; i++ {
+	for range samples {
 		p.Publish("pew-pew")
 	}
 
@@ -153,7 +153,7 @@ func TestPubSub_slowpoke(t *testing.T) {
 func TestPubSub_unsubscribe(t *testing.T) {
 	p := NewPubSub[string]()
 
-	sub1 := p.Subscribe(func(msg string) error {
+	sub1 := p.Subscribe(func(string) error {
 		t.Error("first subscriber must not be called")
 		return nil
 	})
@@ -195,7 +195,7 @@ func TestPubSub_sequencePublishers(t *testing.T) {
 	defer cancel()
 	go sub.Run(ctx)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		p.Publish("pew-pew")
 	}
 
@@ -217,7 +217,7 @@ func TestPubSub_concurrentPublishers(t *testing.T) {
 	defer cancel()
 	go sub.Run(ctx)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go p.Publish("pew-pew")
 	}
 

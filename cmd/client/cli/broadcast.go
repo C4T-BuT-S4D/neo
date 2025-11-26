@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
@@ -15,19 +14,15 @@ type broadcastCLI struct {
 	cmd string
 }
 
-func NewBroadcast(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
-	command, err := cmd.Flags().GetString("command")
-	if err != nil {
-		logrus.Fatalf("Could not parse command: %v", cmd)
-	}
+func NewBroadcast(cc *Context, _ []string, cfg *client.Config) (NeoCLI, error) {
 	return &broadcastCLI{
-		baseCLI: &baseCLI{cfg: cfg},
-		cmd:     command,
-	}
+		baseCLI: &baseCLI{cc: cc, cfg: cfg},
+		cmd:     cc.Viper.GetString("command"),
+	}, nil
 }
 
 func (bc *broadcastCLI) Run(ctx context.Context) error {
-	logrus.Infof("Broadcasting command %s to all connected clients", bc.cmd)
+	zap.L().Info("Broadcasting command to all connected clients", zap.String("command", bc.cmd))
 	c, err := bc.client()
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)

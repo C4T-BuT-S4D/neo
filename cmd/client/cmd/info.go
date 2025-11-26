@@ -1,28 +1,31 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/pkg/viperext"
 )
 
-// infoCmd represents the info command
-var infoCmd = &cobra.Command{
-	Use:   "info",
-	Short: "Print current state",
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewInfo(cmd, args, cfg)
-		ctx := cmd.Context()
-		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error: %v", err)
-		}
-		logrus.Debugf("Info finished")
-	},
-}
+func NewInfoCommand(cc *cli.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "info",
+		Short: "Print current state",
+	}
 
-func init() {
-	rootCmd.AddCommand(infoCmd)
+	viperext.MustBindCommandFlags(cc.Viper, cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cfg, err := viperext.GetConfig(cc.Viper, &client.Config{})
+		if err != nil {
+			return fmt.Errorf("unmarshalling config: %w", err)
+		}
+		c := cli.NewInfo(cc, args, cfg)
+		return c.Run(cmd.Context())
+	}
+
+	return cmd
 }

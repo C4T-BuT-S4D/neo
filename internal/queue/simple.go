@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 	resultBufferSize = 1000
 )
 
-// Compile-time type checks
+// Compile-time type checks.
 var (
 	_ Queue = (*simpleQueue)(nil)
 )
@@ -27,7 +27,7 @@ type simpleQueue struct {
 	c       chan *Job
 	maxJobs int
 	metrics *Metrics
-	logger  *logrus.Entry
+	logger  *zap.Logger
 }
 
 func NewSimpleQueue(maxJobs int) Queue {
@@ -38,10 +38,7 @@ func NewSimpleQueue(maxJobs int) Queue {
 		c:       make(chan *Job, jobBufferSize),
 		maxJobs: maxJobs,
 		metrics: NewMetrics("neo", id, TypeSimple),
-		logger: logrus.WithFields(logrus.Fields{
-			"component": "simple_queue",
-			"id":        id,
-		}),
+		logger:  zap.L().Named("simple_queue").With(zap.String("id", id)),
 	}
 }
 
@@ -56,18 +53,16 @@ func (q *simpleQueue) Size() int {
 // Start is synchronous.
 // Cancel the start's context to stop the queue.
 func (q *simpleQueue) Start(ctx context.Context) {
-	q.logger.WithField("jobs", q.maxJobs).Info("Starting")
+	q.logger.Info("Starting", zap.Int("jobs", q.maxJobs))
 
 	q.metrics.MaxJobs.Add(float64(q.maxJobs))
 	defer q.metrics.MaxJobs.Sub(float64(q.maxJobs))
 
-	wg := sync.WaitGroup{}
-	wg.Add(q.maxJobs)
-	for i := 0; i < q.maxJobs; i++ {
-		go func() {
-			defer wg.Done()
+	var wg sync.WaitGroup
+	for range q.maxJobs {
+		wg.Go(func() {
 			q.worker(ctx)
-		}()
+		})
 	}
 	wg.Wait()
 

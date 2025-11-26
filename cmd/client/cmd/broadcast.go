@@ -1,29 +1,39 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/pkg/viperext"
 )
 
-// broadcastCmd represents the broadcast command
-var broadcastCmd = &cobra.Command{
-	Use:   "broadcast",
-	Short: "Run a command on all connected clients",
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewBroadcast(cmd, args, cfg)
-		ctx := cmd.Context()
-		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error broadcasting command: %v", err)
-		}
-		logrus.Debugf("Broadcast finished")
-	},
-}
+func NewBroadcastCommand(cc *cli.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "broadcast",
+		Short: "Run a command on all connected clients",
+	}
 
-func init() {
-	rootCmd.AddCommand(broadcastCmd)
-	broadcastCmd.Flags().StringP("command", "r", "", "command to run")
+	cmd.Flags().StringP("command", "r", "", "command to run")
+
+	lo.Must0(cmd.MarkFlagRequired("command"))
+
+	viperext.MustBindCommandFlags(cc.Viper, cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cfg, err := viperext.GetConfig(cc.Viper, &client.Config{})
+		if err != nil {
+			return fmt.Errorf("unmarshalling config: %w", err)
+		}
+		c, err := cli.NewBroadcast(cc, args, cfg)
+		if err != nil {
+			return fmt.Errorf("creating broadcast cli: %w", err)
+		}
+		return c.Run(cmd.Context())
+	}
+
+	return cmd
 }

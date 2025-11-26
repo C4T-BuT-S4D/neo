@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
+	epb "github.com/c4t-but-s4d/neo/v2/pkg/proto/exploits"
 )
 
 type ExploitsConfig struct {
@@ -35,13 +35,13 @@ func FromProto(config *epb.Config) (*ExploitsConfig, error) {
 		cfg ExploitsConfig
 		err error
 	)
-	if cfg.FlagRegexp, err = regexp.Compile(config.FlagRegexp); err != nil {
+	if cfg.FlagRegexp, err = regexp.Compile(config.GetFlagRegexp()); err != nil {
 		return nil, fmt.Errorf("compiling regex: %w", err)
 	}
-	cfg.FarmURL = config.FarmUrl
-	cfg.FarmPassword = config.FarmPassword
-	cfg.PingEvery = config.PingEvery.AsDuration()
-	cfg.SubmitEvery = config.SubmitEvery.AsDuration()
-	cfg.Environ = config.Environ
+	cfg.FarmURL = config.GetFarmUrl()
+	cfg.FarmPassword = config.GetFarmPassword()
+	cfg.PingEvery = config.GetPingEvery().AsDuration()
+	cfg.SubmitEvery = config.GetSubmitEvery().AsDuration()
+	cfg.Environ = config.GetEnviron()
 	return &cfg, nil
 }

@@ -7,47 +7,71 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
-          args: --config .golangci.yml
+          version: v2.6.2
 
       - name: Run tests
         run: make test-cov
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   proto:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - uses: bufbuild/buf-setup-action@v1
-      - uses: bufbuild/buf-lint-action@v1
+        uses: actions/checkout@v5
+      - uses: bufbuild/buf-action@v1
         with:
           input: proto
-          config: proto/buf.yaml
+          lint: true
+
+  front:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: 'front/package.json'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'front/.nvmrc'
+          cache: 'pnpm'
+          cache-dependency-path: 'front/pnpm-lock.yaml'
+
+      - name: Install deps
+        run: cd front && pnpm i --frozen-lockfile
+
+      - name: run linter
+        run: make lint-front
 
   image:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Expose GitHub Runtime
-        uses: crazy-max/ghaction-github-runtime@v2
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Build && test client image
         run: |

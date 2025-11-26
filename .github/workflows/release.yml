@@ -6,14 +6,17 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+      repo_name_lower: ${{ steps.repo_name.outputs.lowercase }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
 
@@ -30,34 +33,38 @@ jobs:
           make setup-release
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
           args: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - id: repo_name
         uses: ASzc/change-string-case-action@v5
         with:
           string: ${{ github.repository_owner }}
 
+  docker_full_and_sage:
+    name: Build full and sage images
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare Docker builder
+        uses: ./.github/actions/docker-prepare
+        with:
+          version: ${{ needs.release.outputs.version }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push full client image
         id: docker_build_full
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: client_env/Dockerfile
@@ -67,27 +74,12 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: 'linux/amd64'
           tags: |
-            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env:latest
-            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env:${{ steps.get_version.outputs.VERSION }}
-
-      - name: Build and push light client image
-        id: docker_build_light
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: client_env/Dockerfile
-          target: image-light
-          push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: 'linux/amd64,linux/arm64'
-          tags: |
-            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_light:latest
-            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_light:${{ steps.get_version.outputs.VERSION }}
+            ghcr.io/${{ needs.release.outputs.repo_name_lower }}/neo_env:latest
+            ghcr.io/${{ needs.release.outputs.repo_name_lower }}/neo_env:${{ needs.release.outputs.version }}
 
       - name: Build and push sage client image
         id: docker_build_sage
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: client_env/Dockerfile
@@ -97,6 +89,37 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: 'linux/amd64'
           tags: |
-            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_sage:latest
-            ghcr.io/${{ steps.repo_name.outputs.lowercase }}/neo_env_sage:${{ steps.get_version.outputs.VERSION }}
+            ghcr.io/${{ needs.release.outputs.repo_name_lower }}/neo_env_sage:latest
+            ghcr.io/${{ needs.release.outputs.repo_name_lower }}/neo_env_sage:${{ needs.release.outputs.version }}
 
+  docker_light:
+    name: Build light image
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare Docker builder
+        uses: ./.github/actions/docker-prepare
+        with:
+          version: ${{ needs.release.outputs.version }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push light client image
+        id: docker_build_light
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: client_env/Dockerfile
+          target: image-light
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: 'linux/amd64,linux/arm64'
+          tags: |
+            ghcr.io/${{ needs.release.outputs.repo_name_lower }}/neo_env_light:latest
+            ghcr.io/${{ needs.release.outputs.repo_name_lower }}/neo_env_light:${{ needs.release.outputs.version }}

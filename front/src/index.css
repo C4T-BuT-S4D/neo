@@ -1,0 +1,8 @@
+body > #root {
+  max-height: 100vh;
+  /* overflow: hidden; */
+}
+
+body {
+  margin: 0;
+}

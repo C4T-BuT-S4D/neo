@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/models"
@@ -59,10 +60,24 @@ func (t *Job) Command(ctx context.Context) *exec.Cmd {
 		cmd.Dir = t.dir
 	}
 
+	cmd.WaitDelay = 5 * time.Second
+	cmd.Cancel = func() error {
+		if cmd.Process == nil {
+			return nil
+		}
+		if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
+			return fmt.Errorf("killing process group %d: %w", cmd.Process.Pid, err)
+		}
+		return nil
+	}
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, t.environ...)
 
-	// disable buffering in python scripts
+	// Disable buffering in python scripts
 	cmd.Env = append(cmd.Env, "PYTHONUNBUFFERED=1")
 	// Disable terminal for pwntools.
 	cmd.Env = append(cmd.Env, "PWNLIB_NOTERM=1")

@@ -2,13 +2,13 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
 	"sync"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 	"github.com/c4t-but-s4d/neo/v2/internal/config"
@@ -25,20 +25,24 @@ type dryRunCLI struct {
 	teamIP    string
 }
 
-func NewDryRun(cmd *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+func NewDryRun(cc *Context, args []string, cfg *client.Config) (NeoCLI, error) {
 	cfg.ExploitDir = path.Join(cfg.ExploitDir, "dry")
 	if err := os.MkdirAll(cfg.ExploitDir, os.ModePerm); err != nil {
-		logrus.Fatalf("failed to create dry dir (%v): %v", cfg.ExploitDir, err)
+		return nil, fmt.Errorf("creating dry dir %s: %w", cfg.ExploitDir, err)
 	}
 
-	cli := &dryRunCLI{
-		baseCLI:   &baseCLI{cfg: cfg},
-		exploitID: args[0],
-		jobs:      parseJobsFlag(cmd, "jobs"),
+	jobs := cc.Viper.GetInt("jobs")
+	if jobs < 0 {
+		return nil, errors.New("jobs should be non-negative")
 	}
-	cli.teamID, _ = cmd.Flags().GetString("team_id")
-	cli.teamIP, _ = cmd.Flags().GetString("team_ip")
-	return cli
+
+	return &dryRunCLI{
+		baseCLI:   &baseCLI{cc: cc, cfg: cfg},
+		exploitID: args[0],
+		jobs:      jobs,
+		teamID:    cc.Viper.GetString("team_id"),
+		teamIP:    cc.Viper.GetString("team_ip"),
+	}, nil
 }
 
 func (rc *dryRunCLI) Run(ctx context.Context) error {
@@ -50,7 +54,7 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get config from server: %w", err)
 	}
-	cfg, err := config.FromProto(state.Config)
+	cfg, err := config.FromProto(state.GetConfig())
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %w", err)
 	}
@@ -59,16 +63,16 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 		return fmt.Errorf("exploit %s does not exist, add it first", rc.exploitID)
 	}
 
-	storage := exploit.NewStorage(exploit.NewCache(), rc.baseCLI.cfg.ExploitDir, c)
-	storage.UpdateExploits(ctx, state.Exploits)
+	storage := exploit.NewStorage(exploit.NewCache(), rc.cfg.ExploitDir, c)
+	storage.UpdateExploits(ctx, state.GetExploits())
 	ex, ok := storage.Exploit(rc.exploitID)
 	if !ok {
 		return fmt.Errorf("failed to find exploit '%s' in storage", rc.exploitID)
 	}
 
 	allTeams := make(map[string]string)
-	for _, tbuck := range state.ClientTeamMap {
-		for k, v := range tbuck.Teams {
+	for _, tbuck := range state.GetClientTeamMap() {
+		for k, v := range tbuck.GetTeams() {
 			allTeams[k] = v
 		}
 	}
@@ -101,34 +105,31 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		q.Start(runCtx)
-		logrus.Info("Queue finished")
-	}()
+		zap.L().Info("Queue finished")
+	})
 
 	for _, t := range tasks {
 		if err := q.Add(t); err != nil {
-			logrus.Errorf("Failed to add task (%+v) to queue: %v", t, err)
+			zap.L().Error("Failed to add task to queue", zap.Any("task", t), zap.Error(err))
 		}
 	}
 
 	tasksDone := 0
-loop:
 	for {
 		select {
-		case res, ok := <-q.Results():
-			if !ok || tasksDone+1 == len(tasks) && !ex.Endless {
-				logrus.Info("Finished running sploits, waiting for queue to finish")
-				break loop
+		case res := <-q.Results():
+			if tasksDone+1 == len(tasks) && !ex.Endless {
+				zap.L().Info("Finished running sploits, waiting for queue to finish")
+				runCancel()
+				return nil
 			}
 			tasksDone++
-			logrus.Infof("Target = %v, Out = %v", res.Target, string(res.Out))
+			zap.L().Info("Result", zap.Any("target", res.Target), zap.String("output", string(res.Out)))
 		case <-ctx.Done():
-			logrus.Info("Got interrupt")
+			zap.L().Info("Got interrupt")
 			return nil
 		}
 	}
-	return nil
 }

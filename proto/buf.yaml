@@ -4,7 +4,7 @@ breaking:
     - WIRE_JSON
 lint:
   use:
-    - DEFAULT
+    - STANDARD
   except:
     - PACKAGE_VERSION_SUFFIX
     - RPC_REQUEST_STANDARD_NAME

@@ -1,0 +1,20 @@
+[tools]
+go = "1.25"
+golangci-lint = "2.6.2"
+buf = "latest"
+goreleaser = "latest"
+"go:google.golang.org/protobuf/cmd/protoc-gen-go" = "latest"
+"go:google.golang.org/grpc/cmd/protoc-gen-go-grpc" = "latest"
+"go:github.com/planetscale/vtprotobuf/cmd/protoc-gen-go-vtproto" = "latest"
+
+[tasks.go-lint]
+description = "Run golangci-lint"
+run = "golangci-lint run -v --config .golangci.yml"
+
+[tasks.go-lint-fix]
+description = "Run golangci-lint and fix lint issues"
+run = "golangci-lint run -v --config .golangci.yml --fix"
+
+[tasks.go-test]
+description = "Run go tests"
+run = "go test -race -timeout 1m ./..."

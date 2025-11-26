@@ -12,7 +12,9 @@ func TestDynamicSizeCacheSimple(t *testing.T) {
 	s := &mockWStream{}
 	cache := NewDynamicSizeCache[*mockSizable, []*mockSizable](
 		s,
-		10,
+		10,  // maxSize
+		100, // maxCount
+		func(m *mockSizable) int { return m.size },
 		func(a []*mockSizable) (*[]*mockSizable, error) {
 			return &a, nil
 		},
@@ -39,7 +41,9 @@ func TestDynamicSizeCache_ErrorPropagation(t *testing.T) {
 	s := &mockWStream{returnErr: mockErr}
 	cache := NewDynamicSizeCache[*mockSizable, []*mockSizable](
 		s,
-		5,
+		5,   // maxSize
+		100, // maxCount
+		func(m *mockSizable) int { return m.size },
 		func(a []*mockSizable) (*[]*mockSizable, error) {
 			return &a, nil
 		},
@@ -50,12 +54,41 @@ func TestDynamicSizeCache_ErrorPropagation(t *testing.T) {
 	require.Equal(t, [][]*mockSizable{{&mockSizable{size: 5}}}, s.sent)
 }
 
-type mockSizable struct {
-	size int
+func TestDynamicSizeCache_MaxCount(t *testing.T) {
+	s := &mockWStream{}
+	cache := NewDynamicSizeCache[*mockSizable, []*mockSizable](
+		s,
+		1000, // maxSize - large enough to not trigger
+		3,    // maxCount - flush after 3 items
+		func(m *mockSizable) int { return m.size },
+		func(a []*mockSizable) (*[]*mockSizable, error) {
+			return &a, nil
+		},
+	)
+	gen := func(a int) *mockSizable {
+		return &mockSizable{size: a}
+	}
+
+	// Queue 2 items - should not flush
+	require.NoError(t, cache.Queue(gen(1), gen(1)))
+	require.Empty(t, s.sent)
+
+	// Queue 1 more item - should flush (total 3)
+	require.NoError(t, cache.Queue(gen(1)))
+	require.Equal(t, [][]*mockSizable{{gen(1), gen(1), gen(1)}}, s.sent)
+
+	// Queue 4 more items - should flush after 3
+	s.sent = nil
+	require.NoError(t, cache.Queue(gen(2), gen(2), gen(2), gen(2)))
+	require.Equal(t, [][]*mockSizable{{gen(2), gen(2), gen(2)}}, s.sent)
+
+	// Final flush should get the remaining item
+	require.NoError(t, cache.Flush())
+	require.Equal(t, [][]*mockSizable{{gen(2), gen(2), gen(2)}, {gen(2)}}, s.sent)
 }
 
-func (s *mockSizable) EstimateSize() int {
-	return s.size
+type mockSizable struct {
+	size int
 }
 
 type mockWStream struct {

@@ -2,10 +2,11 @@ package cli
 
 import (
 	"context"
-	"sync"
+	"errors"
+	"fmt"
 
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 	"github.com/c4t-but-s4d/neo/v2/internal/exploit"
@@ -17,43 +18,42 @@ const JobsPerCPU = 5
 type runCLI struct {
 	*baseCLI
 	run    *exploit.Runner
-	sender *joblogger.RemoteSender
+	sender joblogger.Sender
 }
 
-func parseJobsFlag(cmd *cobra.Command, name string) int {
-	jobs, err := cmd.Flags().GetInt(name)
-	if err != nil {
-		logrus.Fatalf("Could not get jobs number: %v", err)
-	}
-	if jobs < 0 {
-		logrus.Fatal("run: job count should be non-negative")
-	}
-	return jobs
-}
-
-func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
+func NewRun(cc *Context, _ []string, cfg *client.Config) (NeoCLI, error) {
 	cli := &runCLI{
-		baseCLI: &baseCLI{cfg: cfg},
+		baseCLI: &baseCLI{cc: cc, cfg: cfg},
 	}
 	neocli, err := cli.client()
 	if err != nil {
-		logrus.Fatalf("run: failed to create client: %v", err)
+		return nil, fmt.Errorf("creating client: %w", err)
 	}
 
-	jobs := parseJobsFlag(cmd, "jobs")
-	endlessJobs := parseJobsFlag(cmd, "endless-jobs")
-	timeoutScaleTarget, err := cmd.Flags().GetFloat64("timeout-autoscale-target")
-	if err != nil {
-		logrus.Fatalf("Could not get timeout-autoscale-target flag: %v", err)
+	jobs := cc.Viper.GetInt("jobs")
+	if jobs < 0 {
+		return nil, errors.New("jobs should be non-negative")
 	}
+
+	endlessJobs := cc.Viper.GetInt("endless_jobs")
+	if endlessJobs < 0 {
+		return nil, errors.New("endless-jobs should be non-negative")
+	}
+
+	timeoutScaleTarget := cc.Viper.GetFloat64("timeout_autoscale_target")
 	if timeoutScaleTarget < 0 {
-		logrus.Fatalf("timeout-autoscale-target should be non-negative")
+		return nil, errors.New("timeout-autoscale-target should be non-negative")
+	}
+
+	clientID, err := cli.ClientID()
+	if err != nil {
+		return nil, err
 	}
 
 	neocli.Weight = jobs
 	cli.sender = joblogger.NewRemoteSender(neocli)
 	cli.run = exploit.NewRunner(
-		cli.ClientID(),
+		clientID,
 		jobs,
 		endlessJobs,
 		timeoutScaleTarget,
@@ -62,19 +62,28 @@ func NewRun(cmd *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
 		cli.sender,
 	)
 
-	return cli
+	return cli, nil
 }
 
 func (rc *runCLI) Run(ctx context.Context) error {
-	wg := sync.WaitGroup{}
-	defer wg.Wait()
+	g, gctx := errgroup.WithContext(ctx)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		rc.sender.Start(ctx)
-		logrus.Info("log sender finished")
-	}()
+	g.Go(func() error {
+		rc.sender.Start(gctx)
+		zap.L().Info("Log sender finished")
+		return nil
+	})
 
-	return rc.run.Run(ctx) // nolint:wrapcheck
+	g.Go(func() error {
+		if err := rc.run.Run(gctx); err != nil {
+			return fmt.Errorf("running exploit runner: %w", err)
+		}
+		zap.L().Info("Exploit runner finished")
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("running client: %w", err)
+	}
+	return nil
 }

@@ -49,9 +49,8 @@ func Test_subscription_Run(t *testing.T) {
 
 	select {
 	case <-signal:
-		break
 	case <-time.After(time.Millisecond * 100):
-		t.Errorf("Handler was not called in time")
+		t.Error("Handler was not called in time")
 	}
 
 	require.Equal(t, msg, received)

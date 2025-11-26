@@ -1,32 +1,38 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/pkg/viperext"
 )
 
-// tailCmd represents the tail command
-var tailCmd = &cobra.Command{
-	Use:   "tail",
-	Short: "Tail exploit logs by name",
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := client.MustUnmarshalConfig()
-		cli := cli.NewTail(cmd, args, cfg)
-		ctx := cmd.Context()
-		if err := cli.Run(ctx); err != nil {
-			logrus.Fatalf("Error tailing logs: %v", err)
+func NewTailCommand(cc *cli.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tail",
+		Short: "Tail exploit logs by name",
+		Args:  cobra.ExactArgs(1),
+	}
+
+	cmd.Flags().Int64("version", 0, "exploit version")
+	cmd.Flags().IntP("count", "n", -1, "lines to show (-1 for all lines)")
+
+	viperext.MustBindCommandFlags(cc.Viper, cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cfg, err := viperext.GetConfig(cc.Viper, &client.Config{})
+		if err != nil {
+			return fmt.Errorf("unmarshalling config: %w", err)
 		}
-		logrus.Debugf("Tail finished")
-	},
-}
+		c, err := cli.NewTail(cc, args, cfg)
+		if err != nil {
+			return fmt.Errorf("creating tail cli: %w", err)
+		}
+		return c.Run(cmd.Context())
+	}
 
-func init() {
-	rootCmd.AddCommand(tailCmd)
-
-	tailCmd.PersistentFlags().Int64("version", 0, "exploit version")
-	tailCmd.PersistentFlags().IntP("count", "n", -1, "lines to show (-1 for all lines)")
+	return cmd
 }

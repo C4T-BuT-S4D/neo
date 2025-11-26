@@ -2,81 +2,115 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"os/signal"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/c4t-but-s4d/neo/v2/internal/logger"
+	_ "google.golang.org/grpc/encoding/gzip"
+
+	"github.com/c4t-but-s4d/neo/v2/internal/logstor"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/config"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/exploits"
 	"github.com/c4t-but-s4d/neo/v2/internal/server/fs"
-	logs "github.com/c4t-but-s4d/neo/v2/internal/server/logs"
+	"github.com/c4t-but-s4d/neo/v2/internal/server/logs"
+	serverMetrics "github.com/c4t-but-s4d/neo/v2/internal/server/metrics"
 	"github.com/c4t-but-s4d/neo/v2/pkg/grpcauth"
+	"github.com/c4t-but-s4d/neo/v2/pkg/logging"
+	"github.com/c4t-but-s4d/neo/v2/pkg/mu"
+	"github.com/c4t-but-s4d/neo/v2/pkg/neohttp"
 	"github.com/c4t-but-s4d/neo/v2/pkg/neosync"
-	epb "github.com/c4t-but-s4d/neo/v2/proto/go/exploits"
-	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
-	logspb "github.com/c4t-but-s4d/neo/v2/proto/go/logs"
+	epb "github.com/c4t-but-s4d/neo/v2/pkg/proto/exploits"
+	fspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/fileserver"
+	logspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/logs"
+	"github.com/c4t-but-s4d/neo/v2/pkg/viperext"
 )
 
 func main() {
-	logger.Init()
-	if err := setupConfig(); err != nil {
-		logrus.Fatalf("Error setting up config: %v", err)
+	if err := run(); err != nil {
+		zap.L().Fatal("Running server", zap.Error(err))
 	}
+}
 
-	cfg, err := readConfig()
+func loadConfig() (*config.Config, error) {
+	pflag.String("log-level", "info", "Log level (debug, info, warn, error)")
+	pflag.StringP("config", "c", "server_config.yml", "Path to config file")
+	pflag.String("address", ":5005", "Server address")
+	pflag.String("metrics-address", ":3000", "Metrics server address")
+	pflag.Parse()
+
+	v, err := viperext.NewViper("NEO")
 	if err != nil {
-		logrus.Fatalf("Error reading config: %v", err)
+		return nil, fmt.Errorf("creating viper: %w", err)
 	}
 
-	setLogLevel(cfg)
+	viperext.BindPFlags(v, pflag.CommandLine)
+
+	v.SetConfigFile(v.GetString("config"))
+	v.SetConfigType("yaml")
+
+	if err := v.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("reading config file: %w", err)
+	}
+
+	cfg, err := viperext.GetConfig(v, &config.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("parsing config: %w", err)
+	}
+
+	return cfg, nil
+}
+
+func run() error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	defer logging.Init(cfg.LogLevel).Close()
+
+	zap.L().Info("Config loaded", zap.Any("config", cfg))
 
 	initCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	fc := exploits.NewFarmClient(cfg.FarmConfig)
 	if err := fc.FillConfig(initCtx, &cfg.FarmConfig); err != nil {
-		logrus.Fatalf("Failed to fetch config from farm: %v", err)
+		return fmt.Errorf("fetching config from farm: %w", err)
 	}
 
 	st, err := exploits.NewBoltStorage(cfg.DBPath)
 	if err != nil {
-		logrus.Fatalf("Failed to create bolt storage: %v", err)
+		return fmt.Errorf("creating bolt storage: %w", err)
 	}
 
-	logStore, err := logs.NewLogStorage(initCtx, cfg.RedisURL)
+	zap.L().Info("Using VictoriaLogs storage", zap.String("url", cfg.VictoriaLogsURL))
+	logStore, err := logstor.NewVictoriaLogsStorage(cfg.VictoriaLogsURL)
 	if err != nil {
-		logrus.Fatalf("Failed to create log storage: %v", err)
+		return fmt.Errorf("creating victorialogs storage: %w", err)
 	}
 
 	if cfg.PingEvery <= 0 {
-		logrus.Fatalf("ping_every should be positive")
+		return errors.New("ping_every should be positive")
 	}
-	logrus.Infof("Config: %+v", cfg)
+	if cfg.SubmitEvery <= 0 {
+		return errors.New("submit_every should be positive")
+	}
 
 	exploitsServer := exploits.New(cfg, st)
 	fsServer, err := fs.New(cfg)
 	if err != nil {
-		logrus.Fatalf("Failed to create file server: %v", err)
+		return fmt.Errorf("creating file server: %w", err)
 	}
 	logsServer := logs.New(logStore)
-
-	lis, err := net.Listen("tcp", cfg.Addr)
-	if err != nil {
-		logrus.Fatalf("Failed to listen: %v", err)
-	}
 
 	var opts []grpc.ServerOption
 	if cfg.GrpcAuthKey != "" {
@@ -91,96 +125,69 @@ func main() {
 	logspb.RegisterServiceServer(s, logsServer)
 	reflection.Register(s)
 
-	http.Handle("/metrics", promhttp.Handler())
-	go func() {
-		logrus.Infof("Starting metrics server on %s", viper.GetString("metrics.address"))
-		if err := http.ListenAndServe(viper.GetString("metrics.address"), http.DefaultServeMux); err != nil {
-			logrus.Fatalf("Failed to serve metrics: %v", err)
-		}
-	}()
+	httpMux := http.NewServeMux()
+	httpMux.Handle("/", neohttp.StaticHandler(cfg.StaticDir))
+	httpMux.Handle("/api/metrics/", serverMetrics.NewProxyHandler(http.DefaultClient, cfg.VictoriaMetricsURL, cfg.GrpcAuthKey))
+
+	muHandler := mu.NewHandler(s, mu.WithHTTPHandler(httpMux))
+	httpServer := &http.Server{
+		Handler: muHandler,
+		Addr:    cfg.Address,
+	}
+
+	// Separate server to make it private.
+	metricsMux := http.NewServeMux()
+	metricsMux.Handle("/metrics", promhttp.Handler())
+	metricsServer := &http.Server{
+		Handler: metricsMux,
+		Addr:    cfg.MetricsAddress,
+	}
 
 	runCtx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	wg := sync.WaitGroup{}
-
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
+	var wg sync.WaitGroup
+	wg.Go(func() {
 		exploitsServer.HeartBeat(runCtx)
-	}()
-	go func() {
-		defer wg.Done()
+	})
+	wg.Go(func() {
 		exploitsServer.UpdateMetrics(runCtx)
-	}()
-	go func() {
-		defer wg.Done()
-		<-runCtx.Done()
-		logrus.Info("Received shutdown signal, stopping server")
-		s.GracefulStop()
-	}()
+	})
+	wg.Go(func() {
+		zap.L().Info("Starting metrics server", zap.String("address", metricsServer.Addr))
+		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			zap.L().Fatal("Failed to serve metrics", zap.Error(err))
+		}
+	})
+	wg.Go(func() {
+		zap.L().Info("Starting multiproto server", zap.String("address", httpServer.Addr))
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			zap.L().Fatal("Failed to serve http", zap.Error(err))
+		}
+	})
 
-	logrus.Infof("Starting server on %s", cfg.Addr)
-	if err := s.Serve(lis); err != nil {
-		logrus.Fatalf("Failed to serve: %v", err)
+	<-runCtx.Done()
+	zap.L().Info("Received shutdown signal, stopping servers")
+
+	shutdownCtx, shutdownCancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer shutdownCancel()
+	shutdownCtx, shutdownCancel = context.WithTimeout(shutdownCtx, 5*time.Second)
+	defer shutdownCancel()
+
+	var finalErr error
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		finalErr = errors.Join(finalErr, fmt.Errorf("shutting down http server: %w", err))
+	}
+	if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+		finalErr = errors.Join(finalErr, fmt.Errorf("shutting down metrics server: %w", err))
 	}
 
 	select {
 	case <-neosync.AwaitWG(&wg):
-		logrus.Info("Shutdown finished")
+		zap.L().Info("Shutdown finished")
 	case <-time.After(10 * time.Second):
-		logrus.Warn("Shutdown timeout")
-	}
-}
-
-func setupConfig() error {
-	pflag.BoolP("debug", "v", false, "Enable verbose logging")
-	pflag.StringP("config", "c", "server_config.yml", "Path to config file")
-	pflag.Parse()
-
-	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		return fmt.Errorf("binding flags: %w", err)
+		finalErr = errors.Join(finalErr, errors.New("shutdown timeout"))
 	}
 
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.SetEnvPrefix("NEO")
-	viper.AutomaticEnv()
-
-	viper.MustBindEnv("grpc_auth_key")
-	viper.MustBindEnv("farm.password")
-	viper.MustBindEnv("farm.url")
-
-	viper.SetDefault("config", "server_config.yml")
-	viper.SetDefault("ping_every", time.Second*5)
-	viper.SetDefault("submit_every", time.Second*2)
-	viper.SetDefault("metrics.address", ":3000")
-	viper.SetDefault("addr", ":5005")
-
-	return nil
-}
-
-func readConfig() (*config.Config, error) {
-	viper.SetConfigFile(viper.GetString("config"))
-	viper.SetConfigType("yaml")
-
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("reading yaml config: %w", err)
-	}
-
-	cfg := &config.Config{}
-	if err := viper.Unmarshal(cfg); err != nil {
-		return nil, fmt.Errorf("parsing config: %w", err)
-	}
-
-	logrus.Infof("Parsed config: %+v", cfg)
-
-	return cfg, nil
-}
-
-func setLogLevel(cfg *config.Config) {
-	if cfg.Debug {
-		logrus.SetLevel(logrus.DebugLevel)
-	} else {
-		logrus.SetLevel(logrus.InfoLevel)
-	}
+	return finalErr
 }

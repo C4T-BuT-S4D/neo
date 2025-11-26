@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	fspb "github.com/c4t-but-s4d/neo/v2/proto/go/fileserver"
+	fspb "github.com/c4t-but-s4d/neo/v2/pkg/proto/fileserver"
 )
 
 const (
@@ -29,7 +29,7 @@ func Save(stream DownloadStream, out io.Writer) error {
 		if err != nil {
 			return fmt.Errorf("reading from stream: %w", err)
 		}
-		if _, err := out.Write(in.Chunk); err != nil {
+		if _, err := out.Write(in.GetChunk()); err != nil {
 			return fmt.Errorf("writing stream content chunk: %w", err)
 		}
 	}
