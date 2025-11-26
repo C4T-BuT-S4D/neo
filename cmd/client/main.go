@@ -30,7 +30,7 @@ func main() {
 		SilenceUsage:     true,
 		SilenceErrors:    true,
 		TraverseChildren: true,
-		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		PersistentPostRun: func(*cobra.Command, []string) {
 			logSync.Close()
 		},
 	}

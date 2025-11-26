@@ -126,6 +126,7 @@ linters:
         - statusext.New
         - errors.New(text string)
         - WrapErrorf
+        - errors.Join
     revive:
       enable-all-rules: true
       rules:

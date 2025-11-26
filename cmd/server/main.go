@@ -99,7 +99,10 @@ func run() error {
 	}
 
 	if cfg.PingEvery <= 0 {
-		return fmt.Errorf("ping_every should be positive")
+		return errors.New("ping_every should be positive")
+	}
+	if cfg.SubmitEvery <= 0 {
+		return errors.New("submit_every should be positive")
 	}
 
 	exploitsServer := exploits.New(cfg, st)
@@ -183,7 +186,7 @@ func run() error {
 	case <-neosync.AwaitWG(&wg):
 		zap.L().Info("Shutdown finished")
 	case <-time.After(10 * time.Second):
-		finalErr = errors.Join(finalErr, fmt.Errorf("shutdown timeout"))
+		finalErr = errors.Join(finalErr, errors.New("shutdown timeout"))
 	}
 
 	return finalErr
