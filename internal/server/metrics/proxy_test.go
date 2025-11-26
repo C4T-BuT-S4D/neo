@@ -7,21 +7,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestProxyHandler_Success(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/api/v1/import/prometheus", r.URL.Path)
-		require.Equal(t, "text/plain", r.Header.Get("Content-Type"))
-		require.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
+		assert.Equal(t, "/api/v1/import/prometheus", r.URL.Path)
+		assert.Equal(t, "text/plain", r.Header.Get("Content-Type"))
+		assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-		require.Equal(t, "metric_name 42", string(body))
+		assert.NoError(t, err)
+		assert.Equal(t, "metric_name 42", string(body))
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, err = w.Write([]byte("ok"))
+		assert.NoError(t, err)
 	}))
 	defer backend.Close()
 
@@ -40,7 +42,7 @@ func TestProxyHandler_Success(t *testing.T) {
 
 func TestProxyHandler_PathSuffix(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/api/v1/import/prometheus/extra/path", r.URL.Path)
+		assert.Equal(t, "/api/v1/import/prometheus/extra/path", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()
@@ -55,7 +57,7 @@ func TestProxyHandler_PathSuffix(t *testing.T) {
 }
 
 func TestProxyHandler_AuthRequired(t *testing.T) {
-	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()
@@ -70,7 +72,7 @@ func TestProxyHandler_AuthRequired(t *testing.T) {
 }
 
 func TestProxyHandler_AuthSuccess(t *testing.T) {
-	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()
@@ -99,7 +101,7 @@ func TestProxyHandler_MethodNotAllowed(t *testing.T) {
 
 func TestProxyHandler_PutAllowed(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, http.MethodPut, r.Method)
+		assert.Equal(t, http.MethodPut, r.Method)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()
@@ -114,9 +116,10 @@ func TestProxyHandler_PutAllowed(t *testing.T) {
 }
 
 func TestProxyHandler_BackendError(t *testing.T) {
-	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("backend error"))
+		_, err := w.Write([]byte("backend error"))
+		assert.NoError(t, err)
 	}))
 	defer backend.Close()
 

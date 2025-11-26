@@ -22,7 +22,7 @@ import (
 
 const bufSize = 1024 * 1024
 
-func testServerWithClient(t *testing.T, storage *logstor.MockStorage) (*Server, logspb.ServiceClient) {
+func testServerWithClient(t *testing.T, storage *logstor.MockStorage) logspb.ServiceClient {
 	t.Helper()
 
 	s := New(storage)
@@ -55,7 +55,7 @@ func testServerWithClient(t *testing.T, storage *logstor.MockStorage) (*Server, 
 	})
 
 	client := logspb.NewServiceClient(conn)
-	return s, client
+	return client
 }
 
 func TestNew(t *testing.T) {
@@ -66,7 +66,7 @@ func TestNew(t *testing.T) {
 
 func TestServer_AddLogLines(t *testing.T) {
 	storage := logstor.NewMockStorage()
-	_, client := testServerWithClient(t, storage)
+	client := testServerWithClient(t, storage)
 	ctx := context.Background()
 
 	lines := []*logspb.LogLine{
@@ -100,7 +100,7 @@ func TestServer_AddLogLines(t *testing.T) {
 
 func TestServer_AddLogLines_Empty(t *testing.T) {
 	storage := logstor.NewMockStorage()
-	_, client := testServerWithClient(t, storage)
+	client := testServerWithClient(t, storage)
 	ctx := context.Background()
 
 	_, err := client.AddLogLines(ctx, &logspb.AddLogLinesRequest{Lines: nil})
@@ -112,7 +112,7 @@ func TestServer_AddLogLines_Empty(t *testing.T) {
 func TestServer_AddLogLines_Error(t *testing.T) {
 	storage := logstor.NewMockStorage()
 	storage.AddErr = errors.New("storage error")
-	_, client := testServerWithClient(t, storage)
+	client := testServerWithClient(t, storage)
 	ctx := context.Background()
 
 	lines := []*logspb.LogLine{
@@ -129,7 +129,7 @@ func TestServer_AddLogLines_Error(t *testing.T) {
 
 func TestServer_SearchLogLines(t *testing.T) {
 	storage := logstor.NewMockStorage()
-	_, client := testServerWithClient(t, storage)
+	client := testServerWithClient(t, storage)
 	ctx := context.Background()
 
 	// Add some lines first
@@ -181,7 +181,7 @@ func TestServer_SearchLogLines(t *testing.T) {
 
 func TestServer_SearchLogLines_ByVersion(t *testing.T) {
 	storage := logstor.NewMockStorage()
-	_, client := testServerWithClient(t, storage)
+	client := testServerWithClient(t, storage)
 	ctx := context.Background()
 
 	lines := []*logspb.LogLine{
@@ -222,7 +222,7 @@ func TestServer_SearchLogLines_ByVersion(t *testing.T) {
 
 func TestServer_SearchLogLines_Empty(t *testing.T) {
 	storage := logstor.NewMockStorage()
-	_, client := testServerWithClient(t, storage)
+	client := testServerWithClient(t, storage)
 	ctx := context.Background()
 
 	stream, err := client.SearchLogLines(ctx, &logspb.SearchLogLinesRequest{
@@ -246,7 +246,7 @@ func TestServer_SearchLogLines_Empty(t *testing.T) {
 func TestServer_SearchLogLines_Error(t *testing.T) {
 	storage := logstor.NewMockStorage()
 	storage.SearchErr = errors.New("search error")
-	_, client := testServerWithClient(t, storage)
+	client := testServerWithClient(t, storage)
 	ctx := context.Background()
 
 	stream, err := client.SearchLogLines(ctx, &logspb.SearchLogLinesRequest{
@@ -261,7 +261,7 @@ func TestServer_SearchLogLines_Error(t *testing.T) {
 
 func TestServer_AddAndSearch(t *testing.T) {
 	storage := logstor.NewMockStorage()
-	_, client := testServerWithClient(t, storage)
+	client := testServerWithClient(t, storage)
 	ctx := context.Background()
 
 	// Add via gRPC
@@ -304,12 +304,12 @@ func TestServer_AddAndSearch(t *testing.T) {
 
 func TestServer_SearchLogLines_WithLimit(t *testing.T) {
 	storage := logstor.NewMockStorage()
-	_, client := testServerWithClient(t, storage)
+	client := testServerWithClient(t, storage)
 	ctx := context.Background()
 
 	// Add many lines
-	var lines []*logspb.LogLine
-	for i := 0; i < 10; i++ {
+	lines := make([]*logspb.LogLine, 0, 10)
+	for range 10 {
 		lines = append(lines, &logspb.LogLine{
 			Exploit:   "exploit1",
 			Version:   1,
