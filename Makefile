@@ -40,7 +40,7 @@ proto:
 
 .PHONY: test-cov
 test-cov:
-	go test -race -timeout 1m -coverprofile=coverage.txt -covermode=atomic ./...
+	go test -race -timeout 1m -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
 
 .PHONY: build-image
 build-image:
