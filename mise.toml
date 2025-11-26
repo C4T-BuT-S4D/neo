@@ -2,6 +2,7 @@
 go = "1.25"
 golangci-lint = "2.6.2"
 buf = "latest"
+goreleaser = "latest"
 "go:google.golang.org/protobuf/cmd/protoc-gen-go" = "latest"
 "go:google.golang.org/grpc/cmd/protoc-gen-go-grpc" = "latest"
 "go:github.com/planetscale/vtprotobuf/cmd/protoc-gen-go-vtproto" = "latest"

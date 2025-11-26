@@ -96,7 +96,7 @@ setup-release: cleanup-release-all
 
 .PHONY: release-dry-run
 release-dry-run:
-	goreleaser --snapshot --skip-publish --clean
+	goreleaser --snapshot --skip=publish --clean
 
 .PHONY: test-release
 test-release: setup-release release-dry-run cleanup-release

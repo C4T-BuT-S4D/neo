@@ -1,3 +1,5 @@
+version: 2
+
 builds:
   - id: "neo_client"
     main: "./cmd/client"
@@ -15,14 +17,16 @@ builds:
 
 archives:
   - id: "client"
-    format: zip
-    builds:
+    formats:
+      - zip
+    ids:
       - "neo_client"
     name_template: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     wrap_in_directory: "{{ .ProjectName }}_client_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: linux
-        format: tar.gz
+        formats:
+          - tar.gz
     files:
       - README.md
       - exploits/.keep
@@ -30,7 +34,8 @@ archives:
         dst: client_config.yml
 
   - id: "server"
-    format: zip
+    formats:
+      - zip
     meta: true
     name_template: "{{ .ProjectName }}_server_{{ .Version }}"
     wrap_in_directory: "{{ .ProjectName }}_server_{{ .Version }}"
@@ -48,7 +53,8 @@ archives:
       - front
 
   - id: "client_env"
-    format: zip
+    formats:
+      - zip
     meta: true
     name_template: "{{ .ProjectName }}_client_env_{{ .Version }}"
     wrap_in_directory: "{{ .ProjectName }}_client_env_{{ .Version }}"
@@ -75,7 +81,7 @@ release:
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 
 changelog:
   sort: asc
