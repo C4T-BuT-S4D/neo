@@ -12,7 +12,7 @@ type Config struct {
 	Address         string            `mapstructure:"address" default:":5005"`
 	StaticDir       string            `mapstructure:"static_dir" default:"front/dist"`
 	DBPath          string            `mapstructure:"db_path" default:"data/db.db"`
-	VictoriaLogsURL string            `mapstructure:"victorialogs_url" default:"http://127.0.0.1:9428"`
+	VictoriaLogsURL string            `mapstructure:"victorialogs_url" default:"http://victoria-logs:9428"`
 	BaseDir         string            `mapstructure:"base_dir" default:"data/exploits"`
 	PingEvery       time.Duration     `mapstructure:"ping_every" default:"5s"`
 	SubmitEvery     time.Duration     `mapstructure:"submit_every" default:"2s"`
@@ -20,8 +20,9 @@ type Config struct {
 	GrpcAuthKey     string            `mapstructure:"grpc_auth_key"`
 	Environ         map[string]string `mapstructure:"env"`
 
-	MetricsAddress   string `mapstructure:"metrics_address" default:":3000"`
-	MetricsNamespace string `mapstructure:"metrics_namespace"`
+	MetricsAddress     string `mapstructure:"metrics_address" default:":3000"`
+	MetricsNamespace   string `mapstructure:"metrics_namespace"`
+	VictoriaMetricsURL string `mapstructure:"victoriametrics_url" default:"http://victoria:8428"`
 
 	ConfigFile string `mapstructure:"config" default:"server_config.yml"`
 }

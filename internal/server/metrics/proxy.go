@@ -8,9 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewProxyHandler(victoriaURL, authKey string) http.HandlerFunc {
-	client := &http.Client{}
-
+func NewProxyHandler(client *http.Client, victoriaURL, authKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rl := zap.L().With(
 			zap.String("method", r.Method),

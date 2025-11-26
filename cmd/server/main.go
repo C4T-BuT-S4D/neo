@@ -127,7 +127,7 @@ func run() error {
 
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/", neohttp.StaticHandler(cfg.StaticDir))
-	httpMux.Handle("/api/metrics/", serverMetrics.NewProxyHandler("http://victoria:8428", cfg.GrpcAuthKey))
+	httpMux.Handle("/api/metrics/", serverMetrics.NewProxyHandler(http.DefaultClient, cfg.VictoriaMetricsURL, cfg.GrpcAuthKey))
 
 	muHandler := mu.NewHandler(s, mu.WithHTTPHandler(httpMux))
 	httpServer := &http.Server{
