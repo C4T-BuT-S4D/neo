@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
@@ -18,20 +17,13 @@ type tailCLI struct {
 	count     int
 }
 
-func NewTail(cmd *cobra.Command, args []string, cfg *client.Config) (NeoCLI, error) {
-	c := &tailCLI{
-		baseCLI:   &baseCLI{cfg: cfg},
+func NewTail(cc *Context, args []string, cfg *client.Config) (NeoCLI, error) {
+	return &tailCLI{
+		baseCLI:   &baseCLI{cc: cc, cfg: cfg},
 		exploitID: args[0],
-	}
-
-	var err error
-	if c.version, err = cmd.Flags().GetInt64("version"); err != nil {
-		return nil, fmt.Errorf("getting exploit version: %w", err)
-	}
-	if c.count, err = cmd.Flags().GetInt("count"); err != nil {
-		return nil, fmt.Errorf("getting count: %w", err)
-	}
-	return c, nil
+		version:   cc.Viper.GetInt64("version"),
+		count:     cc.Viper.GetInt("count"),
+	}, nil
 }
 
 func (tc *tailCLI) Run(ctx context.Context) error {

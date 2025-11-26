@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -16,49 +15,16 @@ import (
 
 type updateCLI struct {
 	*baseCLI
+	cmd       *cobra.Command
 	exploitID string
-	runEvery  *time.Duration
-	timeout   *time.Duration
-	endless   *bool
-	disabled  *bool
 }
 
-func NewUpdateCLI(cmd *cobra.Command, args []string, cfg *client.Config) (NeoCLI, error) {
-	c := &updateCLI{
-		baseCLI:   &baseCLI{cfg: cfg},
+func NewUpdateCLI(cc *Context, cmd *cobra.Command, args []string, cfg *client.Config) (NeoCLI, error) {
+	return &updateCLI{
+		baseCLI:   &baseCLI{cc: cc, cfg: cfg},
+		cmd:       cmd,
 		exploitID: args[0],
-	}
-
-	if cmd.Flags().Changed("interval") {
-		runEvery, err := cmd.Flags().GetDuration("interval")
-		if err != nil {
-			return nil, fmt.Errorf("parsing run interval: %w", err)
-		}
-		c.runEvery = &runEvery
-	}
-	if cmd.Flags().Changed("timeout") {
-		timeout, err := cmd.Flags().GetDuration("timeout")
-		if err != nil {
-			return nil, fmt.Errorf("parsing run timeout: %w", err)
-		}
-		c.timeout = &timeout
-	}
-	if cmd.Flags().Changed("endless") {
-		endless, err := cmd.Flags().GetBool("endless")
-		if err != nil {
-			return nil, fmt.Errorf("parsing endless flag: %w", err)
-		}
-		c.endless = &endless
-	}
-	if cmd.Flags().Changed("disabled") {
-		disabled, err := cmd.Flags().GetBool("disabled")
-		if err != nil {
-			return nil, fmt.Errorf("parsing disabled flag: %w", err)
-		}
-		c.disabled = &disabled
-	}
-
-	return c, nil
+	}, nil
 }
 
 func (uc *updateCLI) Run(ctx context.Context) error {
@@ -77,12 +43,21 @@ func (uc *updateCLI) Run(ctx context.Context) error {
 	escfg := es.GetConfig()
 
 	runEvery := escfg.GetRunEvery()
-	if uc.runEvery != nil {
-		runEvery = durationpb.New(*uc.runEvery)
+	if uc.cmd.Flags().Changed("interval") {
+		runEvery = durationpb.New(uc.cc.Viper.GetDuration("interval"))
 	}
 	timeout := escfg.GetTimeout()
-	if uc.timeout != nil {
-		timeout = durationpb.New(*uc.timeout)
+	if uc.cmd.Flags().Changed("timeout") {
+		timeout = durationpb.New(uc.cc.Viper.GetDuration("timeout"))
+	}
+
+	var endless *bool
+	if uc.cmd.Flags().Changed("endless") {
+		endless = lo.ToPtr(uc.cc.Viper.GetBool("endless"))
+	}
+	var disabled *bool
+	if uc.cmd.Flags().Changed("disabled") {
+		disabled = lo.ToPtr(uc.cc.Viper.GetBool("disabled"))
 	}
 
 	newState := &epb.ExploitState{
@@ -94,8 +69,8 @@ func (uc *updateCLI) Run(ctx context.Context) error {
 			IsArchive:  escfg.GetIsArchive(),
 			RunEvery:   runEvery,
 			Timeout:    timeout,
-			Endless:    lo.FromPtrOr(uc.endless, escfg.GetEndless()),
-			Disabled:   lo.FromPtrOr(uc.disabled, escfg.GetDisabled()),
+			Endless:    lo.FromPtrOr(endless, escfg.GetEndless()),
+			Disabled:   lo.FromPtrOr(disabled, escfg.GetDisabled()),
 		},
 	}
 

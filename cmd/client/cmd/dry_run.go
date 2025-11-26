@@ -5,37 +5,34 @@ import (
 	"runtime"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/pkg/viperext"
 )
 
-var dryRunCmd = &cobra.Command{
-	Use:   "dry-run",
-	Short: "Start Neo client",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := client.UnmarshalConfig()
+func NewDryRunCommand(cc *cli.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "dry-run",
+		Short: "Run exploit locally without server",
+		Args:  cobra.ExactArgs(1),
+	}
+
+	cmd.Flags().StringP("team_ip", "p", "", "ip of team to run")
+	cmd.Flags().StringP("team_id", "d", "", "id of team to run")
+	cmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "number of workers to run")
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cfg, err := viperext.GetConfig(cc.Viper, &client.Config{})
 		if err != nil {
 			return fmt.Errorf("unmarshalling config: %w", err)
 		}
-		c, err := cli.NewDryRun(cmd, args, cfg)
+		c, err := cli.NewDryRun(cc, args, cfg)
 		if err != nil {
 			return fmt.Errorf("creating dry-run cli: %w", err)
 		}
-		if err := c.Run(cmd.Context()); err != nil {
-			return fmt.Errorf("running dry-run: %w", err)
-		}
-		zap.L().Debug("Dry run finished")
-		return nil
-	},
-}
+		return c.Run(cmd.Context())
+	}
 
-//nolint:gochecknoinits // cli init
-func init() {
-	rootCmd.AddCommand(dryRunCmd)
-	dryRunCmd.Flags().StringP("team_ip", "p", "", "ip of team to run")
-	dryRunCmd.Flags().StringP("team_id", "d", "", "id of team to run")
-	dryRunCmd.Flags().IntP("jobs", "j", runtime.NumCPU()*cli.JobsPerCPU, "number of workers to run")
+	return cmd
 }

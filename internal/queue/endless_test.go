@@ -16,7 +16,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	logging.Init(true)
+	logging.Init("debug")
 	goleak.VerifyTestMain(m)
 }
 

@@ -13,11 +13,7 @@ func isBinary(data []byte) bool {
 }
 
 func getExploitFromState(state *exploits.ServerState, exploitID string) *exploits.ExploitState {
-	exp, ok := lo.Find(state.GetExploits(), func(s *exploits.ExploitState) bool {
+	return lo.FindOrElse(state.GetExploits(), nil, func(s *exploits.ExploitState) bool {
 		return s.GetExploitId() == exploitID
 	})
-	if !ok {
-		return nil
-	}
-	return exp
 }

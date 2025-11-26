@@ -4,37 +4,35 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/pkg/viperext"
 )
 
-var tailCmd = &cobra.Command{
-	Use:   "tail",
-	Short: "Tail exploit logs by name",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := client.UnmarshalConfig()
+func NewTailCommand(cc *cli.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tail",
+		Short: "Tail exploit logs by name",
+		Args:  cobra.ExactArgs(1),
+	}
+
+	cmd.Flags().Int64("version", 0, "exploit version")
+	cmd.Flags().IntP("count", "n", -1, "lines to show (-1 for all lines)")
+
+	viperext.MustBindCommandFlags(cc.Viper, cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cfg, err := viperext.GetConfig(cc.Viper, &client.Config{})
 		if err != nil {
 			return fmt.Errorf("unmarshalling config: %w", err)
 		}
-		c, err := cli.NewTail(cmd, args, cfg)
+		c, err := cli.NewTail(cc, args, cfg)
 		if err != nil {
 			return fmt.Errorf("creating tail cli: %w", err)
 		}
-		if err := c.Run(cmd.Context()); err != nil {
-			return fmt.Errorf("tailing logs: %w", err)
-		}
-		zap.L().Debug("Tail finished")
-		return nil
-	},
-}
+		return c.Run(cmd.Context())
+	}
 
-//nolint:gochecknoinits // cli init
-func init() {
-	rootCmd.AddCommand(tailCmd)
-
-	tailCmd.PersistentFlags().Int64("version", 0, "exploit version")
-	tailCmd.PersistentFlags().IntP("count", "n", -1, "lines to show (-1 for all lines)")
+	return cmd
 }

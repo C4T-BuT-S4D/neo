@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"iter"
@@ -34,7 +35,7 @@ type victoriaLogsDocument struct {
 	Team      string `json:"team"`
 }
 
-func NewVictoriaLogsStorage(ctx context.Context, baseURL string) (*VictoriaLogsStorage, error) {
+func NewVictoriaLogsStorage(baseURL string) (*VictoriaLogsStorage, error) {
 	// Ensure the URL is valid
 	if _, err := url.Parse(baseURL); err != nil {
 		return nil, fmt.Errorf("invalid base url: %w", err)
@@ -85,7 +86,10 @@ func (s *VictoriaLogsStorage) Add(ctx context.Context, lines ...*logspb.LogLine)
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("insert failed with status %d (body read failed): %w", resp.StatusCode, err)
+		}
 		return fmt.Errorf("insert failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -128,7 +132,11 @@ func (s *VictoriaLogsStorage) Search(ctx context.Context, searchReq *logspb.Sear
 		defer resp.Body.Close()
 
 		if resp.StatusCode >= 400 {
-			body, _ := io.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				yield(nil, fmt.Errorf("search failed with status %d (body read failed): %w", resp.StatusCode, err))
+				return
+			}
 			yield(nil, fmt.Errorf("search failed with status %d: %s", resp.StatusCode, string(body)))
 			return
 		}
@@ -137,7 +145,7 @@ func (s *VictoriaLogsStorage) Search(ctx context.Context, searchReq *logspb.Sear
 		decoder := json.NewDecoder(resp.Body)
 
 		for decoder.More() {
-			var doc map[string]interface{}
+			var doc map[string]any
 			if err := decoder.Decode(&doc); err != nil {
 				if err == io.EOF {
 					break
@@ -159,7 +167,7 @@ func (s *VictoriaLogsStorage) Search(ctx context.Context, searchReq *logspb.Sear
 	}
 }
 
-func parseVictoriaLogsLine(doc map[string]interface{}) (*logspb.LogLine, error) {
+func parseVictoriaLogsLine(doc map[string]any) (*logspb.LogLine, error) {
 	getStr := func(key string) string {
 		if v, ok := doc[key]; ok {
 			if s, ok := v.(string); ok {
@@ -171,7 +179,7 @@ func parseVictoriaLogsLine(doc map[string]interface{}) (*logspb.LogLine, error) 
 
 	timestampStr := getStr("_time")
 	if timestampStr == "" {
-		return nil, fmt.Errorf("missing _time field")
+		return nil, errors.New("missing _time field")
 	}
 
 	timestamp, err := time.Parse(time.RFC3339Nano, timestampStr)
@@ -198,7 +206,7 @@ func parseVictoriaLogsLine(doc map[string]interface{}) (*logspb.LogLine, error) 
 	}, nil
 }
 
-// buildLogsQLQuery builds a LogsQL query string
+// buildLogsQLQuery builds a LogsQL query string.
 func buildLogsQLQuery(exploit string, version int64) string {
 	var parts []string
 	if exploit != "" {

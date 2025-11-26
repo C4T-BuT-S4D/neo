@@ -3,10 +3,9 @@ package fs
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
-
-	"io/fs"
 )
 
 type filesystem interface {

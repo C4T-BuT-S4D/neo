@@ -3,11 +3,13 @@ module github.com/c4t-but-s4d/neo/v2
 go 1.25
 
 require (
+	github.com/creasty/defaults v1.8.0
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/improbable-eng/grpc-web v0.15.1-0.20230209220825-1d9bbb09a099
 	github.com/klauspost/compress v1.18.1
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/common v0.67.4
@@ -21,6 +23,7 @@ require (
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/net v0.47.0
+	golang.org/x/sync v0.18.0
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.10
 	nhooyr.io/websocket v1.8.17

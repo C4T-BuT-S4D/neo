@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 )
 
@@ -14,9 +12,9 @@ type singleRunCLI struct {
 	exploitID string
 }
 
-func NewSingleRun(_ *cobra.Command, args []string, cfg *client.Config) NeoCLI {
+func NewSingleRun(cc *Context, args []string, cfg *client.Config) NeoCLI {
 	return &singleRunCLI{
-		baseCLI:   &baseCLI{cfg: cfg},
+		baseCLI:   &baseCLI{cc: cc, cfg: cfg},
 		exploitID: args[0],
 	}
 }

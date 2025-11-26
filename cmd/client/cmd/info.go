@@ -4,30 +4,28 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/cmd/client/cli"
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
+	"github.com/c4t-but-s4d/neo/v2/pkg/viperext"
 )
 
-var infoCmd = &cobra.Command{
-	Use:   "info",
-	Short: "Print current state",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := client.UnmarshalConfig()
+func NewInfoCommand(cc *cli.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "info",
+		Short: "Print current state",
+	}
+
+	viperext.MustBindCommandFlags(cc.Viper, cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cfg, err := viperext.GetConfig(cc.Viper, &client.Config{})
 		if err != nil {
 			return fmt.Errorf("unmarshalling config: %w", err)
 		}
-		c := cli.NewInfo(cmd, args, cfg)
-		if err := c.Run(cmd.Context()); err != nil {
-			return fmt.Errorf("getting info: %w", err)
-		}
-		zap.L().Debug("Info finished")
-		return nil
-	},
-}
+		c := cli.NewInfo(cc, args, cfg)
+		return c.Run(cmd.Context())
+	}
 
-//nolint:gochecknoinits // cli init
-func init() {
-	rootCmd.AddCommand(infoCmd)
+	return cmd
 }

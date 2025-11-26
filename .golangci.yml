@@ -171,6 +171,8 @@ linters:
             - 10
         - name: confusing-naming
           disabled: true
+        - name: unsecure-url-scheme
+          disabled: true
 
   exclusions:
     generated: lax

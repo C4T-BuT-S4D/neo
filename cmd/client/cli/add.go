@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/durationpb"
 
@@ -31,32 +30,17 @@ type addCLI struct {
 	disabled  bool
 }
 
-func NewAdd(cmd *cobra.Command, args []string, cfg *client.Config) (NeoCLI, error) {
-	c := &addCLI{
-		baseCLI: &baseCLI{cfg: cfg},
-		path:    args[0],
-	}
-
-	var err error
-	if c.exploitID, err = cmd.Flags().GetString("id"); err != nil {
-		return nil, fmt.Errorf("getting exploit id: %w", err)
-	}
-	if c.isArchive, err = cmd.Flags().GetBool("dir"); err != nil {
-		return nil, fmt.Errorf("parsing directory flag: %w", err)
-	}
-	if c.runEvery, err = cmd.Flags().GetDuration("interval"); err != nil {
-		return nil, fmt.Errorf("parsing run interval: %w", err)
-	}
-	if c.timeout, err = cmd.Flags().GetDuration("timeout"); err != nil {
-		return nil, fmt.Errorf("parsing run timeout: %w", err)
-	}
-	if c.endless, err = cmd.Flags().GetBool("endless"); err != nil {
-		return nil, fmt.Errorf("parsing endless flag: %w", err)
-	}
-	if c.disabled, err = cmd.Flags().GetBool("disabled"); err != nil {
-		return nil, fmt.Errorf("parsing disabled flag: %w", err)
-	}
-	return c, nil
+func NewAdd(cc *Context, args []string, cfg *client.Config) (NeoCLI, error) {
+	return &addCLI{
+		baseCLI:   &baseCLI{cc: cc, cfg: cfg},
+		path:      args[0],
+		exploitID: cc.Viper.GetString("id"),
+		isArchive: cc.Viper.GetBool("dir"),
+		runEvery:  cc.Viper.GetDuration("interval"),
+		timeout:   cc.Viper.GetDuration("timeout"),
+		endless:   cc.Viper.GetBool("endless"),
+		disabled:  cc.Viper.GetBool("disabled"),
+	}, nil
 }
 
 func (ac *addCLI) Run(ctx context.Context) error {

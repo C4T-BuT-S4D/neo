@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
 	"github.com/c4t-but-s4d/neo/v2/internal/config"
 )
@@ -14,8 +12,8 @@ type infoCLI struct {
 	*baseCLI
 }
 
-func NewInfo(_ *cobra.Command, _ []string, cfg *client.Config) NeoCLI {
-	return &infoCLI{&baseCLI{cfg: cfg}}
+func NewInfo(cc *Context, _ []string, cfg *client.Config) NeoCLI {
+	return &infoCLI{&baseCLI{cc: cc, cfg: cfg}}
 }
 
 func (ic *infoCLI) Run(ctx context.Context) error {

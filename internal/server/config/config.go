@@ -8,20 +8,22 @@ import (
 )
 
 type Config struct {
-	Debug           bool              `mapstructure:"debug"`
-	Address         string            `mapstructure:"address"`
-	StaticDir       string            `mapstructure:"static_dir"`
-	DBPath          string            `mapstructure:"db_path"`
-	VictoriaLogsURL string            `mapstructure:"victorialogs_url"`
-	BaseDir         string            `mapstructure:"base_dir"`
-	PingEvery       time.Duration     `mapstructure:"ping_every"`
-	SubmitEvery     time.Duration     `mapstructure:"submit_every"`
+	LogLevel        string            `mapstructure:"log_level" default:"info"`
+	Address         string            `mapstructure:"address" default:":5005"`
+	StaticDir       string            `mapstructure:"static_dir" default:"front/dist"`
+	DBPath          string            `mapstructure:"db_path" default:"data/db.db"`
+	VictoriaLogsURL string            `mapstructure:"victorialogs_url" default:"http://127.0.0.1:9428"`
+	BaseDir         string            `mapstructure:"base_dir" default:"data/exploits"`
+	PingEvery       time.Duration     `mapstructure:"ping_every" default:"5s"`
+	SubmitEvery     time.Duration     `mapstructure:"submit_every" default:"2s"`
 	FarmConfig      FarmConfig        `mapstructure:"farm"`
 	GrpcAuthKey     string            `mapstructure:"grpc_auth_key"`
 	Environ         map[string]string `mapstructure:"env"`
 
-	MetricsAddress   string `mapstructure:"metrics_address"`
+	MetricsAddress   string `mapstructure:"metrics_address" default:":3000"`
 	MetricsNamespace string `mapstructure:"metrics_namespace"`
+
+	ConfigFile string `mapstructure:"config" default:"server_config.yml"`
 }
 
 type FarmConfig struct {

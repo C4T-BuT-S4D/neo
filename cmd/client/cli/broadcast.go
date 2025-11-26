@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
@@ -15,14 +14,10 @@ type broadcastCLI struct {
 	cmd string
 }
 
-func NewBroadcast(cmd *cobra.Command, _ []string, cfg *client.Config) (NeoCLI, error) {
-	command, err := cmd.Flags().GetString("command")
-	if err != nil {
-		return nil, fmt.Errorf("parsing command flag: %w", err)
-	}
+func NewBroadcast(cc *Context, _ []string, cfg *client.Config) (NeoCLI, error) {
 	return &broadcastCLI{
-		baseCLI: &baseCLI{cfg: cfg},
-		cmd:     command,
+		baseCLI: &baseCLI{cc: cc, cfg: cfg},
+		cmd:     cc.Viper.GetString("command"),
 	}, nil
 }
 

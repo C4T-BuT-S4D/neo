@@ -18,7 +18,7 @@ func VTProtoSizer[T interface{ SizeVT() int }]() SizerFunc[T] {
 	}
 }
 
-func NewDynamicSizeCache[T any, M any](s WStream[M], maxSize int, maxCount int, sizer SizerFunc[T], bf BatcherFunc[T, *M]) *DynamicSizeCache[T, M] {
+func NewDynamicSizeCache[T, M any](s WStream[M], maxSize, maxCount int, sizer SizerFunc[T], bf BatcherFunc[T, *M]) *DynamicSizeCache[T, M] {
 	return &DynamicSizeCache[T, M]{
 		stream:   s,
 		batcher:  bf,

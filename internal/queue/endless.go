@@ -59,13 +59,11 @@ func (q *endlessQueue) Start(ctx context.Context) {
 	q.metrics.MaxJobs.Add(float64(q.maxJobs))
 	defer q.metrics.MaxJobs.Sub(float64(q.maxJobs))
 
-	wg := sync.WaitGroup{}
-	wg.Add(q.maxJobs)
+	var wg sync.WaitGroup
 	for range q.maxJobs {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			q.worker(ctx)
-		}()
+		})
 	}
 	wg.Wait()
 

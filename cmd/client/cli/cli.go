@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/denisbrodbeck/machineid"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -23,6 +22,7 @@ type NeoCLI interface {
 }
 
 type baseCLI struct {
+	cc  *Context
 	cfg *client.Config
 
 	clientID string
@@ -67,7 +67,7 @@ func (cmd *baseCLI) ClientID() (string, error) {
 		return cmd.clientID, nil
 	}
 
-	cmd.clientID = viper.GetString("client_id")
+	cmd.clientID = cmd.cc.Viper.GetString("client_id")
 	if cmd.clientID == "" {
 		var err error
 		if cmd.clientID, err = machineid.ID(); err != nil {

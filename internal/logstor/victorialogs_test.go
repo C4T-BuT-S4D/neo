@@ -15,13 +15,13 @@ import (
 func TestParseVictoriaLogsLine(t *testing.T) {
 	tests := []struct {
 		name    string
-		doc     map[string]interface{}
+		doc     map[string]any
 		want    *logspb.LogLine
 		wantErr bool
 	}{
 		{
 			name: "valid line",
-			doc: map[string]interface{}{
+			doc: map[string]any{
 				"_time":   "2024-01-01T12:00:00Z",
 				"exploit": "test-exploit",
 				"version": "1",
@@ -41,7 +41,7 @@ func TestParseVictoriaLogsLine(t *testing.T) {
 		},
 		{
 			name: "missing _time field",
-			doc: map[string]interface{}{
+			doc: map[string]any{
 				"exploit": "test-exploit",
 				"version": "1",
 			},
@@ -50,7 +50,7 @@ func TestParseVictoriaLogsLine(t *testing.T) {
 		},
 		{
 			name: "invalid version",
-			doc: map[string]interface{}{
+			doc: map[string]any{
 				"_time":   "2024-01-01T12:00:00Z",
 				"exploit": "test-exploit",
 				"version": "invalid",
@@ -129,6 +129,7 @@ func TestVictoriaLogsDocument(t *testing.T) {
 		Team:      line.GetTeam(),
 	}
 
+	require.Equal(t, "2024-01-01T12:00:00.000000000Z", doc.Timestamp)
 	require.Equal(t, "test-exploit", doc.Exploit)
 	require.Equal(t, "1", doc.Version)
 	require.Equal(t, "test message", doc.Message)

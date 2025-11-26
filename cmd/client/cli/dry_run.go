@@ -2,12 +2,12 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
 	"sync"
 
-	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	"github.com/c4t-but-s4d/neo/v2/internal/client"
@@ -25,32 +25,23 @@ type dryRunCLI struct {
 	teamIP    string
 }
 
-func NewDryRun(cmd *cobra.Command, args []string, cfg *client.Config) (NeoCLI, error) {
+func NewDryRun(cc *Context, args []string, cfg *client.Config) (NeoCLI, error) {
 	cfg.ExploitDir = path.Join(cfg.ExploitDir, "dry")
 	if err := os.MkdirAll(cfg.ExploitDir, os.ModePerm); err != nil {
 		return nil, fmt.Errorf("creating dry dir %s: %w", cfg.ExploitDir, err)
 	}
 
-	jobs, err := parseJobsFlagE(cmd, "jobs")
-	if err != nil {
-		return nil, err
-	}
-
-	teamID, err := cmd.Flags().GetString("team_id")
-	if err != nil {
-		return nil, fmt.Errorf("parsing team_id flag: %w", err)
-	}
-	teamIP, err := cmd.Flags().GetString("team_ip")
-	if err != nil {
-		return nil, fmt.Errorf("parsing team_ip flag: %w", err)
+	jobs := cc.Viper.GetInt("jobs")
+	if jobs < 0 {
+		return nil, errors.New("jobs should be non-negative")
 	}
 
 	return &dryRunCLI{
-		baseCLI:   &baseCLI{cfg: cfg},
+		baseCLI:   &baseCLI{cc: cc, cfg: cfg},
 		exploitID: args[0],
 		jobs:      jobs,
-		teamID:    teamID,
-		teamIP:    teamIP,
+		teamID:    cc.Viper.GetString("team_id"),
+		teamIP:    cc.Viper.GetString("team_ip"),
 	}, nil
 }
 
@@ -126,13 +117,13 @@ func (rc *dryRunCLI) Run(ctx context.Context) error {
 	}
 
 	tasksDone := 0
-loop:
 	for {
 		select {
-		case res, ok := <-q.Results():
-			if !ok || tasksDone+1 == len(tasks) && !ex.Endless {
+		case res := <-q.Results():
+			if tasksDone+1 == len(tasks) && !ex.Endless {
 				zap.L().Info("Finished running sploits, waiting for queue to finish")
-				break loop
+				runCancel()
+				return nil
 			}
 			tasksDone++
 			zap.L().Info("Result", zap.Any("target", res.Target), zap.String("output", string(res.Out)))
@@ -141,16 +132,4 @@ loop:
 			return nil
 		}
 	}
-	return nil
-}
-
-func parseJobsFlagE(cmd *cobra.Command, name string) (int, error) {
-	jobs, err := cmd.Flags().GetInt(name)
-	if err != nil {
-		return 0, fmt.Errorf("getting %s flag: %w", name, err)
-	}
-	if jobs < 0 {
-		return 0, fmt.Errorf("%s should be non-negative", name)
-	}
-	return jobs, nil
 }
